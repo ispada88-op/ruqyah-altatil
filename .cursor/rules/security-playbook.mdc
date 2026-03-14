@@ -1,0 +1,42 @@
+---
+description: AI Vibe Coding - Security Playbook (24 rules)
+alwaysApply: true
+---
+
+# Security Playbook
+
+Apply these rules in all code and when adding backend/APIs.
+
+## Authentication & Sessions (01–03)
+- **01** JWT session expiry ≤ 7 days; use refresh token rotation.
+- **02** Never use AI-built auth. Use Clerk, Supabase, or Auth0.
+- **03** API keys strictly in env (e.g. `process.env`, Flutter: `--dart-define` / env files); never in chat or repo.
+
+## Secure API Development (04–08)
+- **04** Rotate secrets at least every 90 days.
+- **05** Verify all suggested packages for security before adding (e.g. `dart pub outdated`, check CVEs).
+- **06** Prefer newer, more secure package versions.
+- **07** After dependency changes run audit (e.g. `npm audit fix` or Dart equivalent).
+- **08** Sanitize all inputs; use parameterized queries only.
+
+## API & Access Control (09–13)
+- **09** Enable Row-Level Security in DB from day one.
+- **10** No `console.log`/`print` in production; Flutter: use `debugPrint` only in lib (disabled in release).
+- **11** CORS restricted to allow-listed production domain.
+- **12** Validate redirect URLs against an allow-list.
+- **13** Auth and rate limiting on every endpoint.
+
+## Data & Infrastructure (14–18)
+- **14** Cap AI API costs in code and dashboard.
+- **15** DDoS protection (e.g. Cloudflare, Vercel edge).
+- **16** Storage: users access only their own files.
+- **17** Validate uploads by signature, not by extension.
+- **18** Verify webhook signatures before processing payment data.
+
+## Other (19–24)
+- **19** Permissions enforced server-side; UI checks are not security.
+- **20** Log critical actions: deletions, role changes, payments, exports.
+- **21** Implement real account deletion flows.
+- **22** Automate backups and test restores.
+- **23** Keep test and production fully separate.
+- **24** Never let webhooks touch real systems in test.

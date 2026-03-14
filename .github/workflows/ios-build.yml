@@ -1,0 +1,41 @@
+# بناء iOS من GitHub (بدون Mac) — يحتاج تشغيل على runner بنظام macOS
+# الناتج: تطبيق غير موقع (للتجربة) أو IPA إذا أضفت التوقيع عبر Secrets
+
+name: iOS Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths: [ 'lib/**', 'pubspec.yaml', 'ios/**' ]
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Generate icons and splash
+        run: |
+          dart run flutter_launcher_icons
+          dart run flutter_native_splash:create
+
+      - name: Install pods
+        run: cd ios && pod install && cd ..
+
+      - name: Build iOS (no code sign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: build/ios/iphoneos/Runner.app
