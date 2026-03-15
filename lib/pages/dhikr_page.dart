@@ -40,6 +40,7 @@ class _DhikrPageState extends State<DhikrPage> {
   Future<void> _loadSavedData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
       setState(() {
         _count = prefs.getInt('dhikr_count') ?? 0;
         _target = prefs.getInt('dhikr_target') ?? 33;
@@ -50,7 +51,7 @@ class _DhikrPageState extends State<DhikrPage> {
       });
     } catch (e) {
       if (kDebugMode) debugPrint('Error loading dhikr data: $e');
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

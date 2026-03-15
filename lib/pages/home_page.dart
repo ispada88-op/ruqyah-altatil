@@ -226,7 +226,7 @@ class _FeatureCardState extends State<_FeatureCard> {
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        transform: Matrix4.identity()..scale(_isPressed ? 0.97 : 1.0),
+        transform: Matrix4.identity()..scale(_isPressed ? 0.97 : 1.0), // ignore: deprecated_member_use
         decoration: BoxDecoration(
           gradient: widget.gradient,
           borderRadius: BorderRadius.circular(AppRadius.lg),

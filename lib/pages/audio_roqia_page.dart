@@ -131,17 +131,17 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
       await _loadAudio(reciter);
     } else if (_audioPlayer.playing) {
       await _audioPlayer.pause();
-      setState(() {});
+      if (mounted) setState(() {});
     } else {
       await _audioPlayer.play();
-      setState(() {});
+      if (mounted) setState(() {});
     }
   }
 
   void _stopAudio() async {
     HapticFeedback.mediumImpact();
     await _audioPlayer.stop();
-    setState(() => _position = Duration.zero);
+    if (mounted) setState(() => _position = Duration.zero);
   }
 
   void _seekForward() {
@@ -315,7 +315,7 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                           _loadAudio(reciter);
                         },
                         isDark: isDark,
-                      )).toList(),
+                      )),
                     ],
                   ),
                 ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
@@ -489,7 +489,7 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                             ),
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                   ),
                 ).animate().fadeIn(delay: 600.ms),

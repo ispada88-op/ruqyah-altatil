@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -33,7 +32,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
   }
 
   Future<void> _sendFeedback() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_formKey.currentState?.validate() != true) return;
 
     setState(() => _isSending = true);
 
@@ -218,7 +217,7 @@ $message
                       ],
                     ),
                     child: DropdownButtonFormField<String>(
-                      value: _selectedType,
+                      initialValue: _selectedType,
                       isExpanded: true,
                       icon: Icon(
                         Icons.arrow_drop_down,
