@@ -31,6 +31,10 @@ ios/Flutter/Flutter.podspec
 .DS_Store
 Thumbs.db
 
+# Code signing (لا ترفع المفاتيح إلى المستودع)
+ios_dist_key
+ios_dist_key.pub
+
 # Env
 .env
 .env.*

@@ -1,0 +1,9 @@
+Open PowerShell, then run these 3 commands one by one (replace ispada88-op if your username is different):
+
+cd "C:\Users\khale\OneDrive\سطح المكتب\Ruqyah_Project"
+
+git remote remove origin 2>$null; git remote add origin https://github.com/ispada88-op/ruqyah-altatil.git
+
+git push -u origin main
+
+When it asks for password: paste your Personal Access Token.

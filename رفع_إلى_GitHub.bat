@@ -1,23 +1,16 @@
 @echo off
-chcp 65001 >nul
-echo ========================================
-echo   رفع مشروع الرقية إلى GitHub
-echo ========================================
-echo.
-
 cd /d "%~dp0"
 
-set /p USERNAME="ادخل اسم المستخدم في GitHub (Username): "
+set /p USERNAME="GitHub Username (e.g. ispada88-op): "
 if "%USERNAME%"=="" (
-  echo لم تدخل اسم المستخدم. ألغيت.
+  echo No username. Exit.
   pause
   exit /b 1
 )
 
 echo.
-echo جاري ربط المستودع وإرسال الكود...
-echo عند الطلب: كلمة المرور = Personal Access Token من GitHub
-echo    (ليس كلمة مرور حسابك)
+echo Connecting and pushing...
+echo When asked for password, paste your Personal Access Token (not account password).
 echo.
 
 git remote remove origin 2>nul
@@ -26,12 +19,9 @@ git push -u origin main
 
 echo.
 if %ERRORLEVEL% EQU 0 (
-  echo تم الرفع بنجاح.
-  echo الرابط: https://github.com/%USERNAME%/ruqyah-altatil
+  echo Done: https://github.com/%USERNAME%/ruqyah-altatil
 ) else (
-  echo فشل الرفع. تأكد من:
-  echo 1- إنشاء مستودع ruqyah-altatil على GitHub
-  echo 2- استخدام Token ككلمة مرور: GitHub ^> Settings ^> Developer settings ^> Personal access tokens
+  echo Failed. Create repo ruqyah-altatil on GitHub and use Token as password.
 )
 echo.
 pause
