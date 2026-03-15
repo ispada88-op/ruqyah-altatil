@@ -1,5 +1,16 @@
 # بناء تطبيق iOS من السحابة (بدون Mac) — رقية التعطيل
-# بعد رفع المشروع على GitHub/GitLab: اربط المستودع في codemagic.io وأضف تكامل App Store Connect
+# تكامل App Store Connect: الاسم "codemagic" إلزامي (Integrations في Codemagic).
+#
+# حل "No matching profiles found": نستخدم إنشاء تلقائي للشهادة وملف التوفيع عبر
+# app-store-connect fetch-signing-files --create (بدلاً من جلب ملفات مُحمّلة مسبقاً).
+#
+# مطلوب في Codemagic (Environment variables):
+# 1) تكامل App Store Connect باسم "codemagic" (Issuer ID + Key ID + ملف .p8).
+# 2) مجموعة متغيرات (مثلاً appstore_signing) تحتوي على:
+#    CERTIFICATE_PRIVATE_KEY (Secret) = محتوى مفتاح RSA الخاص لشهادة التوزيع.
+#    لإنشاء المفتاح مرة واحدة (على Mac أو Git Bash): 
+#      ssh-keygen -t rsa -b 2048 -m PEM -f ios_distribution_key -q -N ""
+#    ثم انسخ محتوى ملف ios_distribution_key (بما فيه BEGIN/END) إلى المتغير.
 
 workflows:
   ios-ruqyah:
@@ -9,17 +20,26 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.ruqyah.altatil
+      groups:
+        - appstore_signing
       vars:
         FLUTTER_BUILD_NAME: "1.0.0"
         FLUTTER_BUILD_NUMBER: "1"
+        BUNDLE_ID: "com.ruqyah.altatil"
       flutter: stable
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Set up code signing
+      - name: Set up keychain for code signing
+        script: keychain initialize
+      - name: Fetch or create signing files (certificate + provisioning profile)
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Set up signing certificate in keychain
+        script: keychain add-certificates
+      - name: Set up code signing on Xcode project
         script: xcode-project use-profiles
       - name: Get Flutter packages
         script: flutter pub get
@@ -46,3 +66,7 @@ workflows:
         notify:
           success: true
           failure: true
+      # رفع تلقائي إلى TestFlight بعد البناء (يتطلب تكامل App Store Connect باسم "codemagic")
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
