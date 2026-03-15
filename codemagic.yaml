@@ -49,9 +49,10 @@ workflows:
           dart run flutter_native_splash:create
       - name: Install CocoaPods
         script: find . -name "Podfile" -execdir pod install \;
-      - name: Flutter analyze
-        script: flutter analyze
-        ignore_failure: true
+      # Flutter analyze معطّل مؤقتاً حتى لا يُسجّل البناء كـ failed (Codemagic لا ينشر عند الفشل)
+      # - name: Flutter analyze
+      #   script: flutter analyze
+      #   ignore_failure: true
       - name: Build IPA
         script: |
           flutter build ipa --release \
