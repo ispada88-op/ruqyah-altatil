@@ -1,4 +1,4 @@
-# دليل النشر — Roqia Al-Tatil
+# دليل النشر — ruqyah-altatil
 
 نشر التطبيق على **iOS (App Store)** و **Google Play** و **Windows**.
 
@@ -11,26 +11,48 @@
 - حساب Codemagic (مجاني 500 دقيقة/شهر)
 - إنشاء سجل التطبيق في App Store Connect يدوياً (الإصدار الأول)
 
-### الخطوات
+### حل خطأ: No development certificates available
+
+إذا ظهر في البناء: **"No development certificates available to code sign app"** فالتوقيع غير مُعدّ في Codemagic. نفّذ التالي بالترتيب:
+
+1. **إضافة مفتاح App Store Connect API**
+   - في Codemagic: **Team settings** (أيقونة الترس بجانب اسم الفريق) → **Team integrations** → **Developer Portal** → **Manage keys**
+   - اضغط **Add key**
+   - من [App Store Connect → Users and Access → Integrations → App Store Connect API](https://appstoreconnect.apple.com/access/integrations/api):
+     - اضغط **+** لإنشاء مفتاح جديد، الاسم مثلاً `Codemagic`، الصلاحية **App Manager**
+     - حمّل ملف `.p8` (يُحمّل مرة واحدة فقط) واحفظه
+     - سجّل **Issuer ID** (فوق جدول المفاتيح) و **Key ID** (للمفتاح الجديد)
+   - في Codemagic: ارفع ملف `.p8`، أدخل **Issuer ID** و **Key ID**، واسم مرجعي للمفتاح ثم **Save**
+
+2. **إضافة شهادة التوزيع (Distribution certificate)**
+   - **Team settings** → **Code signing identities** → **iOS certificates**
+   - اضغط **Create certificate** (أو **Fetch** إن كانت الشهادة موجودة في Apple)
+   - اختر المفتاح الذي أضفته، نوع الشهادة **Apple Distribution**
+   - أدخل **Reference name** (مثلاً `ios_distribution`) ثم **Generate certificate**
+   - حمّل الشهادة ثم ارفعها في تبويب **Upload certificate** بنفس الـ Reference name
+
+3. **إضافة ملف التوفيق (Provisioning profile)**
+   - في **Code signing identities** → **iOS provisioning profiles**
+   - اضغط **Fetch** واختر ملف توفيق من نوع **App Store** لـ **Bundle ID: com.ruqyah.altatil**
+   - إن لم يوجد، أنشئ App ID في [Apple Developer Portal](https://developer.apple.com/account/resources/identifiers) ثم أنشئ Provisioning profile من نوع App Store
+   - أدخل **Reference name** ثم **Fetch profiles**
+
+4. **إعادة تشغيل البناء**
+   - البناء يستخدم تلقائياً `ios_signing` و `bundle_identifier: com.ruqyah.altatil` من `codemagic.yaml`
+   - من صفحة التطبيق اضغط **Start new build** أو ادفع تغييراً إلى `main`
+
+### الخطوات العامة
 
 1. **ربط المستودع في Codemagic**
    - ادخل إلى [codemagic.io](https://codemagic.io) وربط مستودع GitHub/GitLab
    - اختر الفرع `main` للمتابعة
 
-2. **إعداد توقيع iOS**
-   - في Codemagic: **Team settings** → **Code signing identities** → **iOS**
-   - اربط حساب Apple Developer
-   - أو أنشئ مفتاح App Store Connect API:
-     - [App Store Connect](https://appstoreconnect.apple.com/access/integrations/api) → Users and Access → App Store Connect API
-     - أنشئ مفتاحاً جديداً بصلاحية App Manager
-     - حمّل المفتاح الخاص (مرة واحدة فقط) واحفظه
-
-3. **تفعيل النشر في codemagic.yaml**
-   - أزل التعليق عن قسم `publishing` في workflow `ios-app-store`
-   - أضف المتغيرات في Codemagic: `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`
+2. **تفعيل النشر التلقائي (اختياري)**
+   - أزل التعليق عن قسم `publishing` في workflow `ios-app-store` داخل `codemagic.yaml`
+   - أضف المتغيرات في Codemagic إن لزم: `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`
    - ارفع المفتاح الخاص في إعدادات التكامل
 
-4. **البناء**
+3. **البناء**
    - أي push إلى `main` يشغّل البناء
    - المخرجات: `build/ios/ipa/*.ipa` (للرفع إلى TestFlight أو App Store)
 

@@ -16,6 +16,9 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.ruqyah.altatil
     triggering:
       events:
         - push
@@ -28,6 +31,8 @@ workflows:
       - name: Install CocoaPods
         script: |
           cd ios && pod install && cd ..
+      - name: Set up code signing settings on Xcode project
+        script: xcode-project use-profiles
       - name: Build iOS
         script: flutter build ipa --release
     artifacts:
