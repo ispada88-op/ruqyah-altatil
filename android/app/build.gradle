@@ -11,6 +11,9 @@ def keystorePropertiesFile = rootProject.file('key.properties')
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
+def useCodemagicSigning = System.getenv("CI") == "true" && System.getenv("CM_KEYSTORE_PATH")
+def useLocalSigning = keystorePropertiesFile.exists()
+def hasReleaseSigning = useCodemagicSigning || useLocalSigning
 
 android {
     namespace = "com.ruqyah.altatil"
@@ -28,10 +31,17 @@ android {
 
     signingConfigs {
        release {
-           keyAlias keystoreProperties['keyAlias']
-           keyPassword keystoreProperties['keyPassword']
-           storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-           storePassword keystoreProperties['storePassword']
+           if (useCodemagicSigning) {
+               keyAlias System.getenv("CM_KEY_ALIAS")
+               keyPassword System.getenv("CM_KEY_PASSWORD")
+               storeFile file(System.getenv("CM_KEYSTORE_PATH"))
+               storePassword System.getenv("CM_KEYSTORE_PASSWORD")
+           } else if (useLocalSigning) {
+               keyAlias keystoreProperties['keyAlias']
+               keyPassword keystoreProperties['keyPassword']
+               storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+               storePassword keystoreProperties['storePassword']
+           }
        }
     }
 
@@ -48,7 +58,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+            signingConfig = hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
             // ProGuard rules to prevent R8 from stripping audio_service classes
             minifyEnabled true
             shrinkResources true

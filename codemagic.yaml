@@ -1,69 +1,72 @@
-# بناء تطبيق iOS من السحابة (بدون Mac) — رقية التعطيل
-# تكامل App Store Connect: الاسم "codemagic" إلزامي (Integrations في Codemagic).
+# Codemagic CI/CD — Roqia Al-Tatil
+# iOS (App Store) | Android (Google Play) | Windows
+# https://docs.codemagic.io/yaml-quick-start/building-a-flutter-app
 #
-# حل "No matching profiles found": نستخدم إنشاء تلقائي للشهادة وملف التوفيع عبر
-# app-store-connect fetch-signing-files --create (بدلاً من جلب ملفات مُحمّلة مسبقاً).
-#
-# مطلوب في Codemagic (Environment variables):
-# 1) تكامل App Store Connect باسم "codemagic" (Issuer ID + Key ID + ملف .p8).
-# 2) مجموعة متغيرات (مثلاً appstore_signing) تحتوي على:
-#    CERTIFICATE_PRIVATE_KEY (Secret) = محتوى مفتاح RSA الخاص لشهادة التوزيع.
-#    لإنشاء المفتاح مرة واحدة (على Mac أو Git Bash): 
-#      ssh-keygen -t rsa -b 2048 -m PEM -f ios_distribution_key -q -N ""
-#    ثم انسخ محتوى ملف ios_distribution_key (بما فيه BEGIN/END) إلى المتغير.
+# إعداد مسبق في Codemagic:
+# - iOS: ربط Apple Developer + App Store Connect API
+# - Android: رفع keystore باسم android_keystore
+# - Windows: يُبنى محلياً أو عبر workflow منفصل
 
 workflows:
-  ios-ruqyah:
-    name: iOS رقية التعطيل
+  ios-app-store:
+    name: iOS App Store
+    max_build_duration: 60
     instance_type: mac_mini_m2
-    max_build_duration: 120
-    integrations:
-      app_store_connect: codemagic
     environment:
-      groups:
-        - appstore_signing
-      vars:
-        # لا تُعيَّن BUILD_NAME/NUMBER هنا — تُؤخذ من pubspec.yaml (مثلاً version: 1.0.0+2)
-        BUNDLE_ID: "com.ruqyah.altatil"
       flutter: stable
       xcode: latest
       cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
     scripts:
-      - name: Set up keychain for code signing
-        script: keychain initialize
-      - name: Fetch or create signing files (certificate + provisioning profile)
-        script: |
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
-      - name: Set up signing certificate in keychain
-        script: keychain add-certificates
-      - name: Set up code signing on Xcode project
-        script: xcode-project use-profiles
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Generate icons and splash
-        script: |
-          dart run flutter_launcher_icons
-          dart run flutter_native_splash:create
       - name: Install CocoaPods
-        script: find . -name "Podfile" -execdir pod install \;
-      # Flutter analyze معطّل مؤقتاً حتى لا يُسجّل البناء كـ failed (Codemagic لا ينشر عند الفشل)
-      # - name: Flutter analyze
-      #   script: flutter analyze
-      #   ignore_failure: true
-      - name: Build IPA
+        script: |
+          cd ios && pod install && cd ..
+      - name: Build iOS
         script: flutter build ipa --release
     artifacts:
       - build/ios/ipa/*.ipa
-    publishing:
-      email:
-        recipients:
-          - ispada88@gmail.com
-        notify:
-          success: true
-          failure: true
-      # رفع تلقائي إلى TestFlight بعد البناء (يتطلب تكامل App Store Connect باسم "codemagic")
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
+    # تفعيل النشر بعد ربط App Store Connect في Codemagic
+    # publishing:
+    #   app_store_connect:
+    #     api_key: $APP_STORE_CONNECT_KEY_ID
+    #     key_id: $APP_STORE_CONNECT_KEY_ID
+    #     issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+    #     submit_to_testflight: true
+
+  android-google-play:
+    name: Android Google Play
+    max_build_duration: 45
+    instance_type: linux_x2
+    environment:
+      flutter: stable
+      android_signing:
+        - android_keystore
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Build Android App Bundle
+        script: flutter build appbundle --release
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
+    # تفعيل النشر بعد ربط Google Play في Codemagic
+    # publishing:
+    #   google_play:
+    #     credentials: $GOOGLE_PLAY_CREDENTIALS
+    #     track: internal
+
+  # Windows: يُبنى محلياً على جهاز Windows
+  # flutter build windows --release
+  # المخرجات في: build/windows/x64/runner/Release/

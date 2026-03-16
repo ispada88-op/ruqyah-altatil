@@ -1,0 +1,7 @@
+# نسخ هذا الملف إلى android/key.properties واملأ القيم
+# لا ترفع key.properties إلى المستودع (موجود في .gitignore)
+
+storePassword=كلمة_سر_المستودع
+keyPassword=كلمة_سر_المفتاح
+keyAlias=roqia
+storeFile=../roqia.keystore
