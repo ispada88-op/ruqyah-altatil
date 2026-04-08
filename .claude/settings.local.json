@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter clean:*)",
+      "Bash(flutter pub:*)",
+      "Bash(flutter run:*)",
+      "Bash(curl -I https://server8.mp3quran.net/afs/001.mp3)",
+      "Bash(adb devices:*)",
+      "Bash(C:/development/android/platform-tools/adb.exe devices:*)",
+      "Bash(flutter doctor:*)",
+      "Bash(flutter build:*)"
+    ]
+  }
+}

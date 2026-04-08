@@ -38,3 +38,9 @@ ios_dist_key.pub
 # Env
 .env
 .env.*
+  
+# External projects  
+khaled_ai_council/  
+simple_council/  
+outputs/  
+create_coffee_cups.py 

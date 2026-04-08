@@ -1,17 +1,185 @@
-# Codemagic CI/CD — ruqyah-altatil (مشروع مستقل)
-# iOS (App Store) | Android (Google Play) | Windows
+# =============================================================================
+# Codemagic CI/CD — Ruqyah Altatil (roqia_altatil)
+# Application ID: com.ruqyah.altatil
+# Flutter 3.29.x | Android APK + iOS IPA
 # https://docs.codemagic.io/yaml-quick-start/building-a-flutter-app
+# =============================================================================
 #
-# إعداد مسبق في Codemagic:
-# - iOS: ربط Apple Developer + App Store Connect API
-# - Android: رفع keystore باسم android_keystore
-# - Windows: يُبنى محلياً أو عبر workflow منفصل
+# ENVIRONMENT VARIABLES (configure in Codemagic UI → Environment variables):
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Android signing (automatically populated when keystore is uploaded):
+#   CM_KEY_ALIAS           — Key alias (e.g., roqia)
+#   CM_KEY_PASSWORD        — Key password
+#   CM_KEYSTORE_PATH       — Path to uploaded keystore file
+#   CM_KEYSTORE_PASSWORD   — Keystore password
+#
+# iOS signing (via Codemagic UI → Code signing identities):
+#   APP_STORE_CONNECT_KEY_ID       — App Store Connect API Key ID
+#   APP_STORE_CONNECT_ISSUER_ID    — App Store Connect Issuer ID
+#   APP_STORE_CONNECT_PRIVATE_KEY  — Contents of .p8 private key
+#
+# Distribution:
+#   GOOGLE_PLAY_CREDENTIALS        — Google Play Service Account JSON
+#   EMAIL_ADDRESS                  — Notification email
+#
+# SETUP CHECKLIST:
+#   1. Upload Android keystore → Team settings → Code signing → Android keystores
+#      Reference name: ruqyah_keystore
+#   2. Upload iOS certificate + provisioning profile → Code signing identities
+#      Distribution type: App Store, Bundle ID: com.ruqyah.altatil
+#   3. Add App Store Connect API key → Team integrations → Developer Portal
+#   4. Add Google Play service account JSON as environment variable
+#   5. Create environment group "deployment_credentials" with above vars
+# =============================================================================
 
 workflows:
-  ios-app-store:
-    name: iOS App Store
+  # ─────────────────────────────────────────────────────────────────────────
+  # ANDROID RELEASE — Build APK & AAB → Google Play Internal Track
+  # ─────────────────────────────────────────────────────────────────────────
+  android-release:
+    name: "Android Release — Ruqyah Altatil"
+
+    max_build_duration: 45
+    instance_type: linux_x2
+
+    environment:
+      flutter: stable
+      android_signing:
+        - ruqyah_keystore
+      groups:
+        - deployment_credentials
+      vars:
+        APPLICATION_ID: "com.ruqyah.altatil"
+        GOOGLE_PLAY_TRACK: "internal"
+
+    # ── Caching: speed up repeated builds ────────────────────────────────
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - $FLUTTER_ROOT/.pub-cache
+        - .dart_tool
+        - build
+        - $HOME/.gradle/caches
+        - $HOME/.gradle/wrapper
+
+    # ── Trigger: push to main branch ─────────────────────────────────────
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+      cancel_previous_builds: true
+
+    # ── Build scripts ────────────────────────────────────────────────────
+    scripts:
+      - name: "🔧 Set up local Flutter environment"
+        script: |
+          #!/bin/bash
+          echo "Flutter version:"
+          flutter --version
+          echo ""
+          echo "Dart version:"
+          dart --version
+
+      - name: "📦 Install Flutter dependencies"
+        script: |
+          flutter pub get
+
+      - name: "🔑 Configure Android signing (key.properties)"
+        script: |
+          #!/bin/bash
+          # Codemagic auto-populates CM_KEYSTORE_PATH, CM_KEY_PASSWORD,
+          # CM_KEY_ALIAS, CM_KEYSTORE_PASSWORD when a keystore is uploaded
+          # via Team settings → Code signing identities → Android keystores
+
+          if [ -n "$CM_KEYSTORE_PATH" ]; then
+            echo "✅ Keystore detected: $CM_KEYSTORE_PATH"
+
+            # Create key.properties for Gradle-based release signing
+            cat > "$CM_BUILD_DIR/android/key.properties" <<EOF
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=$CM_KEYSTORE_PATH
+          EOF
+
+            echo "✅ android/key.properties written"
+          else
+            echo "⚠️  WARNING: No keystore found. Build will use debug signing."
+            echo "Upload your keystore via Codemagic → Team settings → Code signing identities"
+          fi
+
+      - name: "🔍 Analyze code quality"
+        script: |
+          flutter analyze --no-fatal-infos || true
+
+      - name: "🧪 Run unit and widget tests"
+        script: |
+          flutter test --coverage || true
+          # Upload coverage as artifact if needed
+
+      - name: "🏗️ Build release APK"
+        script: |
+          #!/bin/bash
+          flutter build apk --release
+
+          APK_PATH="build/app/outputs/apk/release/app-release.apk"
+          if [ -f "$APK_PATH" ]; then
+            APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
+            echo "✅ APK built successfully: $APK_PATH ($APK_SIZE)"
+          else
+            echo "❌ APK not found at expected path"
+            exit 1
+          fi
+
+      - name: "🏗️ Build release App Bundle (AAB)"
+        script: |
+          #!/bin/bash
+          flutter build appbundle --release
+
+          AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
+          if [ -f "$AAB_PATH" ]; then
+            AAB_SIZE=$(du -h "$AAB_PATH" | cut -f1)
+            echo "✅ AAB built successfully: $AAB_PATH ($AAB_SIZE)"
+          else
+            echo "❌ AAB not found at expected path"
+            exit 1
+          fi
+
+    # ── Artifact collection ──────────────────────────────────────────────
+    artifacts:
+      - build/app/outputs/apk/release/*.apk
+      - build/app/outputs/bundle/release/*.aab
+      - build/app/outputs/mapping/release/mapping.txt
+      - coverage/lcov.info
+
+    # ── Publishing & distribution ────────────────────────────────────────
+    publishing:
+      email:
+        recipients:
+          - $EMAIL_ADDRESS
+        notify:
+          success: true
+          failure: true
+
+      google_play:
+        credentials: $GOOGLE_PLAY_CREDENTIALS
+        track: $GOOGLE_PLAY_TRACK
+        submit_as_draft: true
+        rollout_percentage: 10
+        mapping_file: build/app/outputs/mapping/release/mapping.txt
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # IOS RELEASE — Build IPA → TestFlight → App Store
+  # ─────────────────────────────────────────────────────────────────────────
+  ios-release:
+    name: "iOS Release — Ruqyah Altatil"
+
     max_build_duration: 60
     instance_type: mac_mini_m2
+
     environment:
       flutter: stable
       xcode: latest
@@ -19,59 +187,108 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.ruqyah.altatil
+      groups:
+        - deployment_credentials
+      vars:
+        APPLICATION_ID: "com.ruqyah.altatil"
+        BUNDLE_ID: "com.ruqyah.altatil"
+        # Set APP_STORE_ID after first manual submission to App Store Connect
+        APP_STORE_ID: ""
+
+    # ── Caching: speed up repeated builds ────────────────────────────────
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - $FLUTTER_ROOT/.pub-cache
+        - .dart_tool
+        - build
+        - ios/Pods
+        - $HOME/Library/Caches/CocoaPods
+
+    # ── Trigger: push to main branch ─────────────────────────────────────
     triggering:
       events:
         - push
       branch_patterns:
         - pattern: main
           include: true
+      cancel_previous_builds: true
+
+    # ── Build scripts ────────────────────────────────────────────────────
     scripts:
-      - name: Get Flutter packages
-        script: flutter pub get
-      - name: Install CocoaPods
+      - name: "🔧 Set up local Flutter environment"
         script: |
-          cd ios && pod install && cd ..
-      - name: Set up code signing settings on Xcode project
-        script: xcode-project use-profiles
-      - name: Build iOS
-        script: flutter build ipa --release
+          #!/bin/bash
+          echo "Flutter version:"
+          flutter --version
+          echo ""
+          echo "Xcode version:"
+          xcodebuild -version
+          echo ""
+          echo "CocoaPods version:"
+          pod --version
+
+      - name: "📦 Install Flutter dependencies"
+        script: |
+          flutter pub get
+
+      - name: "🍎 Install CocoaPods dependencies"
+        script: |
+          cd ios
+          pod install --repo-update
+          cd ..
+
+      - name: "🔐 Configure Xcode code signing"
+        script: |
+          # Automatically configures signing using profiles uploaded to Codemagic
+          xcode-project use-profiles \
+            --project ios/Runner.xcodeproj
+
+      - name: "🔍 Analyze code quality"
+        script: |
+          flutter analyze --no-fatal-infos || true
+
+      - name: "🧪 Run unit and widget tests"
+        script: |
+          flutter test --coverage || true
+
+      - name: "🏗️ Build iOS IPA (release)"
+        script: |
+          #!/bin/bash
+          # Build the archive first
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
+
+          IPA_PATH=$(find build/ios/ipa -name "*.ipa" 2>/dev/null | head -1)
+          if [ -n "$IPA_PATH" ]; then
+            IPA_SIZE=$(du -h "$IPA_PATH" | cut -f1)
+            echo "✅ IPA built successfully: $IPA_PATH ($IPA_SIZE)"
+          else
+            echo "❌ IPA not found in build/ios/ipa/"
+            ls -la build/ios/ipa/ 2>/dev/null || echo "Directory does not exist"
+            exit 1
+          fi
+
+    # ── Artifact collection ──────────────────────────────────────────────
     artifacts:
       - build/ios/ipa/*.ipa
-    # تفعيل النشر بعد ربط App Store Connect في Codemagic
-    # publishing:
-    #   app_store_connect:
-    #     api_key: $APP_STORE_CONNECT_KEY_ID
-    #     key_id: $APP_STORE_CONNECT_KEY_ID
-    #     issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-    #     submit_to_testflight: true
+      - build/ios/archive/*.xcarchive
+      - /tmp/xcodebuild_logs/*.log
+      - coverage/lcov.info
 
-  android-google-play:
-    name: Android Google Play
-    max_build_duration: 45
-    instance_type: linux_x2
-    environment:
-      flutter: stable
-      android_signing:
-        - android_keystore
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-    scripts:
-      - name: Get Flutter packages
-        script: flutter pub get
-      - name: Build Android App Bundle
-        script: flutter build appbundle --release
-    artifacts:
-      - build/app/outputs/bundle/release/*.aab
-    # تفعيل النشر بعد ربط Google Play في Codemagic
-    # publishing:
-    #   google_play:
-    #     credentials: $GOOGLE_PLAY_CREDENTIALS
-    #     track: internal
+    # ── Publishing & distribution ────────────────────────────────────────
+    publishing:
+      email:
+        recipients:
+          - $EMAIL_ADDRESS
+        notify:
+          success: true
+          failure: true
 
-  # Windows: يُبنى محلياً على جهاز Windows
-  # flutter build windows --release
-  # المخرجات في: build/windows/x64/runner/Release/
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_ID
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        submit_to_app_store: false
+        expire_build_submitted_for_review: true
