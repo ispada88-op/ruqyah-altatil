@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">رقية التعطيل</string>
+
+    <string name="shortcut_audio_short">الرقية الصوتية</string>
+    <string name="shortcut_audio_long">ابدأ تشغيل الرقية الصوتية</string>
+
+    <string name="shortcut_dhikr_short">الأذكار</string>
+    <string name="shortcut_dhikr_long">عداد التسبيح والأذكار</string>
+
+    <string name="shortcut_kursi_short">آية الكرسي</string>
+    <string name="shortcut_kursi_long">قراءة آية الكرسي</string>
+</resources>

@@ -158,11 +158,13 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
   }
 
   void _seekForward() {
+    HapticFeedback.selectionClick();
     final n = _position + const Duration(seconds: 10);
     _audioPlayer.seek(n > _duration ? _duration : n);
   }
 
   void _seekBackward() {
+    HapticFeedback.selectionClick();
     final n = _position - const Duration(seconds: 10);
     _audioPlayer.seek(n < Duration.zero ? Duration.zero : n);
   }
@@ -170,6 +172,7 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
   void _seekTo(double value) => _audioPlayer.seek(Duration(seconds: value.toInt()));
 
   void _changeSpeed(double speed) {
+    HapticFeedback.lightImpact();
     setState(() => _playbackSpeed = speed);
     _audioPlayer.setSpeed(speed);
   }

@@ -1,6 +1,7 @@
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,7 +18,21 @@ Future<void> main() async {
   await ErrorReporter.runGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
-    // Background audio - لازم يكون قبل أي AudioPlayer
+    // ═══ Edge-to-edge display + transparent system bars (Android) ═══
+    // يخلي التطبيق يستخدم كامل الشاشة بدون شريط رمادي فوق/تحت.
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.edgeToEdge,
+    );
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark, // light theme default
+      statusBarBrightness: Brightness.light,    // iOS
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+      systemNavigationBarDividerColor: Colors.transparent,
+    ));
+
+    // ═══ Background audio init ═══
     try {
       await JustAudioBackground.init(
         androidNotificationChannelId: 'com.ruqyah.altatil.audio',
@@ -29,7 +44,7 @@ Future<void> main() async {
       ErrorReporter.report(e, st, context: 'JustAudioBackground.init');
     }
 
-    // Audio session config
+    // ═══ Audio session ═══
     try {
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.music());
@@ -37,17 +52,14 @@ Future<void> main() async {
       ErrorReporter.report(e, st, context: 'AudioSession init');
     }
 
-    // Theme provider — pre-loaded
+    // ═══ Theme persisted load ═══
     final themeProvider = ThemeProvider();
     await themeProvider.load();
 
-    // Notification service — initialized but not enabled (user opts in)
+    // ═══ Services ═══
     await NotificationService.instance.initialize();
-
-    // Audio player service
     await AudioPlayerService.instance.initialize();
 
-    // Track session for review prompt (best-effort, fire-and-forget)
     // ignore: discarded_futures
     ReviewService.instance.markSessionStart();
 
@@ -63,14 +75,43 @@ class RuqyahApp extends StatefulWidget {
   State<RuqyahApp> createState() => _RuqyahAppState();
 }
 
-class _RuqyahAppState extends State<RuqyahApp> {
+class _RuqyahAppState extends State<RuqyahApp> with WidgetsBindingObserver {
   bool _isLoading = true;
   bool _showOnboarding = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkOnboarding();
+    // مزامنة الـ system UI overlay مع الـ theme الحالي
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncSystemUI());
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    _syncSystemUI();
+  }
+
+  void _syncSystemUI() {
+    if (!mounted) return;
+    final isDark = widget.themeProvider.isDarkMode(context);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness:
+          isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarDividerColor: Colors.transparent,
+    ));
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _checkOnboarding() async {
@@ -106,6 +147,9 @@ class _RuqyahAppState extends State<RuqyahApp> {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, theme, _) {
+          // مزامنة overlay عند تغيير الـ theme من المستخدم
+          WidgetsBinding.instance.addPostFrameCallback((_) => _syncSystemUI());
+
           return MaterialApp.router(
             title: 'رقية التعطيل',
             debugShowCheckedModeBanner: false,

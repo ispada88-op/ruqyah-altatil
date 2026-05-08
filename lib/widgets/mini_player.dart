@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roqia_altatil/services/audio_player_service.dart';
+import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/theme.dart';
 
 /// شريط مصغّر يظهر فوق الـ bottom navigation عند تشغيل الصوت.
@@ -89,7 +90,7 @@ class MiniPlayer extends StatelessWidget {
                     // زر -10s
                     IconButton(
                       icon: const Icon(Icons.replay_10),
-                      onPressed: () => audio.skipBackward(),
+                      onPressed: () { Haptic.select(); audio.skipBackward(); },
                       iconSize: 22,
                       color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
                       visualDensity: VisualDensity.compact,
@@ -103,14 +104,14 @@ class MiniPlayer extends StatelessWidget {
                       ),
                       onPressed: audio.isLoading
                           ? null
-                          : () => audio.isPlaying ? audio.pause() : audio.play(),
+                          : () { Haptic.medium(); audio.isPlaying ? audio.pause() : audio.play(); },
                       iconSize: 36,
                       color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
                     ),
                     // زر +30s
                     IconButton(
                       icon: const Icon(Icons.forward_30),
-                      onPressed: () => audio.skipForward(),
+                      onPressed: () { Haptic.select(); audio.skipForward(); },
                       iconSize: 22,
                       color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
                       visualDensity: VisualDensity.compact,

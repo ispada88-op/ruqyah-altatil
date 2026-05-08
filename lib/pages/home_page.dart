@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roqia_altatil/nav.dart';
+import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/widgets/notifications_settings_card.dart';
 
@@ -80,7 +81,6 @@ class HomePage extends StatelessWidget {
                       const SizedBox(height: AppSpacing.md),
                       Text(
                         'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ',
-                        // Quranic style — Amiri font.
                         style: AppTextStyles.quran(
                           color: isDark ? AppColors.textOnDark : AppColors.primaryTeal,
                           fontSize: 24,
@@ -103,7 +103,6 @@ class HomePage extends StatelessWidget {
 
                 const SizedBox(height: AppSpacing.xl),
 
-                // Main Features
                 Text(
                   'الأقسام الرئيسية',
                   style: AppTextStyles.subheader(
@@ -121,7 +120,10 @@ class HomePage extends StatelessWidget {
                         ? [AppColors.darkTeal, AppColors.primaryTealDark]
                         : [AppColors.primaryTeal, AppColors.primaryTealLight],
                   ),
-                  onTap: () => context.go(AppRoutes.audioRoqia),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.audioRoqia);
+                  },
                 ).animate().fadeIn(delay: 100.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
 
                 const SizedBox(height: AppSpacing.md),
@@ -133,7 +135,10 @@ class HomePage extends StatelessWidget {
                   gradient: const LinearGradient(
                     colors: [AppColors.accentGold, AppColors.accentGoldLight],
                   ),
-                  onTap: () => context.go(AppRoutes.writtenRoqia),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.writtenRoqia);
+                  },
                 ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
 
                 const SizedBox(height: AppSpacing.md),
@@ -148,12 +153,14 @@ class HomePage extends StatelessWidget {
                         : [AppColors.backgroundCreamDark, AppColors.backgroundCream],
                   ),
                   textColor: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
-                  onTap: () => context.go(AppRoutes.dhikr),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.dhikr);
+                  },
                 ).animate().fadeIn(delay: 300.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
 
                 const SizedBox(height: AppSpacing.lg),
 
-                // إعدادات تذكير الأذكار (إشعار كل 3 ساعات)
                 const NotificationsSettingsCard()
                     .animate()
                     .fadeIn(delay: 400.ms, duration: 600.ms)
@@ -161,7 +168,6 @@ class HomePage extends StatelessWidget {
 
                 const SizedBox(height: AppSpacing.xxl),
 
-                // Footer
                 Container(
                   padding: AppSpacing.paddingMd,
                   decoration: BoxDecoration(
@@ -199,7 +205,7 @@ class HomePage extends StatelessWidget {
                       ),
                     ],
                   ),
-                ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
+                ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
               ],
             ),
           ),
@@ -209,12 +215,6 @@ class HomePage extends StatelessWidget {
   }
 }
 
-/// Feature card with press animation.
-///
-/// FIXED: previously triggered `onTap` twice (once from GestureDetector.onTapUp
-/// and once from InkWell.onTap). Now the GestureDetector is gone — InkWell
-/// handles taps and gives us the ripple. Press scale uses an
-/// AnimatedScale wrapper.
 class _FeatureCard extends StatefulWidget {
   final String title;
   final String subtitle;
@@ -307,7 +307,7 @@ class _FeatureCardState extends State<_FeatureCard> {
                     ),
                   ),
                   Icon(
-                    Icons.arrow_back_ios_new, // RTL: chevron points to start
+                    Icons.arrow_back_ios_new,
                     color: (widget.textColor ?? Colors.white)
                         .withValues(alpha: 0.7),
                     size: 18,

@@ -16,7 +16,7 @@ dependencies:
 
   # ────────── Audio stack ──────────
   just_audio: ^0.10.5
-  just_audio_background: ^0.0.1-beta.13   # تشغيل في الخلفية (lock screen + notification)
+  just_audio_background: ^0.0.1-beta.13
   audio_session: ^0.2.2
   wakelock_plus: ^1.2.8
 
@@ -34,9 +34,9 @@ dependencies:
   timezone: ^0.9.4
   permission_handler: ^11.3.0
 
-  # ────────── New features ──────────
-  share_plus: ^10.1.2          # مشاركة الآيات
-  in_app_review: ^2.0.10       # طلب تقييم التطبيق
+  # ────────── Sharing & review ──────────
+  share_plus: ^10.1.2
+  in_app_review: ^2.0.10
 
   # Kept for future credit_card module
   drift: ^2.32.0
@@ -48,8 +48,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  flutter_launcher_icons: ^0.13.1
-  flutter_native_splash: ^2.4.1   # شاشة بدء طبيعية
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
   drift_dev: ^2.32.0
   build_runner: ^2.4.0
 
@@ -59,21 +59,37 @@ flutter:
     - assets/icons/
     - assets/audio/
 
+# ═══════════════════════════════════════════════════════════════════
+# Launcher Icons - Adaptive + Monochrome (Android 8+/12+/13+)
+# ═══════════════════════════════════════════════════════════════════
 flutter_launcher_icons:
-  android: true
+  android: "ic_launcher"
   ios: true
-  image_path: assets/icons/dreamflow_icon.jpg
+  image_path: "assets/icons/app_icon.png"          # 1024×1024 PNG (المصدر)
   min_sdk_android: 23
   remove_alpha_ios: true
+
+  # Adaptive icon (Android 8+)
+  adaptive_icon_background: "#006B6B"               # Teal خلفية
+  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"  # PNG شفاف 432×432
+
+  # Monochrome icon (Android 13+ Themed Icons)
+  adaptive_icon_monochrome: "assets/icons/app_icon_monochrome.png"  # PNG أحادي اللون
+
   web:
     generate: false
 
+# ═══════════════════════════════════════════════════════════════════
+# Native Splash Screen
+# ═══════════════════════════════════════════════════════════════════
 flutter_native_splash:
   color: "#006B6B"
-  image: assets/icons/dreamflow_icon.jpg
+  image: assets/icons/splash_icon.png              # 480×480 PNG (يمكن نفس app_icon)
   android_12:
     color: "#006B6B"
-    image: assets/icons/dreamflow_icon.jpg
+    image: assets/icons/splash_icon.png
   ios: true
   android: true
   fullscreen: false
+  android_gravity: center
+  ios_content_mode: center
