@@ -13,16 +13,20 @@ def useLocalSigning = keystorePropertiesFile.exists()
 
 android {
     namespace = "com.ruqyah.altatil"
-    compileSdk = flutter.compileSdkVersion
+    // EXPLICIT SDK versions to satisfy Google Play's August 2025 mandate (target 35).
+    // Don't rely on flutter.compileSdkVersion — it depends on the local Flutter SDK
+    // version on the build machine, and Codemagic stable lags behind.
+    compileSdk = 35
     ndkVersion = "27.0.12077973"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     signingConfigs {
@@ -38,10 +42,13 @@ android {
 
     defaultConfig {
         applicationId = "com.ruqyah.altatil"
-        minSdkVersion = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdkVersion = 23
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Multidex for safety (large dep tree with drift + just_audio + google_fonts)
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -52,6 +59,27 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    // Generate per-ABI APKs for external distribution (Play uses AAB so this only helps APK)
+    splits {
+        abi {
+            enable project.hasProperty('splitPerAbi')
+            reset()
+            include 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+            universalApk false
+        }
+    }
+
+    // Bundle config: per-density + per-language splits keep AAB small on Play
+    bundle {
+        density { enableSplit true }
+        abi     { enableSplit true }
+        language { enableSplit true }
+    }
+}
+
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
 }
 
 flutter {

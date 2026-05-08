@@ -49,7 +49,6 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
     debugPrint('🟡 AudioRoqiaPage.initState');
 
     // Configure audio session for background playback
-    _initAudioSession();
 
     _audioPlayer.durationStream.listen((d) {
       if (mounted) setState(() => _duration = d ?? Duration.zero);
@@ -75,11 +74,6 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
     super.dispose();
   }
 
-  Future<void> _initAudioSession() async {
-    final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.music());
-    debugPrint('✅ AudioSession configured');
-  }
 
   Future<void> _loadAudio(ReciterModel reciter) async {
     debugPrint('🟡 _loadAudio ENTERED: ${reciter.name}');
