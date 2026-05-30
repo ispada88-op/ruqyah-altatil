@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/theme.dart';
-import 'package:roqia_altatil/data/quran_data.dart';
+import 'package:roqia_altatil/data/written_roqia_data.dart';
 
 /// Written Roqia page with Quran-style design
 class WrittenRoqiaPage extends StatefulWidget {
@@ -13,7 +14,29 @@ class WrittenRoqiaPage extends StatefulWidget {
 
 class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
   double _fontSize = 20.0;
+  static const _kFontSizeKey = 'written_font_size';
 
+  @override
+  void initState() {
+    super.initState();
+    _loadFontSize();
+  }
+
+  Future<void> _loadFontSize() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() => _fontSize = prefs.getDouble(_kFontSizeKey) ?? 20.0);
+      }
+    } catch (_) {/* ignore */}
+  }
+
+  Future<void> _saveFontSize(double size) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_kFontSizeKey, size);
+    } catch (_) {/* ignore */}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +78,10 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                       max: 32.0,
                       divisions: 18,
                       label: _fontSize.round().toString(),
-                      onChanged: (value) => setState(() => _fontSize = value),
+                      onChanged: (value) {
+                        setState(() => _fontSize = value);
+                        _saveFontSize(value);
+                      },
                     ),
                   ),
                 ),
@@ -78,186 +104,21 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                 const SizedBox(height: 12),
                 _buildTahrijCard(),
                 const SizedBox(height: 12),
-                // 1. Al-Fatiha (full)
-                _buildSurahCard(
-                  'سورة الفاتحة',
-                  7,
-                  'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ',
-                  [
-                    'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ﴿١﴾',
-                    'الرَّحْمَٰنِ الرَّحِيمِ ﴿٢﴾',
-                    'مَٰلِكِ يَوْمِ الدِّينِ ﴿٣﴾',
-                    'إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ ﴿٤﴾',
-                    'اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ ﴿٥﴾',
-                    'صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ ﴿٦﴾',
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // 2. Al-Baqarah (1-5) - أول خمس آيات
-                _buildSurahCard(
-                  'سورة البقرة',
-                  null,
-                  'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ',
-                  [
-                    'الم ﴿١﴾',
-                    'ذَٰلِكَ الْكِتَابُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًى لِّلْمُتَّقِينَ ﴿٢﴾',
-                    'الَّذِينَ يُؤْمِنُونَ بِالْغَيْبِ وَيُقِيمُونَ الصَّلَاةَ وَمِمَّا رَزَقْنَاهُمْ يُنفِقُونَ ﴿٣﴾',
-                    'وَالَّذِينَ يُؤْمِنُونَ بِمَا أُنزِلَ إِلَيْكَ وَمَا أُنزِلَ مِن قَبْلِكَ وَبِالْآخِرَةِ هُمْ يُوقِنُونَ ﴿٤﴾',
-                    'أُولَٰئِكَ عَلَىٰ هُدًى مِّن رَّبِّهِمْ ۖ وَأُولَٰئِكَ هُمُ الْمُفْلِحُونَ ﴿٥﴾',
-                  ],
-                  subtitle: 'الآيات (١-٥)',
-                ),
-                const SizedBox(height: 12),
-                // 3. Ayat Al-Kursi (255)
-                _buildSurahCard(
-                  'سورة البقرة',
-                  null,
-                  null,
-                  [
-                    'اللَّهُ لَا إِلَهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ ﴿٢٥٥﴾',
-                  ],
-                  subtitle: 'آية الكرسي (٢٥٥)',
-                ),
-                const SizedBox(height: 12),
-                // 4. Al-Baqarah (285-286) - خواتيم البقرة
-                _buildSurahCard(
-                  'سورة البقرة',
-                  null,
-                  null,
-                  [
-                    'آمَنَ الرَّسُولُ بِمَا أُنزِلَ إِلَيْهِ مِن رَّبِّهِ وَالْمُؤْمِنُونَ ۚ كُلٌّ آمَنَ بِاللَّهِ وَمَلَائِكَتِهِ وَكُتُبِهِ وَرُسُلِهِ لَا نُفَرِّقُ بَيْنَ أَحَدٍ مِّن رُّسُلِهِ ۚ وَقَالُوا سَمِعْنَا وَأَطَعْنَا ۖ غُفْرَانَكَ رَبَّنَا وَإِلَيْكَ الْمَصِيرُ ﴿٢٨٥﴾',
-                    'لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا ۚ لَهَا مَا كَسَبَتْ وَعَلَيْهَا مَا اكْتَسَبَتْ ۗ رَبَّنَا لَا تُؤَاخِذْنَا إِن نَّسِينَا أَوْ أَخْطَأْنَا ۚ رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَا إِصْرًا كَمَا حَمَلْتَهُ عَلَى الَّذِينَ مِن قَبْلِنَا ۚ رَبَّنَا وَلَا تُحَمِّلْنَا مَا لَا طَاقَةَ لَنَا بِهِ ۖ وَاعْفُ عَنَّا وَاغْفِرْ لَنَا وَارْحَمْنَا ۚ أَنتَ مَوْلَانَا فَانصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ ﴿٢٨٦﴾',
-                  ],
-                  subtitle: 'خواتيم البقرة (٢٨٥-٢٨٦)',
-                ),
-                const SizedBox(height: 12),
-                // 4. Al-Anfal (full 75 verses - first 5 + button)
-                _buildSurahCard(
-                  'سورة الأنفال',
-                  75,
-                  basmala,
-                  anfalVerses,
-                ),
-                const SizedBox(height: 12),
-                // 5. Ad-Dukhan (full 59 verses - first 5 + button)
-                _buildSurahCard(
-                  'سورة الدخان',
-                  59,
-                  basmala,
-                  dukhanVerses,
-                ),
-                const SizedBox(height: 12),
-                // 6. As-Saffat (full 182 verses - first 5 + button)
-                _buildSurahCard(
-                  'سورة الصافات',
-                  182,
-                  basmala,
-                  saffatVerses,
-                ),
-                const SizedBox(height: 12),
-                // 7. Al-Haqqah (full 52 verses - first 5 + button)
-                _buildSurahCard(
-                  'سورة الحاقة',
-                  52,
-                  basmala,
-                  haqqaVerses,
-                ),
-                const SizedBox(height: 12),
-                // 8. Zalzalah (full)
-                _buildSurahCard(
-                  'سورة الزلزلة',
-                  8,
-                  'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ',
-                  [
-                    'إِذَا زُلْزِلَتِ الْأَرْضُ زِلْزَالَهَا ﴿١﴾',
-                    'وَأَخْرَجَتِ الْأَرْضُ أَثْقَالَهَا ﴿٢﴾',
-                    'وَقَالَ الْإِنْسَانُ مَا لَهَا ﴿٣﴾',
-                    'يَوْمَئِذٍ تُحَدِّثُ أَخْبَارَهَا ﴿٤﴾',
-                    'بِأَنَّ رَبَّكَ أَوْحَى لَهَا ﴿٥﴾',
-                    'يَوْمَئِذٍ يَصْدُرُ النَّاسُ أَشْتَاتًا لِيُرَوْا أَعْمَالَهُمْ ﴿٦﴾',
-                    'فَمَنْ يَعْمَلْ مِثْقَالَ ذَرَّةٍ خَيْرًا يَرَهُ ﴿٧﴾',
-                    'وَمَنْ يَعْمَلْ مِثْقَالَ ذَرَّةٍ شَرًّا يَرَهُ ﴿٨﴾',
-                  ],
-                  warning: '⚠️ الحامل لا تقرأ هذه السورة',
-                ),
-                const SizedBox(height: 12),
-                // 9. Al-Kafirun (full)
-                _buildSurahCard(
-                  'سورة الكافرون',
-                  6,
-                  'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ',
-                  [
-                    'قُلْ يَا أَيُّهَا الْكَافِرُونَ ﴿١﴾',
-                    'لَا أَعْبُدُ مَا تَعْبُدُونَ ﴿٢﴾',
-                    'وَلَا أَنْتُمْ عَابِدُونَ مَا أَعْبُدُ ﴿٣﴾',
-                    'وَلَا أَنَا عَابِدٌ مَا عَبَدْتُمْ ﴿٤﴾',
-                    'وَلَا أَنْتُمْ عَابِدُونَ مَا أَعْبُدُ ﴿٥﴾',
-                    'لَكُمْ دِينُكُمْ وَلِيَ دِينِ ﴿٦﴾',
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // 10. Al-Ikhlas (full)
-                _buildSurahCard(
-                  'سورة الإخلاص',
-                  4,
-                  'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ',
-                  [
-                    'قُلْ هُوَ اللَّهُ أَحَدٌ ﴿١﴾',
-                    'اللَّهُ الصَّمَدُ ﴿٢﴾',
-                    'لَمْ يَلِدْ وَلَمْ يُولَدْ ﴿٣﴾',
-                    'وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ ﴿٤﴾',
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // 11. Al-Falaq (full)
-                _buildSurahCard(
-                  'سورة الفلق',
-                  5,
-                  'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ',
-                  [
-                    'قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ﴿١﴾',
-                    'مِنْ شَرِّ مَا خَلَقَ ﴿٢﴾',
-                    'وَمِنْ شَرِّ غَاسِقٍ إِذَا وَقَبَ ﴿٣﴾',
-                    'وَمِنْ شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ﴿٤﴾',
-                    'وَمِنْ شَرِّ حَاسِدٍ إِذَا حَسَدَ ﴿٥﴾',
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // 12. An-Nas (full)
-                _buildSurahCard(
-                  'سورة الناس',
-                  6,
-                  'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ',
-                  [
-                    'قُلْ أَعُوذُ بِرَبِّ النَّاسِ ﴿١﴾',
-                    'مَلِكِ النَّاسِ ﴿٢﴾',
-                    'إِلَهِ النَّاسِ ﴿٣﴾',
-                    'مِنْ شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ﴿٤﴾',
-                    'الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ﴿٥﴾',
-                    'مِنَ الْجِنَّةِ وَالنَّاسِ ﴿٦﴾',
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // 13. Al-Qari'ah (full)
-                _buildSurahCard(
-                  'سورة القارعة',
-                  11,
-                  'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ',
-                  [
-                    'الْقَارِعَةُ ﴿١﴾',
-                    'مَا الْقَارِعَةُ ﴿٢﴾',
-                    'وَمَا أَدْرَاكَ مَا الْقَارِعَةُ ﴿٣﴾',
-                    'يَوْمَ يَكُونُ النَّاسُ كَالْفَرَاشِ الْمَبْثُوثِ ﴿٤﴾',
-                    'وَتَكُونُ الْجِبَالُ كَالْعِهْنِ الْمَنْفُوشِ ﴿٥﴾',
-                    'فَأَمَّا مَنْ ثَقُلَتْ مَوَازِينُهُ ﴿٦﴾',
-                    'فَهُوَ فِي عِيشَةٍ رَاضِيَةٍ ﴿٧﴾',
-                    'وَأَمَّا مَنْ خَفَّتْ مَوَازِينُهُ ﴿٨﴾',
-                    'فَأُمُّهُ هَاوِيَةٌ ﴿٩﴾',
-                    'وَمَا أَدْرَاكَ مَا هِيَهْ ﴿١٠﴾',
-                    'نَارٌ حَامِيَةٌ ﴿١١﴾',
-                  ],
-                ),
-                const SizedBox(height: 12),
+                // كل السور بالنص العثماني الموثّق (verified_quran.dart)
+                // + السور الكبيرة من quran_data.dart
+                ...writtenSurahs.expand((s) => [
+                      _buildSurahCard(
+                        s.name,
+                        s.totalAyat,
+                        s.basmala,
+                        s.verses,
+                        subtitle: s.subtitle,
+                        warning: s.name.contains('الزلزلة')
+                            ? '⚠️ الحامل لا تقرأ هذه السورة'
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                    ]),
                 // Duas at the end
                 _buildDuasCard(),
               ],
