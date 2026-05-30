@@ -1,17 +1,49 @@
-# roqia_altatil
+# رقية التعطيل — Ruqyah Altatil
 
-A new Flutter project.
+> تطبيق الرقية الشرعية بصوت الشيخ ماهر المعيقلي والشيخ سعد الغامدي
 
-## Getting Started
+## 📱 المميزات
+- 🎙️ رقية مسموعة بأصوات مشايخ
+- 📖 رقية مكتوبة (مطابقة لمصحف المدينة المنورة)
+- 🤲 عداد تسبيح وأذكار
+- 🌙 وضع ليلي / نهاري
 
-This project is a starting point for a Flutter application.
+## 📂 هيكل المشروع
+```
+ruqyah-altatil/
+├── android/              ← كود الأندرويد
+├── ios/                  ← كود الآيفون
+├── lib/                  ← كود Dart المشترك
+│   ├── pages/            ← الصفحات
+│   ├── services/         ← الخدمات
+│   ├── widgets/          ← الويدجتس
+│   ├── custom_actions/   ← الإجراءات
+│   ├── data/             ← البيانات
+│   ├── audio/            ← ملفات الصوت
+│   └── utils/            ← أدوات مساعدة
+├── assets/               ← الملفات الصوتية والأيقونات
+├── docs/                 ← التوثيق
+│   ├── android/          ← دليل أندرويد + keystore
+│   ├── ios/              ← دليل آيفون + codemagic.yaml
+│   └── shared/           ← سياسة الخصوصية + سجل التغييرات
+└── test/                 ← الاختبارات
+```
 
-A few resources to get you started if this is your first Flutter project:
+## 🚀 التشغيل
+```bash
+flutter pub get
+flutter run
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## 📦 البناء
+```bash
+flutter build apk --release   # Android
+flutter build ios --release   # iOS
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 📋 المنصات
+- **Android**: API 23+ (Android 6.0+)
+- **iOS**: 12.0+
+
+## 📄 الترخيص
+حقوق النشر © 2026 — kajoker88
