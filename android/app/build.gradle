@@ -19,6 +19,8 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
+        // Required by flutter_local_notifications (Java 8+ time APIs)
+        coreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -30,17 +32,17 @@ android {
     signingConfigs {
        release {
            if (useLocalSigning) {
-               keyAlias keystoreProperties['keyAlias']
-               keyPassword keystoreProperties['keyPassword']
-               storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-               storePassword keystoreProperties['storePassword']
+               keyAlias = keystoreProperties['keyAlias']
+               keyPassword = keystoreProperties['keyPassword']
+               storeFile = keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+               storePassword = keystoreProperties['storePassword']
            }
        }
     }
 
     defaultConfig {
         applicationId = "com.ruqyah.altatil"
-        minSdkVersion = 23
+        minSdkVersion = flutter.minSdkVersion
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -58,4 +60,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
 }
