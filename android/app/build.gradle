@@ -13,7 +13,9 @@ def useLocalSigning = keystorePropertiesFile.exists()
 
 android {
     namespace = "com.ruqyah.altatil"
-    compileSdk = flutter.compileSdkVersion
+    // Hardcoded to satisfy Google Play 2025 target API mandate (35),
+    // independent of the local Flutter SDK's flutter.compileSdkVersion.
+    compileSdk = 35
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -38,8 +40,8 @@ android {
 
     defaultConfig {
         applicationId = "com.ruqyah.altatil"
-        minSdkVersion = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdkVersion = 23
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

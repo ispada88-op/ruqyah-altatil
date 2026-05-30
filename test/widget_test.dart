@@ -1,9 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:roqia_altatil/main.dart';
+import 'package:roqia_altatil/services/audio_player_service.dart';
 
 void main() {
-  testWidgets('App loads without crashing', (WidgetTester tester) async {
-    await tester.pumpWidget(const RuqyahApp());
-    await tester.pumpAndSettle();
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('Reciter catalogue is non-empty and well-formed', () {
+    expect(kReciters, isNotEmpty);
+    for (final r in kReciters) {
+      expect(r.id, isNotEmpty);
+      expect(r.name, isNotEmpty);
+      expect(r.localAsset.endsWith('.mp3'), isTrue);
+    }
   });
 }

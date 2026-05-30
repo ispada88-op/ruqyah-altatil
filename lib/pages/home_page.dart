@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roqia_altatil/nav.dart';
+import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/theme.dart';
+import 'package:roqia_altatil/widgets/notifications_settings_card.dart';
 
-/// Enhanced home page with professional design
+/// Enhanced home page with professional design.
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -30,7 +32,7 @@ class HomePage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: AppSpacing.lg),
-                
+
                 // Welcome Section
                 Container(
                   padding: AppSpacing.paddingXl,
@@ -79,26 +81,28 @@ class HomePage extends StatelessWidget {
                       const SizedBox(height: AppSpacing.md),
                       Text(
                         'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ',
-                        style: AppTextStyles.header(
+                        style: AppTextStyles.quran(
                           color: isDark ? AppColors.textOnDark : AppColors.primaryTeal,
-                        ),
+                          fontSize: 24,
+                        ).copyWith(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         'رقية التعطيل والسحر — الشيخ فهد القرني',
                         style: AppTextStyles.body(
-                          color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
+                          color: isDark
+                              ? AppColors.textOnDarkSecondary
+                              : AppColors.textSecondary,
                         ),
                         textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2, end: 0),
-                
+
                 const SizedBox(height: AppSpacing.xl),
-                
-                // Main Features
+
                 Text(
                   'الأقسام الرئيسية',
                   style: AppTextStyles.subheader(
@@ -106,7 +110,7 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                
+
                 _FeatureCard(
                   title: 'الرقية الشرعية الصوتية',
                   subtitle: 'استمع إلى الرقية بأصوات مشايخ مختارين',
@@ -116,11 +120,14 @@ class HomePage extends StatelessWidget {
                         ? [AppColors.darkTeal, AppColors.primaryTealDark]
                         : [AppColors.primaryTeal, AppColors.primaryTealLight],
                   ),
-                  onTap: () => context.go(AppRoutes.audioRoqia),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.audioRoqia);
+                  },
                 ).animate().fadeIn(delay: 100.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
-                
+
                 const SizedBox(height: AppSpacing.md),
-                
+
                 _FeatureCard(
                   title: 'الرقية الشرعية المكتوبة',
                   subtitle: 'اقرأ آيات الرقية بخط واضح وجميل',
@@ -128,11 +135,14 @@ class HomePage extends StatelessWidget {
                   gradient: const LinearGradient(
                     colors: [AppColors.accentGold, AppColors.accentGoldLight],
                   ),
-                  onTap: () => context.go(AppRoutes.writtenRoqia),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.writtenRoqia);
+                  },
                 ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
-                
+
                 const SizedBox(height: AppSpacing.md),
-                
+
                 _FeatureCard(
                   title: 'الأذكار اليومية',
                   subtitle: 'عداد التسبيح والأدعية المأثورة',
@@ -143,16 +153,27 @@ class HomePage extends StatelessWidget {
                         : [AppColors.backgroundCreamDark, AppColors.backgroundCream],
                   ),
                   textColor: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
-                  onTap: () => context.go(AppRoutes.dhikr),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.dhikr);
+                  },
                 ).animate().fadeIn(delay: 300.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
-                
+
+                const SizedBox(height: AppSpacing.lg),
+
+                const NotificationsSettingsCard()
+                    .animate()
+                    .fadeIn(delay: 400.ms, duration: 600.ms)
+                    .slideX(begin: -0.1, end: 0),
+
                 const SizedBox(height: AppSpacing.xxl),
-                
-                // Footer
+
                 Container(
                   padding: AppSpacing.paddingMd,
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSecondary : Colors.white.withValues(alpha: 0.5),
+                    color: isDark
+                        ? AppColors.darkSecondary
+                        : Colors.white.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                   child: Column(
@@ -165,21 +186,26 @@ class HomePage extends StatelessWidget {
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         'قُلْ أَعُوذُ بِرَبِّ النَّاسِ',
-                        style: AppTextStyles.caption(
-                          color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
+                        style: AppTextStyles.quran(
+                          color: isDark
+                              ? AppColors.textOnDarkSecondary
+                              : AppColors.textSecondary,
+                          fontSize: 16,
                         ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'الإصدار 1.0.0',
+                        'الإصدار 1.0.1',
                         style: AppTextStyles.caption(
-                          color: isDark ? AppColors.textOnDarkSecondary : AppColors.textTertiary,
+                          color: isDark
+                              ? AppColors.textOnDarkSecondary
+                              : AppColors.textTertiary,
                         ),
                       ),
                     ],
                   ),
-                ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
+                ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
               ],
             ),
           ),
@@ -216,17 +242,13 @@ class _FeatureCardState extends State<_FeatureCard> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) {
-        setState(() => _isPressed = false);
-        widget.onTap();
-      },
-      onTapCancel: () => setState(() => _isPressed = false),
+
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 120),
+      scale: _isPressed ? 0.97 : 1.0,
+      curve: Curves.easeOut,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        transform: Matrix4.identity()..scale(_isPressed ? 0.97 : 1.0), // ignore: deprecated_member_use
         decoration: BoxDecoration(
           gradient: widget.gradient,
           borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -242,6 +264,7 @@ class _FeatureCardState extends State<_FeatureCard> {
           color: Colors.transparent,
           child: InkWell(
             onTap: widget.onTap,
+            onHighlightChanged: (v) => setState(() => _isPressed = v),
             borderRadius: BorderRadius.circular(AppRadius.lg),
             child: Padding(
               padding: AppSpacing.paddingLg,
@@ -251,7 +274,8 @@ class _FeatureCardState extends State<_FeatureCard> {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: (widget.textColor ?? Colors.white).withValues(alpha: 0.2),
+                      color: (widget.textColor ?? Colors.white)
+                          .withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Icon(
@@ -275,16 +299,18 @@ class _FeatureCardState extends State<_FeatureCard> {
                         Text(
                           widget.subtitle,
                           style: AppTextStyles.caption(
-                            color: (widget.textColor ?? Colors.white).withValues(alpha: 0.9),
+                            color: (widget.textColor ?? Colors.white)
+                                .withValues(alpha: 0.9),
                           ),
                         ),
                       ],
                     ),
                   ),
                   Icon(
-                    Icons.arrow_forward_ios,
-                    color: (widget.textColor ?? Colors.white).withValues(alpha: 0.7),
-                    size: 20,
+                    Icons.arrow_back_ios_new,
+                    color: (widget.textColor ?? Colors.white)
+                        .withValues(alpha: 0.7),
+                    size: 18,
                   ),
                 ],
               ),

@@ -1,20 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:audio_session/audio_session.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:roqia_altatil/theme.dart';
-import 'package:roqia_altatil/main.dart';
+import 'package:roqia_altatil/services/audio_player_service.dart';
 
-class ReciterModel {
-  final String name;
-  final String localAsset;
-  const ReciterModel({
-    required this.name,
-    required this.localAsset,
-  });
-}
-
+/// صفحة الرقية الصوتية — تستخدم [AudioPlayerService] المركزية
+/// (تشغيل في الخلفية + lock screen + mini player + حفظ الموضع).
 class AudioRoqiaPage extends StatefulWidget {
   const AudioRoqiaPage({super.key});
   @override
@@ -22,162 +13,47 @@ class AudioRoqiaPage extends StatefulWidget {
 }
 
 class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
-  final AudioPlayer _audioPlayer = appAudioPlayer;
-  String _selectedSheikh = '';
-  Duration _duration = Duration.zero;
-  Duration _position = Duration.zero;
-  bool _isLoading = false;
-  bool _isSwitching = false;
   double _playbackSpeed = 1.0;
-  String? _errorMessage;
 
-  final List<ReciterModel> _reciters = const [
-    ReciterModel(
-      name: 'الشيخ ماهر المعيقلي',
-      localAsset: 'assets/audio/maher_almuaiqly.mp3',
-    ),
-    ReciterModel(
-      name: 'الشيخ سعد الغامدي',
-      localAsset: 'assets/audio/saad_alghamdi.mp3',
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedSheikh = _reciters[0].name;
-    debugPrint('🟡 AudioRoqiaPage.initState');
-
-    // Configure audio session for background playback
-    _initAudioSession();
-
-    _audioPlayer.durationStream.listen((d) {
-      if (mounted) setState(() => _duration = d ?? Duration.zero);
-    });
-    _audioPlayer.positionStream.listen((p) {
-      if (mounted) setState(() => _position = p);
-    });
-    _audioPlayer.playerStateStream.listen((state) {
-      if (!mounted) return;
-      if (state.processingState == ProcessingState.completed) {
-        setState(() => _position = Duration.zero);
-      }
-      if (mounted) setState(() {});
-    });
-    _audioPlayer.playingStream.listen((_) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    WakelockPlus.disable();
-    super.dispose();
-  }
-
-  Future<void> _initAudioSession() async {
-    final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.music());
-    debugPrint('✅ AudioSession configured');
-  }
-
-  Future<void> _loadAudio(ReciterModel reciter) async {
-    debugPrint('🟡 _loadAudio ENTERED: ${reciter.name}');
-
-    if (_isSwitching) {
-      debugPrint('🔴 _loadAudio SKIPPED - _isSwitching=true');
-      return;
-    }
-
-    setState(() {
-      _isSwitching = true;
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      debugPrint('🟡 _loadAudio: loading ${reciter.localAsset}');
-      await _audioPlayer.stop();
-      await _audioPlayer.setAudioSource(AudioSource.asset(reciter.localAsset));
-      await _audioPlayer.play();
-      await WakelockPlus.enable();
-      debugPrint('🟢 _loadAudio SUCCESS for ${reciter.name}');
-    } catch (e, stack) {
-      debugPrint('🔴 _loadAudio FAILED: $e');
-      debugPrint('🔴 STACK: $stack');
-      if (mounted) {
-        setState(() => _errorMessage = 'خطأ: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _isSwitching = false;
-        });
-      }
-    }
-  }
+  AudioPlayerService get _svc => context.read<AudioPlayerService>();
 
   Future<void> _playPause() async {
-    debugPrint('🟢 _playPause ENTERED');
-
-    if (_isLoading || _isSwitching) {
-      debugPrint('🔴 _playPause BLOCKED');
-      return;
-    }
-
-    if (!mounted) return;
-
     HapticFeedback.lightImpact();
-
-    if (_audioPlayer.processingState == ProcessingState.idle ||
-        _audioPlayer.processingState == ProcessingState.completed) {
-      debugPrint('🟡 _playPause: State idle/completed - loading audio');
-      final reciter = _reciters.firstWhere((r) => r.name == _selectedSheikh);
-      await _loadAudio(reciter);
-    } else if (_audioPlayer.playing) {
-      debugPrint('🟡 _playPause: Pausing...');
-      await _audioPlayer.pause();
-      if (mounted) setState(() {});
+    final svc = _svc;
+    if (svc.isPlaying) {
+      await svc.pause();
     } else {
-      debugPrint('🟡 _playPause: Resuming...');
-      await _audioPlayer.play();
-      if (mounted) setState(() {});
+      await svc.play();
     }
-
-    debugPrint('🟢 _playPause FINISHED');
   }
 
   Future<void> _stopAudio() async {
-    debugPrint('🟡 _stopAudio ENTERED');
-    if (!mounted) return;
     HapticFeedback.mediumImpact();
-    try {
-      await _audioPlayer.stop();
-      await WakelockPlus.disable();
-      debugPrint('🟢 _stopAudio SUCCESS');
-    } catch (e) {
-      debugPrint('🔴 _stopAudio ERROR: $e');
-    }
-    if (!mounted) return;
-    setState(() => _position = Duration.zero);
+    await _svc.stop();
   }
 
   void _seekForward() {
-    final n = _position + const Duration(seconds: 10);
-    _audioPlayer.seek(n > _duration ? _duration : n);
+    HapticFeedback.selectionClick();
+    _svc.skipForward(const Duration(seconds: 10));
   }
 
   void _seekBackward() {
-    final n = _position - const Duration(seconds: 10);
-    _audioPlayer.seek(n < Duration.zero ? Duration.zero : n);
+    HapticFeedback.selectionClick();
+    _svc.skipBackward(const Duration(seconds: 10));
   }
 
-  void _seekTo(double value) => _audioPlayer.seek(Duration(seconds: value.toInt()));
+  void _seekTo(double value) => _svc.seek(Duration(seconds: value.toInt()));
 
   void _changeSpeed(double speed) {
+    HapticFeedback.lightImpact();
     setState(() => _playbackSpeed = speed);
-    _audioPlayer.setSpeed(speed);
+    _svc.setSpeed(speed);
+  }
+
+  Future<void> _selectReciter(Reciter reciter) async {
+    HapticFeedback.selectionClick();
+    await _svc.loadReciter(reciter);
+    await _svc.play();
   }
 
   String _formatDuration(Duration d) {
@@ -188,16 +64,13 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
     return '${two(d.inMinutes.remainder(60))}:${two(d.inSeconds.remainder(60))}';
   }
 
-  Widget _buildPlayButton() {
-    final isPlaying = _audioPlayer.playing;
+  Widget _buildPlayButton(AudioPlayerService svc) {
+    final isPlaying = svc.isPlaying;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        debugPrint('🟢 PLAY BUTTON TAPPED!');
-        _playPause();
-      },
+      onTap: _playPause,
       child: Container(
         width: 80,
         height: 80,
@@ -217,7 +90,7 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
             ),
           ],
         ),
-        child: _isLoading
+        child: svc.isLoading
             ? const Center(
                 child: CircularProgressIndicator(
                   color: Colors.white,
@@ -238,10 +111,7 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        debugPrint('🟢 STOP BUTTON TAPPED!');
-        _stopAudio();
-      },
+      onTap: _stopAudio,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         decoration: BoxDecoration(
@@ -279,15 +149,13 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        debugPrint('🟢 REWIND BUTTON TAPPED!');
-        _seekBackward();
-      },
+      onTap: _seekBackward,
       child: Container(
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: (isDark ? AppColors.darkSecondary : Colors.white).withValues(alpha: 0.8),
+          color: (isDark ? AppColors.darkSecondary : Colors.white)
+              .withValues(alpha: 0.8),
           shape: BoxShape.circle,
         ),
         child: Icon(
@@ -304,15 +172,13 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        debugPrint('🟢 FORWARD BUTTON TAPPED!');
-        _seekForward();
-      },
+      onTap: _seekForward,
       child: Container(
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: (isDark ? AppColors.darkSecondary : Colors.white).withValues(alpha: 0.8),
+          color: (isDark ? AppColors.darkSecondary : Colors.white)
+              .withValues(alpha: 0.8),
           shape: BoxShape.circle,
         ),
         child: Icon(
@@ -326,7 +192,11 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
 
   @override
   Widget build(BuildContext context) {
+    final svc = context.watch<AudioPlayerService>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final position = svc.position;
+    final duration = svc.duration;
+    final selectedReciter = svc.currentReciter;
 
     return Container(
       decoration: BoxDecoration(
@@ -366,10 +236,12 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                   ],
                 ),
                 child: Center(
-                  child: _isLoading
+                  child: svc.isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Icon(
-                          _audioPlayer.playing ? Icons.music_note : Icons.play_circle_outline,
+                          svc.isPlaying
+                              ? Icons.music_note
+                              : Icons.play_circle_outline,
                           size: 80,
                           color: Colors.white,
                         ),
@@ -391,15 +263,17 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
 
               // Sheikh name
               Text(
-                _selectedSheikh,
+                selectedReciter.name,
                 style: AppTextStyles.subheader(
-                  color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
+                  color: isDark
+                      ? AppColors.textOnDarkSecondary
+                      : AppColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
 
               // Error message
-              if (_errorMessage != null) ...[
+              if (svc.errorMessage != null) ...[
                 const SizedBox(height: AppSpacing.md),
                 Container(
                   padding: AppSpacing.paddingMd,
@@ -413,7 +287,7 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          _errorMessage!,
+                          svc.errorMessage!,
                           style: AppTextStyles.caption(color: AppColors.error),
                         ),
                       ),
@@ -430,35 +304,48 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                   SliderTheme(
                     data: SliderThemeData(
                       trackHeight: 4,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-                      activeTrackColor: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
-                      inactiveTrackColor:
-                          (isDark ? AppColors.textOnDarkSecondary : AppColors.textTertiary)
-                              .withValues(alpha: 0.3),
-                      thumbColor: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
+                      thumbShape:
+                          const RoundSliderThumbShape(enabledThumbRadius: 8),
+                      activeTrackColor:
+                          isDark ? AppColors.darkTeal : AppColors.primaryTeal,
+                      inactiveTrackColor: (isDark
+                              ? AppColors.textOnDarkSecondary
+                              : AppColors.textTertiary)
+                          .withValues(alpha: 0.3),
+                      thumbColor:
+                          isDark ? AppColors.darkTeal : AppColors.primaryTeal,
                     ),
                     child: Slider(
-                      value: _position.inSeconds.toDouble(),
+                      value: position.inSeconds
+                          .clamp(0, duration.inSeconds > 0 ? duration.inSeconds : 1)
+                          .toDouble(),
                       min: 0,
-                      max: _duration.inSeconds > 0 ? _duration.inSeconds.toDouble() : 1,
+                      max: duration.inSeconds > 0
+                          ? duration.inSeconds.toDouble()
+                          : 1,
                       onChanged: _seekTo,
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          _formatDuration(_position),
+                          _formatDuration(position),
                           style: AppTextStyles.caption(
-                            color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
+                            color: isDark
+                                ? AppColors.textOnDarkSecondary
+                                : AppColors.textSecondary,
                           ),
                         ),
                         Text(
-                          _formatDuration(_duration),
+                          _formatDuration(duration),
                           style: AppTextStyles.caption(
-                            color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
+                            color: isDark
+                                ? AppColors.textOnDarkSecondary
+                                : AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -475,7 +362,7 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                 children: [
                   _buildRewindButton(),
                   const SizedBox(width: AppSpacing.md),
-                  _buildPlayButton(),
+                  _buildPlayButton(svc),
                   const SizedBox(width: AppSpacing.md),
                   _buildForwardButton(),
                 ],
@@ -492,7 +379,8 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
               Container(
                 padding: AppSpacing.paddingMd,
                 decoration: BoxDecoration(
-                  color: (isDark ? AppColors.darkSecondary : Colors.white).withValues(alpha: 0.8),
+                  color: (isDark ? AppColors.darkSecondary : Colors.white)
+                      .withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
                 child: Column(
@@ -500,7 +388,9 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                     Text(
                       'سرعة التشغيل',
                       style: AppTextStyles.caption(
-                        color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
+                        color: isDark
+                            ? AppColors.textOnDarkSecondary
+                            : AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -517,13 +407,17 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                                 fontSize: 12,
                                 color: isSelected
                                     ? Colors.white
-                                    : (isDark ? AppColors.textOnDark : AppColors.textPrimary),
+                                    : (isDark
+                                        ? AppColors.textOnDark
+                                        : AppColors.textPrimary),
                               ),
                             ),
                             selected: isSelected,
-                            selectedColor: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
-                            backgroundColor:
-                                isDark ? AppColors.darkSurface : AppColors.backgroundCream,
+                            selectedColor:
+                                isDark ? AppColors.darkTeal : AppColors.primaryTeal,
+                            backgroundColor: isDark
+                                ? AppColors.darkSurface
+                                : AppColors.backgroundCream,
                             onSelected: (_) => _changeSpeed(speed),
                           ),
                         );
@@ -539,7 +433,8 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
               Container(
                 padding: AppSpacing.paddingMd,
                 decoration: BoxDecoration(
-                  color: (isDark ? AppColors.darkSecondary : Colors.white).withValues(alpha: 0.8),
+                  color: (isDark ? AppColors.darkSecondary : Colors.white)
+                      .withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
                 child: Column(
@@ -548,51 +443,63 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                     Text(
                       'اختر القارئ',
                       style: AppTextStyles.subheader(
-                        color: isDark ? AppColors.textOnDark : AppColors.primaryTeal,
+                        color:
+                            isDark ? AppColors.textOnDark : AppColors.primaryTeal,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    ..._reciters.map((reciter) {
-                      final isSelected = reciter.name == _selectedSheikh;
+                    ...kReciters.map((reciter) {
+                      final isSelected = reciter.id == selectedReciter.id;
                       return GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onTap: () async {
-                          debugPrint('🟢 RECITER TAPPED: ${reciter.name}');
-                          if (reciter.name != _selectedSheikh) {
-                            setState(() => _selectedSheikh = reciter.name);
-                            await _loadAudio(reciter);
-                          }
-                        },
+                        onTap: () => _selectReciter(reciter),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? (isDark ? AppColors.darkTeal : AppColors.primaryTeal).withValues(alpha: 0.1)
+                                ? (isDark
+                                        ? AppColors.darkTeal
+                                        : AppColors.primaryTeal)
+                                    .withValues(alpha: 0.1)
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(AppRadius.md),
                             border: Border.all(
                               color: isSelected
-                                  ? (isDark ? AppColors.darkTeal : AppColors.primaryTeal)
-                                  : (isDark ? AppColors.textOnDarkSecondary : AppColors.textTertiary)
+                                  ? (isDark
+                                      ? AppColors.darkTeal
+                                      : AppColors.primaryTeal)
+                                  : (isDark
+                                          ? AppColors.textOnDarkSecondary
+                                          : AppColors.textTertiary)
                                       .withValues(alpha: 0.3),
                               width: isSelected ? 2 : 1,
                             ),
                           ),
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
+                              backgroundColor: isDark
+                                  ? AppColors.darkTeal
+                                  : AppColors.primaryTeal,
                               child: Text(
                                 reciter.name.substring(0, 1),
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                             title: Text(
                               reciter.name,
-                              style: AppTextStyles.body(color: isDark ? AppColors.textOnDark : AppColors.textPrimary),
+                              style: AppTextStyles.body(
+                                  color: isDark
+                                      ? AppColors.textOnDark
+                                      : AppColors.textPrimary),
                             ),
                             trailing: isSelected
-                                ? Icon(Icons.check_circle, color: isDark ? AppColors.darkTeal : AppColors.primaryTeal)
+                                ? Icon(Icons.check_circle,
+                                    color: isDark
+                                        ? AppColors.darkTeal
+                                        : AppColors.primaryTeal)
                                 : null,
                           ),
                         ),

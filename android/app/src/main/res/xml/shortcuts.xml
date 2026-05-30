@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- اختصار 1: ابدأ الرقية الصوتية -->
+    <shortcut
+        android:shortcutId="audio_roqia"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_audio"
+        android:shortcutShortLabel="@string/shortcut_audio_short"
+        android:shortcutLongLabel="@string/shortcut_audio_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.ruqyah.altatil"
+            android:targetClass="com.ruqyah.altatil.MainActivity"
+            android:data="ruqyah://audio" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <!-- اختصار 2: الأذكار -->
+    <shortcut
+        android:shortcutId="dhikr"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_dhikr"
+        android:shortcutShortLabel="@string/shortcut_dhikr_short"
+        android:shortcutLongLabel="@string/shortcut_dhikr_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.ruqyah.altatil"
+            android:targetClass="com.ruqyah.altatil.MainActivity"
+            android:data="ruqyah://dhikr" />
+    </shortcut>
+
+    <!-- اختصار 3: آية الكرسي -->
+    <shortcut
+        android:shortcutId="ayat_alkursi"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_book"
+        android:shortcutShortLabel="@string/shortcut_kursi_short"
+        android:shortcutLongLabel="@string/shortcut_kursi_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.ruqyah.altatil"
+            android:targetClass="com.ruqyah.altatil.MainActivity"
+            android:data="ruqyah://written" />
+    </shortcut>
+
+</shortcuts>
