@@ -1,6 +1,7 @@
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -157,6 +158,11 @@ class _RuqyahAppState extends State<RuqyahApp> with WidgetsBindingObserver {
             themeMode: theme.themeMode,
             routerConfig: AppRouter.router,
             locale: const Locale('ar', 'SA'),
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             supportedLocales: const [
               Locale('ar', 'SA'),
               Locale('en', 'US'),
