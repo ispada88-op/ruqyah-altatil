@@ -166,6 +166,13 @@ class HomePage extends StatelessWidget {
                     .fadeIn(delay: 400.ms, duration: 600.ms)
                     .slideX(begin: -0.1, end: 0),
 
+                const SizedBox(height: AppSpacing.lg),
+
+                _DisclaimerCard(isDark: isDark)
+                    .animate()
+                    .fadeIn(delay: 450.ms, duration: 600.ms)
+                    .slideX(begin: -0.1, end: 0),
+
                 const SizedBox(height: AppSpacing.xxl),
 
                 Container(
@@ -318,6 +325,78 @@ class _FeatureCardState extends State<_FeatureCard> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// تنبيه: مصدر الرقية + أن التطبيق خيري بلا إعلانات + تنبيه شرعي/طبي.
+class _DisclaimerCard extends StatelessWidget {
+  final bool isDark;
+  const _DisclaimerCard({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final teal = isDark ? AppColors.darkTeal : AppColors.primaryTeal;
+    final textColor = isDark ? AppColors.textOnDark : AppColors.textPrimary;
+    final subColor =
+        isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary;
+
+    return Container(
+      padding: AppSpacing.paddingLg,
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.darkSecondary.withValues(alpha: 0.6)
+            : Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.verified_user_outlined, color: AppColors.accentGold, size: 22),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'تنبيه',
+                style: AppTextStyles.subheader(color: AppColors.accentGold),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _line(Icons.menu_book_rounded,
+              'الرقية الشرعية في هذا التطبيق منقولة عن الشيخ فهد القرني.',
+              teal, textColor),
+          const SizedBox(height: AppSpacing.sm),
+          _line(Icons.volunteer_activism_rounded,
+              'تطبيق خيري بالكامل — بدون أي إعلانات، ولا يجمع بياناتك.',
+              teal, textColor),
+          const SizedBox(height: AppSpacing.sm),
+          _line(Icons.healing_rounded,
+              'الرقية عبادة وسبب بإذن الله، ولا تُغني عن مراجعة الطبيب عند الحاجة.',
+              teal, subColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _line(IconData icon, String text, Color iconColor, Color textColor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      textDirection: TextDirection.rtl,
+      children: [
+        Icon(icon, color: iconColor, size: 18),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTextStyles.caption(color: textColor)
+                .copyWith(height: 1.6),
+            textAlign: TextAlign.right,
+            textDirection: TextDirection.rtl,
+          ),
+        ),
+      ],
     );
   }
 }
