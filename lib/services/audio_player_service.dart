@@ -59,6 +59,7 @@ class AudioPlayerService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isLoaded => _isLoaded;
   bool get isPlaying => _player.playing;
+  bool get isLooping => _player.loopMode == LoopMode.one;
   String? get errorMessage => _errorMessage;
   Stream<Duration> get positionStream => _player.positionStream;
   Stream<Duration?> get durationStream => _player.durationStream;
@@ -218,6 +219,18 @@ class AudioPlayerService extends ChangeNotifier {
       notifyListeners();
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'setSpeed');
+    }
+  }
+
+  /// تبديل التكرار اللانهائي للمقطع الحالي (مفيد للتشغيل أثناء النوم).
+  Future<void> toggleLoop() async {
+    try {
+      final next =
+          _player.loopMode == LoopMode.one ? LoopMode.off : LoopMode.one;
+      await _player.setLoopMode(next);
+      notifyListeners();
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'toggleLoop');
     }
   }
 

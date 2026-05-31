@@ -1,5 +1,7 @@
 package com.ruqyah.altatil
 
-import io.flutter.embedding.android.FlutterActivity
+import com.ryanheise.audioservice.AudioServiceActivity
 
-class MainActivity : FlutterActivity()
+// يجب أن ترث من AudioServiceActivity حتى يعمل just_audio_background
+// (التشغيل في الخلفية + إشعار التحكم + ربط الـ AudioHandler).
+class MainActivity : AudioServiceActivity()

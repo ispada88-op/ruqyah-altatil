@@ -190,6 +190,36 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
     );
   }
 
+  Widget _buildLoopButton(AudioPlayerService svc) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final active = svc.isLooping;
+    final accent = isDark ? AppColors.darkTeal : AppColors.primaryTeal;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        svc.toggleLoop();
+      },
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: active
+              ? accent
+              : (isDark ? AppColors.darkSecondary : Colors.white)
+                  .withValues(alpha: 0.8),
+          shape: BoxShape.circle,
+          border: active ? Border.all(color: accent, width: 2) : null,
+        ),
+        child: Icon(
+          Icons.repeat_one,
+          size: 26,
+          color: active ? Colors.white : accent,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final svc = context.watch<AudioPlayerService>();
@@ -360,6 +390,8 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  _buildLoopButton(svc),
+                  const SizedBox(width: AppSpacing.md),
                   _buildRewindButton(),
                   const SizedBox(width: AppSpacing.md),
                   _buildPlayButton(svc),
