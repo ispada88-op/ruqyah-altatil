@@ -19,11 +19,11 @@ import 'package:flutter/material.dart';
 class ErrorReporter {
   ErrorReporter._();
 
-  static final List<_LoggedError> _recentErrors = [];
+  static final List<LoggedError> _recentErrors = [];
   static const int _maxStored = 20;
 
   /// كل الأخطاء المسجّلة في الجلسة (للعرض في صفحة Debug إذا لزم).
-  static List<_LoggedError> get recentErrors => List.unmodifiable(_recentErrors);
+  static List<LoggedError> get recentErrors => List.unmodifiable(_recentErrors);
 
   /// Initialize error capture. Call from main() BEFORE runApp().
   static void initialize() {
@@ -66,7 +66,7 @@ class ErrorReporter {
     String? context,
     String? library,
   }) {
-    final entry = _LoggedError(
+    final entry = LoggedError(
       error: error.toString(),
       stack: stack?.toString() ?? 'no stack',
       context: context,
@@ -87,14 +87,14 @@ class ErrorReporter {
   }
 }
 
-class _LoggedError {
+class LoggedError {
   final String error;
   final String stack;
   final String? context;
   final String? library;
   final DateTime timestamp;
 
-  _LoggedError({
+  LoggedError({
     required this.error,
     required this.stack,
     this.context,

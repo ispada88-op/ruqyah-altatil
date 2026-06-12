@@ -11,7 +11,7 @@
 import 'verified_quran.dart';
 import 'quran_data.dart' show anfalVerses, dukhanVerses, saffatVerses, haqqaVerses, basmala;
 
-/// تحويل قائمة Verse إلى List<String> بصيغة "النص ﴿N﴾".
+/// تحويل قائمة Verse إلى `List<String>` بصيغة "النص ﴿N﴾".
 List<String> _versesToStrings(List<Verse> verses) =>
     verses.map((v) => v.withMarker).toList();
 

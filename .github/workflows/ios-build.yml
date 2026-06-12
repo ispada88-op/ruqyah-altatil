@@ -4,10 +4,7 @@
 name: iOS Build
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
-    paths: [ 'lib/**', 'pubspec.yaml', 'ios/**' ]
+  workflow_dispatch:  # manual only — Codemagic هو خط النشر الرسمي
 
 jobs:
   build-ios:
@@ -17,7 +14,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.32.0'
           channel: 'stable'
 
       - name: Pub get
