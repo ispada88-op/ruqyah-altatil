@@ -121,7 +121,8 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin>();
       if (androidImpl != null) {
         await androidImpl.requestNotificationsPermission();
-        await androidImpl.requestExactAlarmsPermission();
+        // ملاحظة: لا نطلب exact alarms — الجدولة inexact والـ manifest
+        // لا يتضمن SCHEDULE_EXACT_ALARM.
       }
       return true;
     } catch (e, st) {
