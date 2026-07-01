@@ -1,0 +1,75 @@
+# =============================================================================
+# iOS Release → TestFlight (GitHub Actions, no Mac needed)
+# Signing is fully automatic via codemagic-cli-tools + App Store Connect API:
+#   - Creates/fetches the Apple Distribution certificate & provisioning profile
+#   - Builds the IPA and uploads it to TestFlight
+#
+# Required repo secrets:
+#   APP_STORE_CONNECT_KEY_ID      — API Key ID (App Store Connect → Integrations)
+#   APP_STORE_CONNECT_ISSUER_ID   — Issuer ID (same page)
+#   APP_STORE_CONNECT_PRIVATE_KEY — contents of the downloaded .p8 file
+#   CERTIFICATE_PRIVATE_KEY       — RSA private key (PEM) for the signing cert
+# =============================================================================
+
+name: iOS Release (TestFlight)
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  ios-release:
+    name: Build & upload to TestFlight
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    env:
+      APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
+      BUNDLE_ID: com.ruqyah.altatil
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          channel: stable
+          cache: true
+
+      - name: Install codemagic-cli-tools
+        run: pipx install codemagic-cli-tools
+
+      - name: Initialize keychain
+        run: keychain initialize
+
+      - name: Fetch signing files (auto-create certificate & profile)
+        run: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Build IPA
+        run: |
+          flutter pub get
+          flutter build ipa --release \
+            --export-options-plist "$HOME/export_options.plist"
+
+      - name: Upload to TestFlight
+        run: |
+          app-store-connect publish \
+            --path "build/ios/ipa/*.ipa"
+
+      - name: Upload IPA artifact (backup)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-ipa
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: ignore
