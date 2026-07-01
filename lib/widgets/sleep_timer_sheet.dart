@@ -112,7 +112,11 @@ class _SleepTimerSheet extends StatelessWidget {
                 ),
                 child: Text(
                   label,
-                  style: AppTextStyles.body().copyWith(fontWeight: FontWeight.w600),
+                  // لون صريح — بدونه يرث لوناً داكناً ويختفي في الوضع الليلي
+                  style: AppTextStyles.body(
+                    color:
+                        isDark ? AppColors.textOnDark : AppColors.textPrimary,
+                  ).copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             );
