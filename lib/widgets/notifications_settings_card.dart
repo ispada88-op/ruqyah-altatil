@@ -130,7 +130,7 @@ class _NotificationsSettingsCardState extends State<NotificationsSettingsCard> {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'إشعارات بسيطة بأذكار من حصن المسلم',
+                      'أذكار من حصن المسلم + تذكير يومي بالرقية (8م)',
                       style: AppTextStyles.caption(
                         color: isDark
                             ? AppColors.textOnDarkSecondary

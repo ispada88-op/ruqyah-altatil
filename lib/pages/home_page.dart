@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/haptic.dart';
+import 'package:roqia_altatil/services/share_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/widgets/notifications_settings_card.dart';
 
@@ -173,6 +174,21 @@ class HomePage extends StatelessWidget {
                     .fadeIn(delay: 450.ms, duration: 600.ms)
                     .slideX(begin: -0.1, end: 0),
 
+                const SizedBox(height: AppSpacing.lg),
+
+                _FeatureCard(
+                  title: 'شارك التطبيق',
+                  subtitle: 'الدال على الخير كفاعله — شاركه مع من تحب',
+                  icon: Icons.share_rounded,
+                  gradient: const LinearGradient(
+                    colors: [AppColors.accentGold, AppColors.accentGoldLight],
+                  ),
+                  onTap: () {
+                    Haptic.light();
+                    ShareService.shareApp();
+                  },
+                ).animate().fadeIn(delay: 500.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
+
                 const SizedBox(height: AppSpacing.xxl),
 
                 Container(
@@ -203,7 +219,7 @@ class HomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'الإصدار 1.0.1',
+                        'الإصدار 1.0.3',
                         style: AppTextStyles.caption(
                           color: isDark
                               ? AppColors.textOnDarkSecondary

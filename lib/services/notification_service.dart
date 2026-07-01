@@ -9,7 +9,8 @@ import 'package:timezone/timezone.dart' as tz;
 import 'error_reporter.dart';
 import '../data/hisn_almuslim_dhikr.dart';
 
-/// خدمة الإشعارات: ترسل ذكراً قصيراً كل 3 أو 5 ساعات (يختاره المستخدم).
+/// خدمة الإشعارات: ترسل ذكراً قصيراً كل 3 أو 5 ساعات (يختاره المستخدم)
+/// + تذكيراً يومياً واحداً بقراءة الرقية الساعة 8 مساءً.
 ///
 /// ميزات:
 /// - يحترم وقت النوم (10 مساءً → 7 صباحاً)
@@ -25,6 +26,18 @@ class NotificationService {
   static const _kLastIdxKey = 'last_dhikr_index';
   static const _channelId = 'ruqyah_dhikr_channel';
   static const _channelName = 'تذكير بالأذكار';
+
+  /// التذكير اليومي بالرقية: الساعة 8م (لا يتعارض مع مواعيد الأذكار 9/12/15/18/21 أو 9/14/19).
+  static const int _ruqyahReminderHour = 20;
+
+  /// IDs التذكير اليومي تبدأ من 500 حتى لا تتداخل مع إشعارات الأذكار (0..34).
+  static const int _ruqyahIdBase = 500;
+
+  static const List<(String, String)> _ruqyahReminders = [
+    ('تذكير بالرقية 🕊', 'لا تنسَ قراءة رقية التعطيل اليوم — جعلها الله شفاءً وعافيةً لك.'),
+    ('وقت الرقية 📖', 'خصّص دقائق الآن لقراءة الرقية الشرعية أو الاستماع لها.'),
+    ('لا تنسَ رقيتك اليوم', 'المداومة على الرقية سبب للشفاء بإذن الله — اقرأها الآن.'),
+  ];
 
   /// نافذة عدم الإزعاج (10م → 7ص)
   static const int _quietStartHour = 22;
@@ -187,8 +200,37 @@ class NotificationService {
       }
       await prefs.setInt(_kLastIdxKey, lastIdx);
 
+      // ─── التذكير اليومي بالرقية (8م، إشعار واحد/يوم) ───
+      var ruqyahCount = 0;
+      for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
+        final scheduledDate = tz.TZDateTime(
+          tz.local,
+          now.year,
+          now.month,
+          now.day + dayOffset,
+          _ruqyahReminderHour,
+          0,
+        );
+        if (scheduledDate.isBefore(now)) continue;
+
+        final (title, body) =
+            _ruqyahReminders[dayOffset % _ruqyahReminders.length];
+        await _plugin.zonedSchedule(
+          _ruqyahIdBase + dayOffset,
+          title,
+          body,
+          scheduledDate,
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          // ignore: deprecated_member_use
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+        ruqyahCount++;
+      }
+
       if (kDebugMode) {
-        debugPrint('✅ Scheduled $notificationId dhikr notifications (every $hours hrs)');
+        debugPrint('✅ Scheduled $notificationId dhikr + $ruqyahCount ruqyah notifications (every $hours hrs)');
       }
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'NotificationService._scheduleAll');
@@ -197,6 +239,12 @@ class NotificationService {
 
   /// إعادة جدولة (يُستدعى عند تغيير الإعدادات).
   Future<void> reschedule() => _scheduleAll();
+
+  /// إعادة الجدولة عند فتح التطبيق إن كانت الإشعارات مفعّلة.
+  /// ضروري لأن الجدولة تغطي 7 أيام فقط وتتوقف بدونها.
+  Future<void> rescheduleIfEnabled() async {
+    if (await isEnabled) await _scheduleAll();
+  }
 
   /// إلغاء كل الإشعارات.
   Future<void> cancelAll() async {

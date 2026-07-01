@@ -8,6 +8,23 @@ import 'error_reporter.dart';
 class ShareService {
   ShareService._();
 
+  /// رابط مشاركة التطبيق (صفحة GitHub Pages — يُستبدل بروابط المتاجر عند النشر).
+  static const String appShareUrl =
+      'https://ispada88-op.github.io/ruqyah-altatil/';
+
+  /// مشاركة التطبيق نفسه (الدال على الخير كفاعله).
+  static Future<void> shareApp() async {
+    const text = 'تطبيق رقية التعطيل 🕊\n'
+        'رقية شرعية مكتوبة وصوتية وأذكار يومية — تطبيق خيري بدون إعلانات.\n\n'
+        '$appShareUrl';
+    try {
+      // ignore: deprecated_member_use
+      await Share.share(text, subject: 'تطبيق رقية التعطيل');
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'shareApp');
+    }
+  }
+
   /// نسخ آية للحافظة مع المصدر.
   static Future<void> copyVerse({
     required BuildContext context,

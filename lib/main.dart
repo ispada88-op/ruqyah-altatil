@@ -60,6 +60,10 @@ Future<void> main() async {
     await NotificationService.instance.initialize();
     await AudioPlayerService.instance.initialize();
 
+    // إعادة جدولة الإشعارات (تغطي 7 أيام فقط) — بدون تعطيل الإقلاع.
+    // ignore: discarded_futures
+    NotificationService.instance.rescheduleIfEnabled();
+
     // ignore: discarded_futures
     ReviewService.instance.markSessionStart();
 
