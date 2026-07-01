@@ -21,7 +21,8 @@ on:
 jobs:
   ios-release:
     name: Build & upload to TestFlight
-    runs-on: macos-15
+    # macos-26: default Xcode 26.x — Apple requires iOS 26 SDK for App Store uploads
+    runs-on: macos-26
     timeout-minutes: 90
 
     env:
