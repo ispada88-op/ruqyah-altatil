@@ -91,10 +91,13 @@ class _SectionHeader extends StatelessWidget {
           Icon(Icons.star_purple500_outlined,
               size: 18, color: AppColors.accentGold),
           const SizedBox(width: AppSpacing.sm),
-          Text(
-            title,
-            style: AppTextStyles.subheader(
-              color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
+          Expanded(
+            child: Text(
+              title,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.subheader(
+                color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
+              ),
             ),
           ),
         ],
