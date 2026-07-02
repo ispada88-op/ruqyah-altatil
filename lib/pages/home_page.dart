@@ -160,6 +160,23 @@ class HomePage extends StatelessWidget {
                   },
                 ).animate().fadeIn(delay: 300.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
 
+                const SizedBox(height: AppSpacing.md),
+
+                _FeatureCard(
+                  title: 'أذكار التحصين',
+                  subtitle: 'أذكار مأثورة بمصادرها وأدعية للحفظ بإذن الله',
+                  icon: Icons.shield_moon_outlined,
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [AppColors.primaryTealDark, AppColors.darkTeal]
+                        : [AppColors.primaryTealLight, AppColors.primaryTeal],
+                  ),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.tahseen);
+                  },
+                ).animate().fadeIn(delay: 350.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
+
                 const SizedBox(height: AppSpacing.lg),
 
                 const NotificationsSettingsCard()

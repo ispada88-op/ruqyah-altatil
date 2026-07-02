@@ -5,6 +5,7 @@ import 'package:roqia_altatil/pages/written_roqia_page.dart';
 import 'package:roqia_altatil/pages/audio_roqia_page.dart';
 import 'package:roqia_altatil/pages/dhikr_page.dart';
 import 'package:roqia_altatil/pages/feedback_page.dart';
+import 'package:roqia_altatil/pages/tahseen_page.dart';
 import 'package:roqia_altatil/widgets/main_shell.dart';
 
 /// GoRouter configuration with bottom navigation shell
@@ -48,6 +49,15 @@ class AppRouter {
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
               child: const DhikrPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.tahseen,
+            name: 'tahseen',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const TahseenPage(),
               transitionsBuilder: _fadeSlideTransition,
             ),
           ),
@@ -109,5 +119,6 @@ class AppRoutes {
   static const String writtenRoqia = '/written-roqia';
   static const String audioRoqia = '/audio-roqia';
   static const String dhikr = '/dhikr';
+  static const String tahseen = '/tahseen';
   static const String feedback = '/feedback';
 }
