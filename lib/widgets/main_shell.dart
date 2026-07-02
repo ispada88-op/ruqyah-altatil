@@ -6,6 +6,7 @@ import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/widgets/mini_player.dart';
 import 'package:roqia_altatil/widgets/sleep_timer_sheet.dart';
 import 'package:roqia_altatil/services/audio_player_service.dart';
+import 'package:roqia_altatil/services/whats_new_service.dart';
 
 /// Main shell with bottom navigation bar + persistent mini player.
 class MainShell extends StatefulWidget {
@@ -18,6 +19,15 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // تنبيه "الجديد في هذا الإصدار" بعد أول إطار (مرة لكل تحديث).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) WhatsNewService.maybeShow(context);
+    });
+  }
 
   void _onNavItemTapped(int index) {
     setState(() => _currentIndex = index);

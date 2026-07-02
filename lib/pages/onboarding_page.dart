@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:roqia_altatil/services/whats_new_service.dart';
 import 'package:roqia_altatil/theme.dart';
 
 /// Onboarding page shown on first app launch
@@ -62,6 +63,8 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
     HapticFeedback.mediumImpact();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_complete', true);
+    // مستخدم جديد: لا نعرض تنبيه "الجديد" لنفس النسخة التي ثبّتها للتو.
+    await WhatsNewService.markCurrentSeen();
     widget.onComplete();
   }
 
