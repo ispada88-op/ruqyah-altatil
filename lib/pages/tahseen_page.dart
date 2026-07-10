@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 
 import 'package:roqia_altatil/data/hisn_almuslim_dhikr.dart';
+import 'package:roqia_altatil/services/share_service.dart';
 import 'package:roqia_altatil/theme.dart';
 
 /// صفحة أذكار التحصين: تعرض الأذكار المسندة بمصادرها + الأدعية العامة.
@@ -123,11 +123,13 @@ class _TahseenCard extends StatelessWidget {
     }
   }
 
-  Future<void> _share() async {
+  Future<void> _share(BuildContext context) async {
     HapticFeedback.lightImpact();
-    // ignore: deprecated_member_use
-    await Share.share(
-        '${entry.body}\n\n— ${entry.title}\n\nمن تطبيق رقية التعطيل');
+    await ShareService.shareText(
+      context,
+      text: '${entry.body}\n\n— ${entry.title}\n\nمن تطبيق رقية التعطيل',
+      subject: entry.title,
+    );
   }
 
   @override
@@ -186,7 +188,7 @@ class _TahseenCard extends StatelessWidget {
                 tooltip: 'نسخ',
               ),
               IconButton(
-                onPressed: _share,
+                onPressed: () => _share(context),
                 icon: Icon(Icons.share_rounded, size: 20, color: teal),
                 tooltip: 'مشاركة',
               ),

@@ -5,6 +5,7 @@ import 'package:roqia_altatil/pages/written_roqia_page.dart';
 import 'package:roqia_altatil/pages/audio_roqia_page.dart';
 import 'package:roqia_altatil/pages/dhikr_page.dart';
 import 'package:roqia_altatil/pages/feedback_page.dart';
+import 'package:roqia_altatil/pages/general_ruqyah_page.dart';
 import 'package:roqia_altatil/pages/tahseen_page.dart';
 import 'package:roqia_altatil/widgets/main_shell.dart';
 
@@ -58,6 +59,15 @@ class AppRouter {
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
               child: const TahseenPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.generalRuqyah,
+            name: 'general-ruqyah',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const GeneralRuqyahPage(),
               transitionsBuilder: _fadeSlideTransition,
             ),
           ),
@@ -120,5 +130,6 @@ class AppRoutes {
   static const String audioRoqia = '/audio-roqia';
   static const String dhikr = '/dhikr';
   static const String tahseen = '/tahseen';
+  static const String generalRuqyah = '/general-ruqyah';
   static const String feedback = '/feedback';
 }

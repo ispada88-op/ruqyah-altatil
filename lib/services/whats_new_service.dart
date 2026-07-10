@@ -16,12 +16,13 @@ class WhatsNewService {
 
   /// مزايا الإصدار الحالي المعروضة في التنبيه.
   static const List<(IconData, String)> _highlights = [
-    (Icons.shield_moon_outlined,
-        'شاشة أذكار التحصين: أذكار مأثورة بمصادرها وأدعية جامعة'),
+    (Icons.auto_stories_outlined,
+        'قسم جديد: الرقية المستقلة — الفاتحة والمعوذات وآيات وأدعية الشفاء، بعدّاد تكرار لكل فقرة'),
+    (Icons.share_rounded,
+        'إصلاح المشاركة — تعمل الآن بثبات على كل الأجهزة بما فيها iPad'),
     (Icons.notifications_active_outlined,
-        'تذكير يومي بقراءة الرقية الساعة 8 مساءً'),
-    (Icons.share_rounded, 'شارك التطبيق مع من تحب — الدال على الخير كفاعله'),
-    (Icons.auto_awesome, 'أيقونة جديدة وتحسينات في الاستقرار والوضع الليلي'),
+        'إصلاح مفتاح التنبيهات، مع زر «فتح الإعدادات» عند رفض الإذن'),
+    (Icons.spellcheck, 'تدقيق النصوص وتحسينات عامة'),
   ];
 
   /// يخزّن النسخة الحالية بدون عرض (يُستدعى عند إكمال الترحيب لمستخدم جديد).
@@ -116,11 +117,11 @@ class WhatsNewService {
                 backgroundColor: teal,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              icon: const Icon(Icons.shield_moon_outlined, size: 20),
-              label: const Text('استكشف أذكار التحصين'),
+              icon: const Icon(Icons.auto_stories_outlined, size: 20),
+              label: const Text('استكشف الرقية المستقلة'),
               onPressed: () {
                 Navigator.of(ctx).pop();
-                context.go(AppRoutes.tahseen);
+                context.go(AppRoutes.generalRuqyah);
               },
             ),
             const SizedBox(height: AppSpacing.sm),

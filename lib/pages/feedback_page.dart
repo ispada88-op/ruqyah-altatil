@@ -53,7 +53,7 @@ $message
       ''');
 
       final emailUri = Uri.parse(
-        'mailto:ISPADA88@GMAIL.COM?subject=${Uri.encodeComponent('رسالة من تطبيق رقية التعطيل لشيخ فهد القرني - $_selectedType')}&body=$emailBody'
+        'mailto:ISPADA88@GMAIL.COM?subject=${Uri.encodeComponent('رسالة من تطبيق رقية التعطيل للشيخ فهد القرني - $_selectedType')}&body=$emailBody'
       );
 
       if (await canLaunchUrl(emailUri)) {

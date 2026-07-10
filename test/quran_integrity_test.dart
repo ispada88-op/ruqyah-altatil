@@ -51,4 +51,35 @@ void main() {
       }
     });
   });
+
+  group('General ruqyah verses (verified_quran.dart) — Uthmani', () {
+    test('TaHa mountains passage is verses 105-107', () {
+      expect(taHaMountains.surahNumber, 20);
+      expect(taHaMountains.verses.map((v) => v.number).toList(),
+          [105, 106, 107]);
+      for (final v in taHaMountains.verses) {
+        expect(v.text.trim(), isNotEmpty);
+      }
+    });
+
+    test('Hud flood verse is verse 44', () {
+      expect(hudFloodVerse.surahNumber, 11);
+      expect(hudFloodVerse.verses.single.number, 44);
+    });
+
+    // تثبيت حرفي ضد أي تعديل عرضي — النص مطابق لجلب KFGQPC Uthmani
+    // (Quran.com API v4، مع تطبيع ـٰ → ٰ وفق أسلوب الملف).
+    test('TaHa 105-107 exact text pinned', () {
+      expect(taHaMountains.verses[0].text,
+          'وَيَسْـَٔلُونَكَ عَنِ ٱلْجِبَالِ فَقُلْ يَنسِفُهَا رَبِّى نَسْفًا');
+      expect(taHaMountains.verses[1].text, 'فَيَذَرُهَا قَاعًا صَفْصَفًا');
+      expect(taHaMountains.verses[2].text,
+          'لَّا تَرَىٰ فِيهَا عِوَجًا وَلَآ أَمْتًا');
+    });
+
+    test('Hud 44 exact text pinned', () {
+      expect(hudFloodVerse.verses.single.text,
+          'وَقِيلَ يَٰٓأَرْضُ ٱبْلَعِى مَآءَكِ وَيَٰسَمَآءُ أَقْلِعِى وَغِيضَ ٱلْمَآءُ وَقُضِىَ ٱلْأَمْرُ وَٱسْتَوَتْ عَلَى ٱلْجُودِىِّ ۖ وَقِيلَ بُعْدًا لِّلْقَوْمِ ٱلظَّٰلِمِينَ');
+    });
+  });
 }

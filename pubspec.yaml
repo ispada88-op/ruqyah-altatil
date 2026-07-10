@@ -1,7 +1,7 @@
 name: roqia_altatil
 description: "Roqia Al-Ta'til is a serene Islamic app designed to bring tranquility to your daily life, offering written and audio Roqia, along with a daily Dhikr counter in a beautifully minimalist interface."
 publish_to: "none"
-version: 1.0.3+10
+version: 1.0.4+11
 
 environment:
   sdk: ^3.6.0

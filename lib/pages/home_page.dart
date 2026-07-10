@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/share_service.dart';
@@ -145,6 +146,23 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
 
                 _FeatureCard(
+                  title: 'الرقية المستقلة',
+                  subtitle: 'رقية مستقلة: الفاتحة والمعوذات وآيات وأدعية — بعدد التكرار',
+                  iconWidget: const _RuqyahBadge(),
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [AppColors.darkTeal, AppColors.darkSecondary]
+                        : [AppColors.primaryTealLight, AppColors.accentGold],
+                  ),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.generalRuqyah);
+                  },
+                ).animate().fadeIn(delay: 250.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
+
+                const SizedBox(height: AppSpacing.md),
+
+                _FeatureCard(
                   title: 'الأذكار اليومية',
                   subtitle: 'عداد التسبيح والأدعية المأثورة',
                   icon: Icons.favorite_rounded,
@@ -202,7 +220,7 @@ class HomePage extends StatelessWidget {
                   ),
                   onTap: () {
                     Haptic.light();
-                    ShareService.shareApp();
+                    ShareService.shareApp(context);
                   },
                 ).animate().fadeIn(delay: 500.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
 
@@ -236,7 +254,7 @@ class HomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'الإصدار 1.0.3',
+                        'الإصدار 1.0.4',
                         style: AppTextStyles.caption(
                           color: isDark
                               ? AppColors.textOnDarkSecondary
@@ -258,7 +276,8 @@ class HomePage extends StatelessWidget {
 class _FeatureCard extends StatefulWidget {
   final String title;
   final String subtitle;
-  final IconData icon;
+  final IconData? icon;
+  final Widget? iconWidget; // بديل مخصص للأيقونة (مثل شارة «رقية»)
   final Gradient gradient;
   final Color? textColor;
   final VoidCallback onTap;
@@ -266,11 +285,13 @@ class _FeatureCard extends StatefulWidget {
   const _FeatureCard({
     required this.title,
     required this.subtitle,
-    required this.icon,
+    this.icon,
+    this.iconWidget,
     required this.gradient,
     this.textColor,
     required this.onTap,
-  });
+  }) : assert(icon != null || iconWidget != null,
+            'يجب تمرير icon أو iconWidget');
 
   @override
   State<_FeatureCard> createState() => _FeatureCardState();
@@ -318,11 +339,12 @@ class _FeatureCardState extends State<_FeatureCard> {
                           .withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    child: Icon(
-                      widget.icon,
-                      size: 32,
-                      color: widget.textColor ?? Colors.white,
-                    ),
+                    child: widget.iconWidget ??
+                        Icon(
+                          widget.icon,
+                          size: 32,
+                          color: widget.textColor ?? Colors.white,
+                        ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
@@ -356,6 +378,26 @@ class _FeatureCardState extends State<_FeatureCard> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// شارة قسم «الرقية المستقلة»: أيقونة مكتوب فيها «رقية» بخط أميري.
+class _RuqyahBadge extends StatelessWidget {
+  const _RuqyahBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        'رقية',
+        style: GoogleFonts.amiri(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+          height: 1.1,
         ),
       ),
     );

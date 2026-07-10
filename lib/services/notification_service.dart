@@ -101,10 +101,15 @@ class NotificationService {
   }
 
   /// طلب الإذن من المستخدم.
+  ///
+  /// إصلاح 2026-07-10: كان الطلب يمر عبر permission_handler
+  /// (`Permission.notification.request()`) وهو مسار هش على iOS — في حالات
+  /// معروفة يرجع denied فوراً بدون إظهار نافذة النظام، فيرتد مفتاح التنبيهات
+  /// إلى الإيقاف ويبدو «لا يستجيب». الآن نطلب الإذن مباشرة عبر
+  /// flutter_local_notifications نفسها على كلا النظامين (مسار واحد موثوق).
   Future<bool> requestPermissions() async {
     try {
-      final notifStatus = await Permission.notification.request();
-      if (!notifStatus.isGranted) return false;
+      if (!_initialized) await initialize();
 
       final iosImpl = _plugin.resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin>();
@@ -114,20 +119,32 @@ class NotificationService {
           badge: true,
           sound: true,
         );
-        if (granted == false) return false;
+        return granted ?? false;
       }
 
       final androidImpl = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       if (androidImpl != null) {
-        await androidImpl.requestNotificationsPermission();
         // ملاحظة: لا نطلب exact alarms — الجدولة inexact والـ manifest
         // لا يتضمن SCHEDULE_EXACT_ALARM.
+        final granted = await androidImpl.requestNotificationsPermission();
+        // null = أندرويد أقدم من 13 حيث لا يوجد إذن تشغيلي → مسموح.
+        return granted ?? true;
       }
       return true;
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'requestPermissions');
       return false;
+    }
+  }
+
+  /// فتح إعدادات التطبيق في النظام — للمستخدم الذي رفض الإذن سابقاً
+  /// (النظام لا يعيد إظهار نافذة الإذن بعد الرفض، فلا حل إلا الإعدادات).
+  Future<void> openSystemSettings() async {
+    try {
+      await openAppSettings();
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'openSystemSettings');
     }
   }
 

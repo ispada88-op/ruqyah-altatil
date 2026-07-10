@@ -40,15 +40,23 @@ class _NotificationsSettingsCardState extends State<NotificationsSettingsCard> {
       setState(() => _loading = true);
       final granted = await NotificationService.instance.requestPermissions();
       if (!granted) {
+        if (!mounted) return;
         setState(() => _loading = false);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('لم يتم منح إذن الإشعارات. تأكد من إعدادات الجهاز.'),
-              backgroundColor: AppColors.warning,
+        // بعد أول رفض، النظام لا يعيد إظهار نافذة الإذن —
+        // نعطي المستخدم زراً يفتح إعدادات التطبيق مباشرة.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('إذن الإشعارات مرفوض من النظام'),
+            backgroundColor: AppColors.warning,
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'فتح الإعدادات',
+              textColor: Colors.white,
+              onPressed: () =>
+                  NotificationService.instance.openSystemSettings(),
             ),
-          );
-        }
+          ),
+        );
         return;
       }
     }
