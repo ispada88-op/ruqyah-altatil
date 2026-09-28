@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'error_reporter.dart';
+import '../config/app_links.dart';
 
 /// خدمة مشاركة ونسخ النصوص القرآنية.
 ///
@@ -13,9 +14,8 @@ import 'error_reporter.dart';
 class ShareService {
   ShareService._();
 
-  /// رابط مشاركة التطبيق (صفحة GitHub Pages — يُستبدل بروابط المتاجر عند النشر).
-  static const String appShareUrl =
-      'https://ispada88-op.github.io/ruqyah-altatil/';
+  /// رابط مشاركة التطبيق: صفحة الهبوط (فيها زر App Store + Google Play عند نشره).
+  static const String appShareUrl = AppLinks.shareUrl;
 
   /// موضع نافذة المشاركة — إلزامي على iPad (popover anchor).
   /// يستخدم موضع الـ widget الضاغط إن وُجد، وإلا منتصف الشاشة.

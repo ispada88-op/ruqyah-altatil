@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
@@ -43,6 +44,14 @@ class NotificationService {
   static const int _quietStartHour = 22;
   static const int _quietEndHour = 7;
 
+  /// iOS يحتفظ فقط بأقرب 64 إشعاراً مجدولاً ويتجاهل الباقي بصمت.
+  /// نترك هامشاً (60) ونقسم الميزانية: 1 للتذكير اليومي المتكرر + الباقي للأذكار.
+  static const int maxPending = 60;
+
+  /// المنطقة الزمنية المستخدمة فعلياً (للتشخيص وللاختبارات).
+  String get timeZoneName => _timeZoneName;
+  String _timeZoneName = 'UTC';
+
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
@@ -78,11 +87,7 @@ class NotificationService {
   Future<void> initialize() async {
     if (_initialized) return;
     try {
-      tz_data.initializeTimeZones();
-      try {
-        const tzName = 'Asia/Riyadh';
-        tz.setLocalLocation(tz.getLocation(tzName));
-      } catch (_) {/* fallback to UTC */}
+      await _initTimeZone();
 
       const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosInit = DarwinInitializationSettings(
@@ -97,6 +102,27 @@ class NotificationService {
       _initialized = true;
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'NotificationService.initialize');
+    }
+  }
+
+  /// إصلاح 2026-09-28: كانت المنطقة مثبتة على Asia/Riyadh، فمستخدم في مصر أو
+  /// أوروبا أو أمريكا يستلم «أذكار 9 صباحاً» في وقت خاطئ (حتى منتصف الليل)
+  /// ونافذة عدم الإزعاج تصبح بلا معنى. الآن: منطقة الجهاز، ثم الرياض كاحتياط.
+  Future<void> _initTimeZone() async {
+    tz_data.initializeTimeZones();
+    String? deviceZone;
+    try {
+      deviceZone = (await FlutterTimezone.getLocalTimezone()).identifier;
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'NotificationService.deviceTimeZone');
+    }
+    for (final name in [deviceZone, 'Asia/Riyadh']) {
+      if (name == null || name.isEmpty) continue;
+      try {
+        tz.setLocalLocation(tz.getLocation(name));
+        _timeZoneName = name;
+        return;
+      } catch (_) {/* unknown id on this tz database — try the next one */}
     }
   }
 
@@ -148,7 +174,8 @@ class NotificationService {
     }
   }
 
-  /// جدولة الإشعارات للأسبوع القادم بناءً على الـ interval المحفوظ.
+  /// جدولة الإشعارات بناءً على الـ interval المحفوظ: أذكار لأيام قادمة ضمن
+  /// ميزانية [maxPending] + تذكير رقية يومي متكرر لا ينتهي.
   Future<void> _scheduleAll() async {
     if (!_initialized) await initialize();
 
@@ -171,72 +198,32 @@ class NotificationService {
       const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
 
       final hours = await intervalHours;
-      // مواعيد محددة بناءً على الفترة:
-      //   3 ساعات → 9, 12, 15, 18, 21 (5 إشعارات/يوم)
-      //   5 ساعات → 9, 14, 19 (3 إشعارات/يوم)
-      final slots = hours == 3 ? const [9, 12, 15, 18, 21] : const [9, 14, 19];
-
       final now = tz.TZDateTime.now(tz.local);
       final prefs = await SharedPreferences.getInstance();
       var lastIdx = prefs.getInt(_kLastIdxKey) ?? -1;
       final rng = Random();
       var notificationId = 0;
 
-      for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
-        for (final hour in slots) {
-          if (_isQuietHour(hour)) continue;
-          final scheduledDate = tz.TZDateTime(
-            tz.local,
-            now.year,
-            now.month,
-            now.day + dayOffset,
-            hour,
-            0,
-          );
-          if (scheduledDate.isBefore(now)) continue;
+      // ─── أذكار دورية: مواعيد لعدة أيام قادمة ضمن ميزانية iOS ───
+      final times = NotificationPlan.dhikrTimes(
+        now: now,
+        slots: NotificationPlan.slotsFor(hours),
+        budget: maxPending - 1,
+        isQuietHour: _isQuietHour,
+      );
+      for (final scheduledDate in times) {
+        // اختيار ذكر بدون تكرار مباشر
+        int idx;
+        do {
+          idx = rng.nextInt(hisnAlmuslimDhikr.length);
+        } while (idx == lastIdx && hisnAlmuslimDhikr.length > 1);
+        lastIdx = idx;
 
-          // اختيار ذكر بدون تكرار مباشر
-          int idx;
-          do {
-            idx = rng.nextInt(hisnAlmuslimDhikr.length);
-          } while (idx == lastIdx && hisnAlmuslimDhikr.length > 1);
-          lastIdx = idx;
-
-          final dhikr = hisnAlmuslimDhikr[idx];
-          await _plugin.zonedSchedule(
-            notificationId++,
-            dhikr.title,
-            dhikr.body,
-            scheduledDate,
-            details,
-            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-            // ignore: deprecated_member_use
-            uiLocalNotificationDateInterpretation:
-                UILocalNotificationDateInterpretation.absoluteTime,
-          );
-        }
-      }
-      await prefs.setInt(_kLastIdxKey, lastIdx);
-
-      // ─── التذكير اليومي بالرقية (8م، إشعار واحد/يوم) ───
-      var ruqyahCount = 0;
-      for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
-        final scheduledDate = tz.TZDateTime(
-          tz.local,
-          now.year,
-          now.month,
-          now.day + dayOffset,
-          _ruqyahReminderHour,
-          0,
-        );
-        if (scheduledDate.isBefore(now)) continue;
-
-        final (title, body) =
-            _ruqyahReminders[dayOffset % _ruqyahReminders.length];
+        final dhikr = hisnAlmuslimDhikr[idx];
         await _plugin.zonedSchedule(
-          _ruqyahIdBase + dayOffset,
-          title,
-          body,
+          notificationId++,
+          dhikr.title,
+          dhikr.body,
           scheduledDate,
           details,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -244,11 +231,31 @@ class NotificationService {
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
         );
-        ruqyahCount++;
       }
+      await prefs.setInt(_kLastIdxKey, lastIdx);
+
+      // ─── التذكير اليومي بالرقية (8م) ───
+      // إصلاح 2026-09-28: كان 7 إشعارات منفردة تنتهي بعد أسبوع إن لم يُفتح
+      // التطبيق. الآن إشعار واحد متكرر يومياً (matchDateTimeComponents.time)
+      // فلا ينقطع أبداً — أهم تذكير في التطبيق.
+      final (title, body) = _ruqyahReminders[now.day % _ruqyahReminders.length];
+      await _plugin.zonedSchedule(
+        _ruqyahIdBase,
+        title,
+        body,
+        NotificationPlan.nextAt(now, _ruqyahReminderHour),
+        details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+        // ignore: deprecated_member_use
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      const ruqyahCount = 1;
 
       if (kDebugMode) {
-        debugPrint('✅ Scheduled $notificationId dhikr + $ruqyahCount ruqyah notifications (every $hours hrs)');
+        debugPrint('✅ Scheduled $notificationId dhikr + $ruqyahCount daily ruqyah '
+            'notifications (every $hours hrs, tz=$_timeZoneName)');
       }
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'NotificationService._scheduleAll');
@@ -300,5 +307,47 @@ class NotificationService {
       return hour >= _quietStartHour || hour < _quietEndHour;
     }
     return hour >= _quietStartHour && hour < _quietEndHour;
+  }
+}
+
+
+/// حسابات الجدولة كدوال نقية — قابلة للاختبار بدون المكوّن الأصلي.
+class NotificationPlan {
+  NotificationPlan._();
+
+  /// مواعيد الأذكار حسب الفترة المختارة:
+  ///   3 ساعات → 9, 12, 15, 18, 21 (5/يوم) — 5 ساعات → 9, 14, 19 (3/يوم)
+  static List<int> slotsFor(int intervalHours) =>
+      intervalHours == 3 ? const [9, 12, 15, 18, 21] : const [9, 14, 19];
+
+  /// كل مواعيد الأذكار القادمة (بعد [now]) بالترتيب، بحد أقصى [budget] موعداً
+  /// و[maxDays] يوماً، مع استبعاد ساعات الهدوء.
+  static List<tz.TZDateTime> dhikrTimes({
+    required tz.TZDateTime now,
+    required List<int> slots,
+    required int budget,
+    required bool Function(int hour) isQuietHour,
+    int maxDays = 21,
+  }) {
+    final out = <tz.TZDateTime>[];
+    for (var day = 0; day < maxDays && out.length < budget; day++) {
+      for (final hour in slots) {
+        if (isQuietHour(hour)) continue;
+        final t = tz.TZDateTime(now.location, now.year, now.month, now.day + day, hour);
+        if (!t.isAfter(now)) continue;
+        out.add(t);
+        if (out.length >= budget) break;
+      }
+    }
+    return out;
+  }
+
+  /// أقرب وقت قادم للساعة [hour] (اليوم إن لم تمضِ، وإلا غداً).
+  static tz.TZDateTime nextAt(tz.TZDateTime now, int hour) {
+    var t = tz.TZDateTime(now.location, now.year, now.month, now.day, hour);
+    if (!t.isAfter(now)) {
+      t = tz.TZDateTime(now.location, now.year, now.month, now.day + 1, hour);
+    }
+    return t;
   }
 }

@@ -1,4 +1,5 @@
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -17,6 +18,15 @@ import 'package:roqia_altatil/pages/onboarding_page.dart';
 Future<void> main() async {
   await ErrorReporter.runGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+
+    // الخطوط مضمّنة في assets/google_fonts (تعمل بدون إنترنت) — رخصة OFL تتطلب
+    // إرفاق نصها مع الخط، فنسجّله في صفحة التراخيص.
+    LicenseRegistry.addLicense(() async* {
+      for (final family in const ['Tajawal', 'Amiri', 'NotoNaskhArabic']) {
+        final text = await rootBundle.loadString('assets/google_fonts/OFL-$family.txt');
+        yield LicenseEntryWithLineBreaks([family], text);
+      }
+    });
 
     // ═══ Edge-to-edge display + transparent system bars (Android) ═══
     // يخلي التطبيق يستخدم كامل الشاشة بدون شريط رمادي فوق/تحت.

@@ -56,9 +56,14 @@ jobs:
           keychain add-certificates
           xcode-project use-profiles
 
-      - name: Build IPA
+      - name: Quality gate (never upload a build that fails analyze/tests)
         run: |
           flutter pub get
+          flutter analyze --no-fatal-infos
+          flutter test
+
+      - name: Build IPA
+        run: |
           flutter build ipa --release \
             --export-options-plist "$HOME/export_options.plist"
 

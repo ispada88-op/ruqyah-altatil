@@ -13,8 +13,8 @@
 | Routing | go_router (`go_router: ^16.2.0`) | الـ routes معرّفة في `lib/nav.dart` |
 | Audio | just_audio + just_audio_background | للتشغيل في الخلفية + lock screen controls |
 | Notifications | flutter_local_notifications + timezone | إشعارات الأذكار كل 3 ساعات |
-| Storage | shared_preferences (key/value) + drift (SQLite، غير مستخدم حالياً) |
-| Theme | Material 3 + Tajawal (UI) + Amiri (القرآن) | محفوظ في SharedPreferences |
+| Storage | shared_preferences (key/value) فقط |
+| Theme | Material 3 + Tajawal (UI) + Amiri/Noto Naskh (القرآن) | الخطوط مضمّنة في `assets/google_fonts/` (تعمل بدون إنترنت) |
 | Error handling | `lib/services/error_reporter.dart` | كل try-catch يستدعي `ErrorReporter.report` |
 
 ## Layout
@@ -24,13 +24,16 @@ lib/
 ├── main.dart                         # نقطة البداية - تستخدم ErrorReporter.runGuarded
 ├── theme.dart                        # ThemeProvider + ألوان + خطوط
 ├── nav.dart                          # GoRouter
+├── config/
+│   └── app_links.dart               # App Store id + روابط المشاركة + بريد الاقتراحات (مصدر واحد)
 ├── data/
+│   ├── release_notes.dart           # ملاحظات «الجديد» لكل إصدار — حدّثها مع كل رفع نسخة
 │   ├── verified_quran.dart          # ⚠️  نص قرآني عثماني موثّق - لا تعدّله يدوياً
 │   ├── written_roqia_data.dart      # يجمع البيانات لصفحة الرقية المكتوبة
 │   └── quran_data.dart              # سور الأنفال/الدخان/الصافات/الحاقة
-├── pages/                            # 6 صفحات (Home, AudioRoqia, WrittenRoqia, Dhikr, Feedback, Onboarding)
-├── services/                         # 5 خدمات
-└── widgets/                          # 4 widgets
+├── pages/                            # Home, AudioRoqia, WrittenRoqia, GeneralRuqyah, Tahseen, Dhikr, Feedback, Onboarding
+├── services/                         # audio, notifications, share, review, whats_new, error_reporter, haptic
+└── widgets/
 ```
 
 ## Code Conventions
@@ -63,8 +66,22 @@ flutter build appbundle --release   # AAB لـ Play Store
 flutter build apk --release         # APK للتوزيع المباشر
 ```
 
-CI/CD عبر **Codemagic** - يبني تلقائياً عند push على `main`.
-ملف الإعداد: `codemagic.yaml`.
+CI/CD:
+- `.github/workflows/ci.yml` — analyze + test على كل push/PR (البوابة الأساسية).
+- `.github/workflows/ios-release.yml` — عند push لتاق `v*`: analyze + test ثم IPA → TestFlight.
+- `codemagic.yaml` — خط بديل (Android internal + iOS). البوابات فيه لم تعد `|| true`.
+
+## ✅ Release checklist (كل تحديث)
+
+1. عدّل الكود + أضف/حدّث الاختبارات.
+2. ارفع `version:` في `pubspec.yaml` (مثلاً `1.0.6+13`) — رقم البناء يزيد دائماً.
+3. أضف مدخلاً في `lib/data/release_notes.dart` بنفس الإصدار (الاختبار يفشل بدونه).
+4. `flutter analyze` = 0 errors/warnings، و`flutter test` كله أخضر.
+5. commit → push → انتظر CI أخضر → `git tag vX.Y.Z && git push origin vX.Y.Z` (يطلق TestFlight).
+6. من App Store Connect: أضف البناء للإصدار وأرسله للمراجعة.
+
+لا تضف حزمة جديدة إلا إذا استُخدمت فعلاً (أُزيلت 10 حزم غير مستخدمة في 1.0.5).
+وحدة `credit_card` القديمة حُذفت من هذا التطبيق — محفوظة في التاق `archive/credit-card-module-20260928`.
 
 ## Quran Text Workflow
 
@@ -76,9 +93,16 @@ CI/CD عبر **Codemagic** - يبني تلقائياً عند push على `main`
 
 ## Notification Scheduling
 
-`NotificationService` يجدول 35 إشعار للأسبوع القادم. يحترم وقت النوم (10م-7ص).
-الجدولة تنتهي بعد 7 أيام - يحتاج إعادة جدولة عند فتح التطبيق التالي
-(يحدث تلقائياً في `markSessionStart()`).
+`NotificationService`:
+- المنطقة الزمنية = منطقة الجهاز (`flutter_timezone`)، والرياض احتياط فقط.
+- أذكار حتى 59 إشعاراً قادماً (سقف iOS = 64) + تذكير رقية يومي **متكرر** (8م) لا ينتهي.
+- يحترم وقت النوم (10م-7ص). يعاد الجدولة عند كل فتح (`rescheduleIfEnabled` في `main`).
+- منطق المواعيد في `NotificationPlan` (دوال نقية) ومغطّى بـ `test/notification_plan_test.dart`.
+
+## Deep links
+
+`ruqyah://open/<route>` (اختصارات أندرويد). كل مسار قديم/مجهول يمر على
+`AppRoutes.normalize` — المجهول يذهب للرئيسية بدل صفحة خطأ.
 
 ## Persona for Claude
 

@@ -1,0 +1,32 @@
+# Quality gate on every push / PR: static analysis + all tests.
+# Cheap (ubuntu runner) — catches a broken build BEFORE a v* tag triggers the
+# iOS release workflow.
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+    paths-ignore: ["docs/**", "privacy/**", "index.html", "**.md"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze (errors + warnings fail the build)
+        run: flutter analyze --no-fatal-infos
+      - name: Tests (Quran integrity, release notes, notifications, routing…)
+        run: flutter test

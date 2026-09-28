@@ -2,6 +2,7 @@ import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'error_reporter.dart';
+import '../config/app_links.dart';
 
 /// خدمة طلب تقييم التطبيق بطريقة لطيفة.
 ///
@@ -55,10 +56,8 @@ class ReviewService {
   /// طلب يدوي (من زر "قيّم التطبيق" في الإعدادات).
   Future<void> openStoreListing() async {
     try {
-      // تأكد من id قبل النشر — يطلب package id من Play Console
-      await _inAppReview.openStoreListing(
-        appStoreId: '6738451632', // Apple Store id (مثال - بدّله بالحقيقي)
-      );
+      // كان هنا id تجريبي (6738451632) يفتح صفحة تطبيق آخر — الآن من AppLinks.
+      await _inAppReview.openStoreListing(appStoreId: AppLinks.appStoreId);
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'openStoreListing');
     }

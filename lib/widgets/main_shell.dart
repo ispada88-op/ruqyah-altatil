@@ -71,7 +71,11 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     _updateIndex(context);
     final themeProvider = context.watch<ThemeProvider>();
-    final audio = context.watch<AudioPlayerService>();
+    // select (لا watch): الـ shell يحتاج حالتين فقط من الصوت؛ watch كان يعيد
+    // بناء الـ AppBar وشريط التنقل مع كل تحديث لموضع التشغيل.
+    final audioLoaded = context.select<AudioPlayerService, bool>((a) => a.isLoaded);
+    final hasSleepTimer =
+        context.select<AudioPlayerService, bool>((a) => a.hasSleepTimer);
     final isDark = themeProvider.isDarkMode(context);
 
     return Scaffold(
@@ -86,11 +90,11 @@ class _MainShellState extends State<MainShell> {
         ),
         actions: [
           // Sleep timer button (يظهر فقط لما الصوت محمل)
-          if (audio.isLoaded)
+          if (audioLoaded)
             IconButton(
               icon: Icon(
-                audio.hasSleepTimer ? Icons.bedtime : Icons.bedtime_outlined,
-                color: audio.hasSleepTimer
+                hasSleepTimer ? Icons.bedtime : Icons.bedtime_outlined,
+                color: hasSleepTimer
                     ? AppColors.accentGold
                     : (isDark ? AppColors.darkTeal : AppColors.primaryTeal),
               ),

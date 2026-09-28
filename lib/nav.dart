@@ -13,6 +13,11 @@ import 'package:roqia_altatil/widgets/main_shell.dart';
 class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: AppRoutes.home,
+    // Deep links (Android app shortcuts, ruqyah://open/<route>) and any old or
+    // short path are normalised here; unknown paths fall back to home instead
+    // of GoRouter's red "page not found" screen.
+    redirect: (context, state) => AppRoutes.normalize(state.uri.path),
+    onException: (context, state, router) => router.go(AppRoutes.home),
     routes: [
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
@@ -132,4 +137,26 @@ class AppRoutes {
   static const String tahseen = '/tahseen';
   static const String generalRuqyah = '/general-ruqyah';
   static const String feedback = '/feedback';
+
+  static const Set<String> all = {
+    home, writtenRoqia, audioRoqia, dhikr, tahseen, generalRuqyah, feedback,
+  };
+
+  /// Short / legacy paths → canonical route (e.g. shortcuts shipped as
+  /// `ruqyah://audio` before 1.0.5).
+  static const Map<String, String> aliases = {
+    '': home,
+    '/audio': audioRoqia,
+    '/written': writtenRoqia,
+    '/kursi': writtenRoqia,
+    '/ruqyah': generalRuqyah,
+  };
+
+  /// Returns the path to redirect to, or null when [path] is already canonical.
+  static String? normalize(String path) {
+    var p = path.trim();
+    if (p.length > 1 && p.endsWith('/')) p = p.substring(0, p.length - 1);
+    if (all.contains(p)) return p == path ? null : p;
+    return aliases[p] ?? home;
+  }
 }

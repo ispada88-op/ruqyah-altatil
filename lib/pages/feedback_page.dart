@@ -1,5 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:roqia_altatil/config/app_links.dart';
+import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -43,41 +45,64 @@ class _FeedbackPageState extends State<FeedbackPage> {
       final name = _nameController.text.trim().isEmpty ? 'مستخدم مجهول' : _nameController.text.trim();
       final message = _messageController.text.trim();
       
-      final emailBody = Uri.encodeComponent('''
+      final subject = 'رسالة من تطبيق رقية التعطيل للشيخ فهد القرني - $_selectedType';
+      final plainBody = '''
 نوع الرسالة: $_selectedType
 الاسم: $name
 التاريخ والوقت: $dateTime
 
 الرسالة:
 $message
-      ''');
+''';
 
-      final emailUri = Uri.parse(
-        'mailto:ISPADA88@GMAIL.COM?subject=${Uri.encodeComponent('رسالة من تطبيق رقية التعطيل للشيخ فهد القرني - $_selectedType')}&body=$emailBody'
+      final emailUri = Uri(
+        scheme: 'mailto',
+        path: AppLinks.feedbackEmail,
+        query: 'subject=${Uri.encodeComponent(subject)}'
+            '&body=${Uri.encodeComponent(plainBody)}',
       );
 
-      if (await canLaunchUrl(emailUri)) {
-        await launchUrl(emailUri);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('شكراً! تم فتح تطبيق البريد لإرسال رسالتك ✅'),
-              backgroundColor: AppColors.primaryTeal,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-          
-          // Reset form
-          _nameController.clear();
-          _messageController.clear();
-          setState(() => _selectedType = '🌟 اقتراح');
-        }
-      } else {
-        throw 'لا يمكن فتح تطبيق البريد';
+      // إصلاح 2026-09-28: كان الكود يسأل canLaunchUrl أولاً — على أندرويد 11+
+      // يرجع false دائماً بدون <queries> لـ mailto، وعلى أي جهاز بدون تطبيق بريد
+      // تضيع رسالة المستخدم. الآن نحاول الفتح مباشرة، وإن فشل ننسخ الرسالة.
+      var opened = false;
+      try {
+        opened = await launchUrl(emailUri, mode: LaunchMode.externalApplication);
+      } catch (e, st) {
+        ErrorReporter.report(e, st, context: 'FeedbackPage.launchUrl');
       }
-    } catch (e) {
-      if (kDebugMode) debugPrint('Error sending feedback: $e');
+
+      if (!mounted) return;
+      if (opened) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('شكراً! تم فتح تطبيق البريد لإرسال رسالتك ✅'),
+            backgroundColor: AppColors.primaryTeal,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        _nameController.clear();
+        _messageController.clear();
+        setState(() => _selectedType = '🌟 اقتراح');
+      } else {
+        // لا يوجد تطبيق بريد: لا نضيّع ما كتبه المستخدم.
+        await Clipboard.setData(ClipboardData(
+          text: 'إلى: ${AppLinks.feedbackEmail}\nالموضوع: $subject\n\n$plainBody',
+        ));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'لم نجد تطبيق بريد على جهازك — نسخنا رسالتك، '
+              'الصقها في أي بريد وأرسلها إلى ${AppLinks.feedbackEmail}',
+            ),
+            backgroundColor: AppColors.warning,
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      }
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'FeedbackPage._sendFeedback');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

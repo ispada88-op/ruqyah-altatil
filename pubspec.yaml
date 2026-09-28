@@ -1,7 +1,7 @@
 name: roqia_altatil
 description: "Roqia Al-Ta'til is a serene Islamic app designed to bring tranquility to your daily life, offering written and audio Roqia, along with a daily Dhikr counter in a beautifully minimalist interface."
 publish_to: "none"
-version: 1.0.4+11
+version: 1.0.5+12
 
 environment:
   sdk: ^3.6.0
@@ -18,13 +18,9 @@ dependencies:
   just_audio: ^0.10.5
   just_audio_background: ^0.0.1-beta.13   # background playback (lock screen + notification)
   audio_session: ^0.2.2
-  wakelock_plus: ^1.2.8
   shared_preferences: ^2.0.0
-  shimmer: ^3.0.0
   flutter_animate: ^4.0.0
-  cached_network_image: ^3.0.0
   url_launcher: ^6.0.0
-  mailer: ^7.0.0
 
   # ── Notifications (dhikr reminders) ──
   flutter_local_notifications: ^17.2.0
@@ -35,12 +31,8 @@ dependencies:
   share_plus: ^10.1.2          # share verses
   in_app_review: ^2.0.10       # in-app rating
   package_info_plus: ^9.0.1    # version for whats-new sheet
+  flutter_timezone: ^5.1.0
 
-  # ── credit_card module (dormant) ──
-  drift: ^2.32.0
-  sqlite3_flutter_libs: ^0.5.0
-  path_provider: ^2.1.0
-  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:
@@ -48,14 +40,16 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.1   # native splash screen
-  drift_dev: ^2.32.0
-  build_runner: ^2.4.0
 
 flutter:
   uses-material-design: true
   assets:
     - assets/icons/
     - assets/audio/
+    # Bundled Google Fonts (offline Quran text on first launch; no request to
+    # fonts.gstatic.com). Names MUST follow google_fonts' Family-Variant.ttf.
+    # Any weight not bundled here is still fetched at runtime as before.
+    - assets/google_fonts/
 
 flutter_launcher_icons:
   android: true

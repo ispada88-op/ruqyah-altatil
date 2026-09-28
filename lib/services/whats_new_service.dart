@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:roqia_altatil/nav.dart';
+import 'package:roqia_altatil/data/release_notes.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'error_reporter.dart';
 
@@ -13,17 +13,6 @@ class WhatsNewService {
   WhatsNewService._();
 
   static const _kLastSeenKey = 'whats_new_last_seen_version';
-
-  /// مزايا الإصدار الحالي المعروضة في التنبيه.
-  static const List<(IconData, String)> _highlights = [
-    (Icons.auto_stories_outlined,
-        'قسم جديد: الرقية المستقلة — الفاتحة والمعوذات وآيات وأدعية الشفاء، بعدّاد تكرار لكل فقرة'),
-    (Icons.share_rounded,
-        'إصلاح المشاركة — تعمل الآن بثبات على كل الأجهزة بما فيها iPad'),
-    (Icons.notifications_active_outlined,
-        'إصلاح مفتاح التنبيهات، مع زر «فتح الإعدادات» عند رفض الإذن'),
-    (Icons.spellcheck, 'تدقيق النصوص وتحسينات عامة'),
-  ];
 
   /// يخزّن النسخة الحالية بدون عرض (يُستدعى عند إكمال الترحيب لمستخدم جديد).
   static Future<void> markCurrentSeen() async {
@@ -44,14 +33,25 @@ class WhatsNewService {
       final lastSeen = prefs.getString(_kLastSeenKey);
       if (lastSeen == info.version) return;
       await prefs.setString(_kLastSeenKey, info.version);
-      if (!context.mounted) return;
-      await _showSheet(context, info.version);
+      // لا ملاحظات لهذا الإصدار (مثلاً إصلاح داخلي) → لا نعرض شيئاً قديماً.
+      final notes = unseenReleaseNotes(lastSeen: lastSeen, current: info.version);
+      if (notes.isEmpty || !context.mounted) return;
+      await _showSheet(context, info.version, notes);
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'WhatsNew.maybeShow');
     }
   }
 
-  static Future<void> _showSheet(BuildContext context, String version) {
+  static Future<void> _showSheet(
+    BuildContext context,
+    String version,
+    List<MapEntry<String, ReleaseEntry>> notes,
+  ) {
+    final highlights = [for (final n in notes) ...n.value.highlights].take(6);
+    final cta = notes.map((n) => n.value).firstWhere(
+          (e) => e.ctaLabel != null && e.ctaRoute != null,
+          orElse: () => const ReleaseEntry(highlights: []),
+        );
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final teal = isDark ? AppColors.darkTeal : AppColors.primaryTeal;
 
@@ -91,7 +91,7 @@ class WhatsNewService {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            ..._highlights.map((h) => Padding(
+            ...highlights.map((h) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.md),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,22 +112,23 @@ class WhatsNewService {
                   ),
                 )),
             const SizedBox(height: AppSpacing.sm),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: teal,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+            if (cta.ctaLabel != null)
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: teal,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                icon: const Icon(Icons.auto_stories_outlined, size: 20),
+                label: Text(cta.ctaLabel!),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  context.go(cta.ctaRoute!);
+                },
               ),
-              icon: const Icon(Icons.auto_stories_outlined, size: 20),
-              label: const Text('استكشف الرقية المستقلة'),
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                context.go(AppRoutes.generalRuqyah);
-              },
-            ),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('لاحقاً',
+              child: Text(cta.ctaLabel != null ? 'لاحقاً' : 'حسناً',
                   style: TextStyle(
                       color: isDark
                           ? AppColors.textOnDarkSecondary
