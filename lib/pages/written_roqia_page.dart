@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/data/written_roqia_data.dart';
-import 'package:roqia_altatil/utils/arabic_text.dart';
 
 /// Written Roqia page with Quran-style design
 class WrittenRoqiaPage extends StatefulWidget {
@@ -573,8 +572,8 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
           Divider(color: isDark ? AppColors.accentGold : const Color(0xFFD4AF37), thickness: 1, height: 24),
           if (basmala != null) ...[
             Text(
-              simplifyQuran(basmala),
-              style: GoogleFonts.notoNaskhArabic(
+              basmala,
+              style: GoogleFonts.amiri(
                 fontSize: _fontSize + 2,
                 fontWeight: FontWeight.bold,
                 color: isDark ? AppColors.accentGold : const Color(0xFFD4AF37),
@@ -589,7 +588,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
               : Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(
-                    simplifyQuran(verse),
+                    verse,
                     style: GoogleFonts.notoNaskhArabic(
                       fontSize: _fontSize,
                       height: 2,

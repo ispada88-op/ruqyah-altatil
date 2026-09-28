@@ -37,6 +37,10 @@ const Map<String, ReleaseEntry> kReleaseNotes = {
         Icons.healing_rounded,
         'رقى حسب الحالة: السحر، العين والحسد، الهم والحزن'
       ),
+      (
+        Icons.verified_outlined,
+        'الآيات تُعرض الآن بضبط المصحف كاملاً (علامات المدّ والإقلاب والسكت والوقف) مطابقةً للنص الموثّق حرفاً بحرف'
+      ),
     ],
     ctaLabel: 'افتح أذكار الصباح والمساء',
     ctaRoute: AppRoutes.adhkar,

@@ -64,13 +64,54 @@ ParsedQuran parseTanzil(String raw) {
     surahs.putIfAbsent(s, () => []).add(l.substring(second + 1));
   }
   final basmala = surahs[1]!.first;
-  final prefix = '$basmala ';
-  for (final entry in surahs.entries) {
-    if (entry.key == 1 || entry.key == 9) continue;
-    final first = entry.value.first;
-    if (first.startsWith(prefix)) {
-      entry.value[0] = first.substring(prefix.length);
+  final basmalaWords = basmala.split(' ').map(quranSkeleton).toList();
+  for (var s = 2; s <= 114; s++) {
+    final ayat = surahs[s];
+    if (ayat == null || ayat.isEmpty) {
+      throw FormatException('Quran text: surah $s is missing');
     }
+    final words = ayat.first.split(' ');
+    final head = words.take(basmalaWords.length).map(quranSkeleton).toList();
+    final hasBasmala = words.length > basmalaWords.length &&
+        _sameWords(head, basmalaWords);
+    if (s == 9) {
+      if (hasBasmala) {
+        throw const FormatException('Quran text: At-Tawbah must not carry a basmala');
+      }
+      continue;
+    }
+    // Tanzil writes the basmala of At-Tin (95) and Al-Qadr (97) as «بِّسْمِ»
+    // (with shaddah), so match by letters, never by exact string.
+    if (!hasBasmala) {
+      throw FormatException('Quran text: surah $s ayah 1 lacks the basmala prefix');
+    }
+    ayat[0] = words.skip(basmalaWords.length).join(' ');
   }
   return ParsedQuran(surahs, basmala);
+}
+
+bool _sameWords(List<String> a, List<String> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+/// Letters only: drops harakat, Quranic annotation marks and tatweel, and
+/// reads alef wasla as alef. Used to recognise words regardless of marks —
+/// never to display text.
+String quranSkeleton(String word) {
+  final sb = StringBuffer();
+  for (final r in word.runes) {
+    final isMark = (r >= 0x0610 && r <= 0x061A) ||
+        (r >= 0x064B && r <= 0x065F) ||
+        r == 0x0670 ||
+        (r >= 0x06D6 && r <= 0x06ED) ||
+        (r >= 0x08D3 && r <= 0x08FF) ||
+        r == 0x0640;
+    if (isMark) continue;
+    sb.writeCharCode(r == 0x0671 ? 0x0627 : r);
+  }
+  return sb.toString();
 }

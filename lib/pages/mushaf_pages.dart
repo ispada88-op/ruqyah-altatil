@@ -10,7 +10,6 @@ import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/quran_repository.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
-import 'package:roqia_altatil/utils/arabic_text.dart';
 import 'package:roqia_altatil/widgets/section_back_bar.dart';
 
 const _kLastSurahKey = 'mushaf_last_surah';
@@ -344,7 +343,7 @@ class _MushafReaderPageState extends State<MushafReaderPage> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Text(
-                              simplifyQuran(QuranRepository.instance.basmala),
+                              QuranRepository.instance.basmala,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.amiri(
                                   fontSize: _fontSize + 2, color: textColor, height: 2),
@@ -355,7 +354,7 @@ class _MushafReaderPageState extends State<MushafReaderPage> {
                             key: widget.ayah == i + 1 ? _targetKey : null,
                             padding: const EdgeInsets.only(bottom: 10),
                             child: Text(
-                              '${simplifyQuran(verses[i])} ﴿${arDigits(i + 1)}﴾',
+                              '${verses[i]} ﴿${arDigits(i + 1)}﴾',
                               textAlign: TextAlign.justify,
                               textDirection: TextDirection.rtl,
                               style: GoogleFonts.notoNaskhArabic(

@@ -130,7 +130,7 @@ List<GeneralRuqyahItem> get generalRuqyahItems => [
       const GeneralRuqyahItem(
         title: 'التعوّذ بعزة الله',
         repeat: 7,
-        source: 'رواه الترمذي وأبو داود، وأصله في صحيح مسلم (٢٢٠٢)',
+        source: 'رواه ابن ماجه، وأصله في صحيح مسلم (٢٢٠٢)',
         blocks: [
           RuqyahBlock(lines: [
             'أَعُوذُ بِعِزَّةِ اللهِ وَقُدْرَتِهِ مِنْ شَرِّ مَا أَجِدُ وَأُحَاذِرُ',
