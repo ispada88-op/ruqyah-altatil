@@ -7,6 +7,11 @@ import 'package:roqia_altatil/pages/dhikr_page.dart';
 import 'package:roqia_altatil/pages/feedback_page.dart';
 import 'package:roqia_altatil/pages/general_ruqyah_page.dart';
 import 'package:roqia_altatil/pages/tahseen_page.dart';
+import 'package:roqia_altatil/pages/adhkar_page.dart';
+import 'package:roqia_altatil/pages/mushaf_pages.dart';
+import 'package:roqia_altatil/pages/reminders_page.dart';
+import 'package:roqia_altatil/pages/ruqyah_tracker_page.dart';
+import 'package:roqia_altatil/pages/ruqyah_types_page.dart';
 import 'package:roqia_altatil/widgets/main_shell.dart';
 
 /// GoRouter configuration with bottom navigation shell
@@ -77,6 +82,75 @@ class AppRouter {
             ),
           ),
           GoRoute(
+            path: AppRoutes.adhkar,
+            name: 'adhkar',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const AdhkarPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.ruqyahTypes,
+            name: 'ruqyah-types',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const RuqyahTypesPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+            routes: [
+              GoRoute(
+                path: ':type',
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: RuqyahTypePage(typeId: state.pathParameters['type'] ?? ''),
+                  transitionsBuilder: _fadeSlideTransition,
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: AppRoutes.mushaf,
+            name: 'mushaf',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const MushafIndexPage(),
+              transitionsBuilder: _fadeTransition,
+            ),
+            routes: [
+              GoRoute(
+                path: ':surah',
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: MushafReaderPage(
+                    surah: int.tryParse(state.pathParameters['surah'] ?? '') ?? 1,
+                    ayah: int.tryParse(state.uri.queryParameters['ayah'] ?? ''),
+                    resume: state.uri.queryParameters['resume'] == '1',
+                  ),
+                  transitionsBuilder: _fadeSlideTransition,
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: AppRoutes.tracker,
+            name: 'ruqyah-tracker',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const RuqyahTrackerPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.reminders,
+            name: 'reminders',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const RemindersPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
             path: AppRoutes.feedback,
             name: 'feedback',
             pageBuilder: (context, state) => CustomTransitionPage(
@@ -137,10 +211,29 @@ class AppRoutes {
   static const String tahseen = '/tahseen';
   static const String generalRuqyah = '/general-ruqyah';
   static const String feedback = '/feedback';
+  static const String adhkar = '/adhkar';
+  static const String ruqyahTypes = '/ruqyah-types';
+  static const String mushaf = '/mushaf';
+  static const String tracker = '/ruqyah-tracker';
+  static const String reminders = '/reminders';
 
   static const Set<String> all = {
     home, writtenRoqia, audioRoqia, dhikr, tahseen, generalRuqyah, feedback,
+    adhkar, ruqyahTypes, mushaf, tracker, reminders,
   };
+
+  /// أنواع «رقى حسب الحالة» المعروفة للمسار /ruqyah-types/:type.
+  static const Set<String> ruqyahTypeIds = {'sihr', 'ayn', 'hamm'};
+
+  static String ruqyahType(String id) => '$ruqyahTypes/$id';
+
+  static String mushafSurah(int surah, {int? ayah, bool resume = false}) {
+    final q = <String>[
+      if (ayah != null) 'ayah=$ayah',
+      if (resume) 'resume=1',
+    ];
+    return '$mushaf/$surah${q.isEmpty ? '' : '?${q.join('&')}'}';
+  }
 
   /// Short / legacy paths → canonical route (e.g. shortcuts shipped as
   /// `ruqyah://audio` before 1.0.5).
@@ -150,6 +243,8 @@ class AppRoutes {
     '/written': writtenRoqia,
     '/kursi': writtenRoqia,
     '/ruqyah': generalRuqyah,
+    '/quran': mushaf,
+    '/azkar': adhkar,
   };
 
   /// Returns the path to redirect to, or null when [path] is already canonical.
@@ -157,6 +252,15 @@ class AppRoutes {
     var p = path.trim();
     if (p.length > 1 && p.endsWith('/')) p = p.substring(0, p.length - 1);
     if (all.contains(p)) return p == path ? null : p;
+    final surah = RegExp(r'^/mushaf/(\d{1,3})$').firstMatch(p);
+    if (surah != null) {
+      final n = int.parse(surah.group(1)!);
+      return n >= 1 && n <= 114 ? (p == path ? null : p) : mushaf;
+    }
+    final type = RegExp(r'^/ruqyah-types/([a-z]+)$').firstMatch(p);
+    if (type != null) {
+      return ruqyahTypeIds.contains(type.group(1)) ? (p == path ? null : p) : ruqyahTypes;
+    }
     return aliases[p] ?? home;
   }
 }

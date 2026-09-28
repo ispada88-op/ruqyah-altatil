@@ -28,6 +28,10 @@ lib/
 │   └── app_links.dart               # App Store id + روابط المشاركة + بريد الاقتراحات (مصدر واحد)
 ├── data/
 │   ├── release_notes.dart           # ملاحظات «الجديد» لكل إصدار — حدّثها مع كل رفع نسخة
+│   ├── adhkar_data.dart             # أذكار الصباح والمساء (حصن المسلم) — تُفحص بـ scripts/verify_adhkar.py
+│   ├── ruqyah_types_data.dart       # رقى حسب الحالة ⚠️ محتوى شرعي يراجعه خالد قبل كل إصدار
+│   ├── quran_index.dart             # مولَّد: أسماء السور/عدد الآيات/الأجزاء (لا تعدّله)
+│   ├── quran_extracts.dart          # مولَّد: مقاطع آيات من ملف تنزيل (لا تعدّله)
 │   ├── verified_quran.dart          # ⚠️  نص قرآني عثماني موثّق - لا تعدّله يدوياً
 │   ├── written_roqia_data.dart      # يجمع البيانات لصفحة الرقية المكتوبة
 │   └── quran_data.dart              # سور الأنفال/الدخان/الصافات/الحاقة
@@ -84,6 +88,16 @@ CI/CD:
 وحدة `credit_card` القديمة حُذفت من هذا التطبيق — محفوظة في التاق `archive/credit-card-module-20260928`.
 
 ## Quran Text Workflow
+
+- المصحف الكامل: `assets/quran/quran-uthmani.txt` — نسخة حرفية من تنزيل 1.1
+  (خيارات: علامات الوقف + السجدة + الألف الخنجرية، بدون تطويل). بصمته SHA-256
+  مثبّتة في `test/quran_asset_test.dart`. لا تعدّله؛ أعد تنزيله فقط (الرابط في
+  `scripts/gen_quran_data.py`).
+- `python3 scripts/verify_quran.py` يفحص كل آية في الكود (439 آية) مقابل الملف —
+  يعمل في CI. فرقان معروفان على مستوى العلامات فقط في `quran_data.dart` موثّقان فيه.
+- لإضافة مقطع آيات جديد: أضفه إلى `EXTRACTS` في `scripts/gen_quran_data.py` ثم شغّل
+  السكربت — لا تنسخ آية يدوياً.
+- الأذكار: `python3 scripts/verify_adhkar.py DIR` (ملفات حصن المسلم JSON) يطابق الحروف.
 
 **القاعدة المطلقة**: لا تكتب أو تُعدِّل آية قرآنية يدوياً. إذا احتجت إضافة سورة:
 1. استخرج النص من Tanzil Uthmani XML

@@ -13,7 +13,8 @@ void main() {
       late tz.Location loc;
       setUp(() => loc = tz.getLocation(zone));
 
-      test('3h interval: 5 slots/day, all in the future, local wall-clock hours',
+      test(
+          '3h interval: 5 slots/day, all in the future, local wall-clock hours',
           () {
         final now = tz.TZDateTime(loc, 2026, 9, 28, 10, 30);
         final times = NotificationPlan.dhikrTimes(

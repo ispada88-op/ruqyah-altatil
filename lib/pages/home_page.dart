@@ -163,6 +163,55 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
 
                 _FeatureCard(
+                  title: 'رقى حسب الحالة',
+                  subtitle: 'السحر • العين والحسد • الهم والحزن — من القرآن والسنة',
+                  icon: Icons.healing_rounded,
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [AppColors.primaryTealDark, AppColors.darkSecondary]
+                        : [AppColors.primaryTeal, AppColors.accentGoldDark],
+                  ),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.ruqyahTypes);
+                  },
+                ).animate().fadeIn(delay: 270.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
+
+                const SizedBox(height: AppSpacing.md),
+
+                _FeatureCard(
+                  title: 'أذكار الصباح والمساء',
+                  subtitle: 'كاملة من حصن المسلم بعدّاد لكل ذكر',
+                  icon: Icons.wb_twilight_rounded,
+                  gradient: const LinearGradient(
+                    colors: [AppColors.accentGoldDark, AppColors.accentGold],
+                  ),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.adhkar);
+                  },
+                ).animate().fadeIn(delay: 280.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
+
+                const SizedBox(height: AppSpacing.md),
+
+                _FeatureCard(
+                  title: 'المصحف الشريف',
+                  subtitle: 'القرآن كاملاً للتلاوة — السور والأجزاء ومتابعة آخر قراءة',
+                  icon: Icons.auto_stories_rounded,
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [AppColors.darkTeal, AppColors.primaryTealDark]
+                        : [AppColors.primaryTealDark, AppColors.primaryTeal],
+                  ),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.mushaf);
+                  },
+                ).animate().fadeIn(delay: 290.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
+
+                const SizedBox(height: AppSpacing.md),
+
+                _FeatureCard(
                   title: 'الأذكار اليومية',
                   subtitle: 'عداد التسبيح والأدعية المأثورة',
                   icon: Icons.favorite_rounded,
@@ -194,6 +243,23 @@ class HomePage extends StatelessWidget {
                     context.go(AppRoutes.tahseen);
                   },
                 ).animate().fadeIn(delay: 350.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
+
+                const SizedBox(height: AppSpacing.md),
+
+                _FeatureCard(
+                  title: 'متابعة أيام الرقية',
+                  subtitle: 'سجّل قراءتك اليومية وتابع استمرارك نحو هدفك',
+                  icon: Icons.event_available_rounded,
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [AppColors.darkSecondary, AppColors.darkTeal]
+                        : [AppColors.primaryTealLight, AppColors.primaryTeal],
+                  ),
+                  onTap: () {
+                    Haptic.light();
+                    context.go(AppRoutes.tracker);
+                  },
+                ).animate().fadeIn(delay: 380.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
 
                 const SizedBox(height: AppSpacing.lg),
 

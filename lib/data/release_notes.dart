@@ -18,24 +18,58 @@ class ReleaseEntry {
 }
 
 const Map<String, ReleaseEntry> kReleaseNotes = {
+  '1.0.6': ReleaseEntry(
+    highlights: [
+      (
+        Icons.wb_twilight_rounded,
+        'أذكار الصباح والمساء كاملة من حصن المسلم، بعدّاد لكل ذكر'
+      ),
+      (
+        Icons.auto_stories_rounded,
+        'المصحف الشريف كاملاً للتلاوة: فهرس السور والأجزاء ومتابعة آخر قراءة'
+      ),
+      (Icons.alarm_add_outlined, 'تذكيراتك الخاصة: اكتب الذكر واختر وقته'),
+      (
+        Icons.event_available_rounded,
+        'متابعة أيام الرقية: سجّل قراءتك اليومية وتابع استمرارك'
+      ),
+      (
+        Icons.healing_rounded,
+        'رقى حسب الحالة: السحر، العين والحسد، الهم والحزن'
+      ),
+    ],
+    ctaLabel: 'افتح أذكار الصباح والمساء',
+    ctaRoute: AppRoutes.adhkar,
+  ),
   '1.0.5': ReleaseEntry(highlights: [
-    (Icons.schedule_rounded,
-        'التذكيرات الآن بتوقيت بلدك أينما كنت، وتذكير الرقية اليومي لا ينقطع حتى لو لم تفتح التطبيق'),
-    (Icons.mail_outline_rounded,
-        'صفحة الاقتراحات: إن لم يوجد تطبيق بريد نحفظ رسالتك وننسخها بدل أن تضيع'),
-    (Icons.text_fields_rounded,
-        'خطوط المصحف والتطبيق مضمّنة — تظهر بشكلها الصحيح حتى بدون إنترنت'),
-    (Icons.battery_charging_full_rounded,
-        'تشغيل صوتي أخف على البطارية'),
+    (
+      Icons.schedule_rounded,
+      'التذكيرات الآن بتوقيت بلدك أينما كنت، وتذكير الرقية اليومي لا ينقطع حتى لو لم تفتح التطبيق'
+    ),
+    (
+      Icons.mail_outline_rounded,
+      'صفحة الاقتراحات: إن لم يوجد تطبيق بريد نحفظ رسالتك وننسخها بدل أن تضيع'
+    ),
+    (
+      Icons.text_fields_rounded,
+      'خطوط المصحف والتطبيق مضمّنة — تظهر بشكلها الصحيح حتى بدون إنترنت'
+    ),
+    (Icons.battery_charging_full_rounded, 'تشغيل صوتي أخف على البطارية'),
   ]),
   '1.0.4': ReleaseEntry(
     highlights: [
-      (Icons.auto_stories_outlined,
-          'قسم جديد: الرقية المستقلة — الفاتحة والمعوذات وآيات وأدعية الشفاء، بعدّاد تكرار لكل فقرة'),
-      (Icons.share_rounded,
-          'إصلاح المشاركة — تعمل الآن بثبات على كل الأجهزة بما فيها iPad'),
-      (Icons.notifications_active_outlined,
-          'إصلاح مفتاح التنبيهات، مع زر «فتح الإعدادات» عند رفض الإذن'),
+      (
+        Icons.auto_stories_outlined,
+        'قسم جديد: الرقية المستقلة — الفاتحة والمعوذات وآيات وأدعية الشفاء، بعدّاد تكرار لكل فقرة'
+      ),
+      (
+        Icons.share_rounded,
+        'إصلاح المشاركة — تعمل الآن بثبات على كل الأجهزة بما فيها iPad'
+      ),
+      (
+        Icons.notifications_active_outlined,
+        'إصلاح مفتاح التنبيهات، مع زر «فتح الإعدادات» عند رفض الإذن'
+      ),
       (Icons.spellcheck, 'تدقيق النصوص وتحسينات عامة'),
     ],
     ctaLabel: 'استكشف الرقية المستقلة',

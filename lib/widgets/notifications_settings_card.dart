@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/notification_service.dart';
 import 'package:roqia_altatil/theme.dart';
 
@@ -222,6 +224,19 @@ class _NotificationsSettingsCardState extends State<NotificationsSettingsCard> {
               ),
             ),
           ],
+          const SizedBox(height: AppSpacing.sm),
+          // تذكيرات المستخدم الخاصة — تعمل حتى لو كان التذكير الدوري متوقفاً.
+          OutlinedButton.icon(
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              context.push(AppRoutes.reminders);
+            },
+            icon: const Icon(Icons.alarm_add_outlined, size: 20),
+            label: const Text('تذكيراتي الخاصة — اكتب ذكرك واختر وقته'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
+            ),
+          ),
         ],
       ),
     );

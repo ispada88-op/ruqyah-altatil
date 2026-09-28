@@ -12,8 +12,38 @@ import 'package:roqia_altatil/utils/arabic_text.dart';
 ///
 /// كل فقرة لها عدّاد تكرار تفاعلي (٧ أو ٣ مرات): اضغط العدّاد بعد كل قراءة،
 /// وعند اكتمال العدد يظهر ✓ (والضغط بعدها يعيد العدّاد من جديد).
+///
+/// الصفحة نفسها تُعاد استخدامها لأقسام القراءة بعدّاد (أذكار الصباح والمساء،
+/// رقى حسب الحالة) بتمرير [items] وعنوان القسم.
 class GeneralRuqyahPage extends StatefulWidget {
-  const GeneralRuqyahPage({super.key});
+  const GeneralRuqyahPage({
+    super.key,
+    this.items,
+    this.title = 'الرقية المستقلة',
+    this.subtitle =
+        'رقية مستقلة عن رقية التعطيل — تُقرأ فقراتها بالترتيب وبعدد التكرار المبيَّن',
+    this.emblem = 'رقية',
+    this.intro,
+    this.headerExtra,
+    this.footer,
+  });
+
+  /// الفقرات؛ الافتراضي «الرقية المستقلة».
+  final List<GeneralRuqyahItem>? items;
+  final String title;
+  final String subtitle;
+
+  /// الكلمة داخل الدائرة أعلى الصفحة.
+  final String emblem;
+
+  /// بطاقة تعريف اختيارية (مصدر القسم أو تنبيه).
+  final String? intro;
+
+  /// عنصر إضافي تحت العنوان (مثل مبدّل الصباح/المساء).
+  final Widget? headerExtra;
+
+  /// سطر مصدر في آخر القائمة.
+  final String? footer;
 
   @override
   State<GeneralRuqyahPage> createState() => _GeneralRuqyahPageState();
@@ -69,7 +99,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final items = generalRuqyahItems;
+    final items = widget.items ?? generalRuqyahItems;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkPrimary : const Color(0xFFFFF8E7),
@@ -140,6 +170,14 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
               padding: const EdgeInsets.all(16),
               children: [
                 _buildHeader(isDark),
+                if (widget.headerExtra != null) ...[
+                  const SizedBox(height: 12),
+                  widget.headerExtra!,
+                ],
+                if (widget.intro != null) ...[
+                  const SizedBox(height: 12),
+                  _buildIntroCard(widget.intro!, isDark),
+                ],
                 const SizedBox(height: 12),
                 _buildHowToCard(isDark),
                 const SizedBox(height: 12),
@@ -156,8 +194,50 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                     ),
                   );
                 }),
+                if (widget.footer != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      widget.footer!,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.caption(
+                        color: isDark
+                            ? AppColors.textOnDarkSecondary
+                            : AppColors.textSecondary,
+                      ).copyWith(fontSize: 12),
+                    ),
+                  ),
                 const SizedBox(height: 24),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntroCard(String text, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: (isDark ? AppColors.darkTeal : AppColors.primaryTeal)
+            .withValues(alpha: isDark ? 0.18 : 0.07),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline,
+              size: 20,
+              color: isDark ? AppColors.darkTeal : AppColors.primaryTeal),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTextStyles.caption(
+                color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
+              ).copyWith(height: 1.7),
+              textDirection: TextDirection.rtl,
             ),
           ),
         ],
@@ -189,28 +269,34 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
               ),
             ],
           ),
-          child: Center(
-            child: Text(
-              'رقية',
-              style: GoogleFonts.amiri(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                height: 1.1,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Center(
+              child: FittedBox(
+                child: Text(
+                  widget.emblem,
+                  style: GoogleFonts.amiri(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    height: 1.1,
+                  ),
+                ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 10),
         Text(
-          'الرقية المستقلة',
+          widget.title,
+          textAlign: TextAlign.center,
           style: AppTextStyles.header(
             color: isDark ? AppColors.textOnDark : AppColors.primaryTeal,
           ),
         ),
         const SizedBox(height: 4),
         Text(
-          'رقية مستقلة عن رقية التعطيل — تُقرأ فقراتها بالترتيب وبعدد التكرار المبيَّن',
+          widget.subtitle,
           textAlign: TextAlign.center,
           style: AppTextStyles.caption(
             color: isDark

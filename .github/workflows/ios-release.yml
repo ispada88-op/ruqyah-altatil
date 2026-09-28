@@ -59,6 +59,7 @@ jobs:
       - name: Quality gate (never upload a build that fails analyze/tests)
         run: |
           flutter pub get
+          python3 scripts/verify_quran.py
           flutter analyze --no-fatal-infos
           flutter test
 

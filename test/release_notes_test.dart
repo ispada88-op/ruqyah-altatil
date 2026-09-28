@@ -15,7 +15,8 @@ void main() {
       () {
     final v = pubspecVersion();
     expect(kReleaseNotes.containsKey(v), isTrue,
-        reason: 'Add a kReleaseNotes["$v"] entry in lib/data/release_notes.dart');
+        reason:
+            'Add a kReleaseNotes["$v"] entry in lib/data/release_notes.dart');
     expect(kReleaseNotes[v]!.highlights, isNotEmpty);
   });
 
@@ -42,7 +43,7 @@ void main() {
 
   test('already seen → nothing; unknown version → nothing stale', () {
     expect(unseenReleaseNotes(lastSeen: '1.0.5', current: '1.0.5'), isEmpty);
-    expect(unseenReleaseNotes(lastSeen: '1.0.5', current: '1.0.6'), isEmpty);
+    expect(unseenReleaseNotes(lastSeen: '1.0.99', current: '1.0.100'), isEmpty);
   });
 
   test('no previous record → only the current version', () {

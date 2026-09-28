@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'custom_reminders.dart';
 import 'error_reporter.dart';
 import '../data/hisn_almuslim_dhikr.dart';
 
@@ -31,8 +32,11 @@ class NotificationService {
   /// التذكير اليومي بالرقية: الساعة 8م (لا يتعارض مع مواعيد الأذكار 9/12/15/18/21 أو 9/14/19).
   static const int _ruqyahReminderHour = 20;
 
-  /// IDs التذكير اليومي تبدأ من 500 حتى لا تتداخل مع إشعارات الأذكار (0..34).
+  /// IDs التذكير اليومي تبدأ من 500 حتى لا تتداخل مع إشعارات الأذكار (0..58).
   static const int _ruqyahIdBase = 500;
+
+  /// IDs تذكيرات المستخدم الخاصة: 600..609.
+  static const int _customIdBase = 600;
 
   static const List<(String, String)> _ruqyahReminders = [
     ('تذكير بالرقية 🕊', 'لا تنسَ قراءة رقية التعطيل اليوم — جعلها الله شفاءً وعافيةً لك.'),
@@ -77,11 +81,9 @@ class NotificationService {
   Future<void> setEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kEnabledKey, value);
-    if (value) {
-      await _scheduleAll();
-    } else {
-      await cancelAll();
-    }
+    // إيقاف التذكيرات الدورية لا يلغي تذكيرات المستخدم الخاصة — _scheduleAll
+    // يعيد بناء كل شيء حسب ما هو مفعّل.
+    await _scheduleAll();
   }
 
   Future<void> initialize() async {
@@ -200,15 +202,42 @@ class NotificationService {
       final hours = await intervalHours;
       final now = tz.TZDateTime.now(tz.local);
       final prefs = await SharedPreferences.getInstance();
+
+      // ─── تذكيرات المستخدم الخاصة (متكررة يومياً، مستقلة عن المفتاح العام) ───
+      final custom = (await CustomRemindersStore.load())
+          .where((r) => r.enabled)
+          .toList();
+      for (var i = 0; i < custom.length; i++) {
+        final r = custom[i];
+        await _plugin.zonedSchedule(
+          _customIdBase + i,
+          'تذكير 🕊',
+          r.text,
+          NotificationPlan.nextAt(now, r.hour, minute: r.minute),
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.time,
+          // ignore: deprecated_member_use
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      }
+
+      if (!await isEnabled) {
+        if (kDebugMode) debugPrint('✅ Scheduled ${custom.length} custom reminders only');
+        return;
+      }
+
       var lastIdx = prefs.getInt(_kLastIdxKey) ?? -1;
       final rng = Random();
       var notificationId = 0;
 
       // ─── أذكار دورية: مواعيد لعدة أيام قادمة ضمن ميزانية iOS ───
+      // الميزانية = الحد − التذكير اليومي بالرقية − تذكيرات المستخدم.
       final times = NotificationPlan.dhikrTimes(
         now: now,
         slots: NotificationPlan.slotsFor(hours),
-        budget: maxPending - 1,
+        budget: NotificationPlan.dhikrBudget(customCount: custom.length),
         isQuietHour: _isQuietHour,
       );
       for (final scheduledDate in times) {
@@ -254,8 +283,8 @@ class NotificationService {
       const ruqyahCount = 1;
 
       if (kDebugMode) {
-        debugPrint('✅ Scheduled $notificationId dhikr + $ruqyahCount daily ruqyah '
-            'notifications (every $hours hrs, tz=$_timeZoneName)');
+        debugPrint('✅ Scheduled $notificationId dhikr + $ruqyahCount daily ruqyah + '
+            '${custom.length} custom (every $hours hrs, tz=$_timeZoneName)');
       }
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'NotificationService._scheduleAll');
@@ -265,11 +294,9 @@ class NotificationService {
   /// إعادة جدولة (يُستدعى عند تغيير الإعدادات).
   Future<void> reschedule() => _scheduleAll();
 
-  /// إعادة الجدولة عند فتح التطبيق إن كانت الإشعارات مفعّلة.
-  /// ضروري لأن الجدولة تغطي 7 أيام فقط وتتوقف بدونها.
-  Future<void> rescheduleIfEnabled() async {
-    if (await isEnabled) await _scheduleAll();
-  }
+  /// إعادة الجدولة عند فتح التطبيق: تجدّد نافذة الأذكار الدورية (إن كانت
+  /// مفعّلة) وتذكيرات المستخدم الخاصة.
+  Future<void> rescheduleIfEnabled() => _scheduleAll();
 
   /// إلغاء كل الإشعارات.
   Future<void> cancelAll() async {
@@ -342,12 +369,17 @@ class NotificationPlan {
     return out;
   }
 
-  /// أقرب وقت قادم للساعة [hour] (اليوم إن لم تمضِ، وإلا غداً).
-  static tz.TZDateTime nextAt(tz.TZDateTime now, int hour) {
-    var t = tz.TZDateTime(now.location, now.year, now.month, now.day, hour);
+  /// أقرب وقت قادم للساعة [hour]:[minute] (اليوم إن لم يمضِ، وإلا غداً).
+  static tz.TZDateTime nextAt(tz.TZDateTime now, int hour, {int minute = 0}) {
+    var t = tz.TZDateTime(now.location, now.year, now.month, now.day, hour, minute);
     if (!t.isAfter(now)) {
-      t = tz.TZDateTime(now.location, now.year, now.month, now.day + 1, hour);
+      t = tz.TZDateTime(
+          now.location, now.year, now.month, now.day + 1, hour, minute);
     }
     return t;
   }
+
+  /// عدد إشعارات الأذكار المتاح بعد حجز التذكير اليومي وتذكيرات المستخدم.
+  static int dhikrBudget({required int customCount}) =>
+      NotificationService.maxPending - 1 - customCount;
 }
