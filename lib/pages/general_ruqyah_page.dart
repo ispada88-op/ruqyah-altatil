@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:roqia_altatil/data/general_ruqyah_data.dart';
 import 'package:roqia_altatil/services/share_service.dart';
-import 'package:roqia_altatil/utils/quran_display.dart';
 import 'package:roqia_altatil/theme.dart';
+import 'package:roqia_altatil/widgets/quran_text.dart';
 
 /// صفحة «الرقية المستقلة» — رقية مستقلة عن رقية التعطيل.
 ///
@@ -452,18 +452,24 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
             for (final line in block.lines) {
               yield Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                  // Quran: every letter and mark kept; only the two documented
-                  // display substitutions of mushafDisplay (jazm sukun, NBSP).
-                  item.isQuran ? mushafDisplay(line) : line,
-                  style: GoogleFonts.notoNaskhArabic(
-                    fontSize: _fontSize,
-                    height: 2,
-                    color: textColor,
-                  ),
-                  textAlign: item.isQuran ? TextAlign.right : TextAlign.center,
-                  textDirection: TextDirection.rtl,
-                ),
+                // Quran: verbatim KFGQPC text in the KFGQPC font, nothing altered
+                // between the verified data and the screen.
+                child: item.isQuran
+                    ? QuranText(
+                        line,
+                        style: AppTextStyles.mushaf(fontSize: _fontSize, color: textColor),
+                        textAlign: TextAlign.right,
+                      )
+                    : Text(
+                        line,
+                        style: GoogleFonts.notoNaskhArabic(
+                          fontSize: _fontSize,
+                          height: 2,
+                          color: textColor,
+                        ),
+                        textAlign: TextAlign.center,
+                        textDirection: TextDirection.rtl,
+                      ),
               );
             }
           }),

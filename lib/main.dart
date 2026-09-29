@@ -26,6 +26,10 @@ Future<void> main() async {
         final text = await rootBundle.loadString('assets/google_fonts/OFL-$family.txt');
         yield LicenseEntryWithLineBreaks([family], text);
       }
+      // خط المصحف ونصه: مجمع الملك فهد — الترخيص يشترط إرفاق نصه مع الخط.
+      final kf = await rootBundle.loadString('assets/fonts/kfgqpc/KFGQPC-EULA.txt');
+      yield LicenseEntryWithLineBreaks(
+          ['KFGQPC HAFS Uthmanic Script (King Fahd Glorious Quran Printing Complex)'], kf);
     });
 
     // ═══ Edge-to-edge display + transparent system bars (Android) ═══

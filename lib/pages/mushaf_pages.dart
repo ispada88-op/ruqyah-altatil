@@ -8,17 +8,17 @@ import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/quran_repository.dart';
-import 'package:roqia_altatil/utils/quran_display.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
+import 'package:roqia_altatil/widgets/quran_text.dart';
 import 'package:roqia_altatil/widgets/section_back_bar.dart';
 
 const _kLastSurahKey = 'mushaf_last_surah';
 const _kLastOffsetKey = 'mushaf_last_offset';
 const _kFontSizeKey = 'written_font_size'; // موحّد مع صفحات القراءة
 
-const String kTanzilCredit =
-    'النص القرآني: الرسم العثماني برواية حفص عن عاصم — مشروع تنزيل tanzil.net';
+const String kQuranCredit =
+    'النص والخط: مجمع الملك فهد لطباعة المصحف الشريف بالمدينة المنورة (الخط العثماني — رواية حفص عن عاصم)\nأسماء السور والاقتباسات الإملائية: tanzil.net';
 
 /// إزالة التشكيل للبحث في أسماء السور.
 String _plain(String s) => s
@@ -47,6 +47,7 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
   @override
   void initState() {
     super.initState();
+    QuranRepository.instance.preload();
     _loadLast();
   }
 
@@ -154,7 +155,7 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
                       if (i == surahs.length) {
                         return Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Text(kTanzilCredit,
+                          child: Text(kQuranCredit,
                               textAlign: TextAlign.center,
                               style: AppTextStyles.caption().copyWith(fontSize: 11)),
                         );
@@ -343,22 +344,22 @@ class _MushafReaderPageState extends State<MushafReaderPage> {
                         if (_info.number != 1 && _info.number != 9)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
-                            child: Text(
-                              mushafDisplay(QuranRepository.instance.basmala),
+                            child: QuranText(
+                              QuranRepository.instance.basmala,
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.amiri(
-                                  fontSize: _fontSize + 2, color: textColor, height: 2),
+                              style: AppTextStyles.mushaf(
+                                  fontSize: _fontSize + 2, color: textColor),
                             ),
                           ),
                         for (var i = 0; i < verses.length; i++)
                           Padding(
                             key: widget.ayah == i + 1 ? _targetKey : null,
                             padding: const EdgeInsets.only(bottom: 10),
-                            child: Text(
-                              '${mushafDisplay(verses[i])} ﴿${arDigits(i + 1)}﴾',
+                            child: QuranText(
+                              withAyahNumber(verses[i], i + 1),
                               textAlign: TextAlign.justify,
                               textDirection: TextDirection.rtl,
-                              style: GoogleFonts.notoNaskhArabic(
+                              style: AppTextStyles.mushaf(
                                 fontSize: _fontSize,
                                 height: 2.1,
                                 color: textColor,
@@ -395,7 +396,7 @@ class _MushafReaderPageState extends State<MushafReaderPage> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Text(kTanzilCredit,
+                        Text(kQuranCredit,
                             textAlign: TextAlign.center,
                             style: AppTextStyles.caption(
                               color: isDark

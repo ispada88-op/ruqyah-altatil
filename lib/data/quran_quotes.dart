@@ -11,8 +11,7 @@ class QuranQuote {
   const QuranQuote(this.surah, this.ayah, this.text);
 }
 
-/// Home header — Al-Fatiha 1.
-const kHomeBasmala = QuranQuote(1, 1, 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ');
+// (The home header basmala is the verified KFGQPC basmala, `basmalaUthmani`.)
 
 /// Home footer — An-Nas 1.
 const kHomeFooterAyah = QuranQuote(114, 1, 'قُلْ أَعُوذُ بِرَبِّ النَّاسِ');

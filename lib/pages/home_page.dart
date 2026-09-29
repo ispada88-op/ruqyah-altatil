@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:roqia_altatil/data/quran_quotes.dart';
+import 'package:roqia_altatil/data/verified_quran.dart' show basmalaUthmani;
+import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/share_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/widgets/notifications_settings_card.dart';
+import 'package:roqia_altatil/widgets/quran_text.dart';
 
 /// Enhanced home page with professional design.
 class HomePage extends StatelessWidget {
@@ -82,12 +86,12 @@ class HomePage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      Text(
-                        kHomeBasmala.text,
-                        style: AppTextStyles.quran(
+                      QuranText(
+                        basmalaUthmani,
+                        style: AppTextStyles.mushaf(
                           color: isDark ? AppColors.textOnDark : AppColors.primaryTeal,
-                          fontSize: 24,
-                        ).copyWith(fontWeight: FontWeight.bold),
+                          fontSize: 26,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.sm),
@@ -320,13 +324,10 @@ class HomePage extends StatelessWidget {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'الإصدار 1.0.4',
-                        style: AppTextStyles.caption(
-                          color: isDark
-                              ? AppColors.textOnDarkSecondary
-                              : AppColors.textTertiary,
-                        ),
+                      _VersionAndLicenses(
+                        color: isDark
+                            ? AppColors.textOnDarkSecondary
+                            : AppColors.textTertiary,
                       ),
                     ],
                   ),
@@ -537,6 +538,55 @@ class _DisclaimerCard extends StatelessWidget {
             textAlign: TextAlign.right,
             textDirection: TextDirection.rtl,
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// «الإصدار X» من الحزمة نفسها (لا رقم مكتوب يدوياً) + صفحة التراخيص، ومنها
+/// رخصة خط مجمع الملك فهد التي تشترط أن تُرفق مع الخط.
+class _VersionAndLicenses extends StatefulWidget {
+  final Color color;
+  const _VersionAndLicenses({required this.color});
+
+  @override
+  State<_VersionAndLicenses> createState() => _VersionAndLicensesState();
+}
+
+class _VersionAndLicensesState extends State<_VersionAndLicenses> {
+  String? _version;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() => _version = info.version);
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'HomePage.version');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (_version != null)
+          Text('الإصدار $_version', style: AppTextStyles.caption(color: widget.color)),
+        TextButton(
+          onPressed: () => showLicensePage(
+            context: context,
+            applicationName: 'رقية التعطيل',
+            applicationVersion: _version,
+          ),
+          child: Text('التراخيص والمصادر',
+              style: AppTextStyles.caption(color: widget.color)),
         ),
       ],
     );

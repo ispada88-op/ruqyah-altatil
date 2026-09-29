@@ -51,9 +51,19 @@ flutter:
     # fonts.gstatic.com). Names MUST follow google_fonts' Family-Variant.ttf.
     # Any weight not bundled here is still fetched at runtime as before.
     - assets/google_fonts/
-    # Full Quran — Tanzil Uthmani 1.1 (verbatim, CC BY 3.0). Never edit by hand:
-    # test/quran_asset_test.dart pins its SHA-256.
+    # Full Quran — King Fahd Complex (KFGQPC) Hafs v0.18 data, verbatim.
+    # Never edit by hand: test/quran_asset_test.dart pins its SHA-256.
     - assets/quran/
+    # KFGQPC font EULA (must ship with the font).
+    - assets/fonts/kfgqpc/KFGQPC-EULA.txt
+
+  fonts:
+    # «KFGQPC HAFS Uthmanic Script» v0.18 — the Madinah Mushaf font. Byte-identical
+    # to the official file (EULA: use/copy/distribute free; NEVER modify, subset,
+    # convert or sell it). SHA-256 pinned in test/quran_asset_test.dart.
+    - family: KFGQPCHafs
+      fonts:
+        - asset: assets/fonts/kfgqpc/hafs.18.ttf
 
 flutter_launcher_icons:
   android: true

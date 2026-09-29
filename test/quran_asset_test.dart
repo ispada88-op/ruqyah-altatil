@@ -7,25 +7,40 @@ import 'package:roqia_altatil/data/quran_extracts.dart';
 import 'package:roqia_altatil/data/quran_index.dart';
 import 'package:roqia_altatil/services/quran_repository.dart';
 
-/// The bundled Quran is a verbatim Tanzil download. Any byte change (an editor
-/// "fixing" whitespace, a bad merge, a re-encode) must fail CI.
+/// The bundled Quran is the verbatim King Fahd Complex (Madinah) data and font.
+/// Any byte change (an editor "fixing" whitespace, a bad merge, a re-encode, a
+/// font subset/convert — forbidden by the KFGQPC licence) must fail CI.
 /// Full orthography check: scripts/verify_quran.py (also run in CI).
+const _jsonSha = '5d8bb91726e482839d0057633cb1973031e4d706fa9604eea5e08892f20ba140';
+const _fontSha = 'a0636e68e375af9552470d67773936f54d536e6586ce2608311b2fe7f9cbec3a';
+
 void main() {
   final file = File(QuranRepository.assetPath);
   final raw = file.readAsStringSync();
-  final parsed = parseTanzil(raw);
+  final parsed = parseHafsJson(raw);
 
-  test('asset is the pinned Tanzil Uthmani 1.1 file (SHA-256)', () {
+  test('text asset is the pinned KFGQPC hafsData_v18.json (SHA-256)', () {
+    expect(sha256.convert(file.readAsBytesSync()).toString(), _jsonSha,
+        reason: 'Quran text changed — re-download from qurancomplex.gov.sa, never edit');
+  });
+
+  test('font is the byte-identical official hafs.18.ttf (SHA-256)', () {
     expect(
-      sha256.convert(file.readAsBytesSync()).toString(),
-      '18c719bb3ba26d32ef457f40dad77cd28c4c5a34156833e26a8e5fcfdd246fb1',
-      reason: 'Quran text changed — re-download from tanzil.net, never edit',
+      sha256.convert(File('assets/fonts/kfgqpc/hafs.18.ttf').readAsBytesSync()).toString(),
+      _fontSha,
+      reason: 'KFGQPC licence forbids modifying/converting the font',
     );
   });
 
-  test('Tanzil copyright block is kept (licence requirement)', () {
-    expect(raw, contains('Tanzil Quran Text (Uthmani, Version 1.1)'));
-    expect(raw, contains('CHANGING IT IS NOT ALLOWED'));
+  test('font EULA ships with the font and is declared in pubspec', () {
+    final eula = File('assets/fonts/kfgqpc/KFGQPC-EULA.txt').readAsStringSync();
+    expect(eula, contains('ELECTRONIC END-USER LICENSE AGREEMENT'));
+    expect(eula, contains('King Fahd Glorious Quran Printing Complex'));
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    expect(pubspec, contains('family: KFGQPCHafs'));
+    expect(pubspec, contains('asset: assets/fonts/kfgqpc/hafs.18.ttf'));
+    expect(pubspec, contains('assets/fonts/kfgqpc/KFGQPC-EULA.txt'));
+    expect(File('lib/main.dart').readAsStringSync(), contains('KFGQPC-EULA.txt'));
   });
 
   test('114 surahs / 6236 ayat, each count matches the index', () {
@@ -39,39 +54,56 @@ void main() {
     expect(kJuzStarts.length, 30);
   });
 
-  test('basmala is split from the first ayah except Al-Fatiha and At-Tawbah',
-      () {
+  test('juz starts follow the Madinah Mushaf (3:92 and 9:94, not Tanzil 3:93/9:93)', () {
+    expect((kJuzStarts[3].surah, kJuzStarts[3].ayah), (3, 92));
+    expect((kJuzStarts[10].surah, kJuzStarts[10].ayah), (9, 94));
+    expect((kJuzStarts[29].surah, kJuzStarts[29].ayah), (78, 1));
+  });
+
+  // Letters only (no harakat / Quranic marks): hand-typed literals differ from
+  // the asset in combining-mark order, so exact-string literals must never be
+  // used for Quran text in tests.
+  String letters(String x) => x.runes
+      .where((r) => (r >= 0x0621 && r <= 0x064A) || r == 0x0671)
+      .map((r) => r == 0x0671 ? 'ا' : String.fromCharCode(r))
+      .join();
+
+  test('basmala is ayah 1:1; no other surah starts with it (KFGQPC keeps it apart)', () {
     expect(parsed.surahs[1]!.first, parsed.basmala);
-    expect(parsed.surahs[2]!.first, 'الٓمٓ');
-    // Tanzil writes «بَرَآءَةٌ» with a decomposed alef + maddah (U+0627 U+0653),
-    // so compare only the first letters.
-    expect(parsed.surahs[9]!.first.startsWith('بَرَ'), isTrue);
-    expect(parsed.surahs[112]!.first.startsWith('قُلْ هُوَ'), isTrue);
-    // Letter-level check (an exact-prefix check missed 95 and 97, which Tanzil
-    // writes «بِّسْمِ» with a shaddah).
-    final bWords = parsed.basmala.split(' ').map(quranSkeleton).toList();
+    expect(letters(parsed.basmala), 'بسماللهالرحمنالرحيم');
+    expect(letters(parsed.surahs[2]!.first), 'الم');
+    expect(letters(parsed.surahs[95]!.first), startsWith('والتين'));
+    expect(letters(parsed.surahs[97]!.first), startsWith('إناأنزلنه'));
+    expect(letters(parsed.surahs[112]!.first), startsWith('قلهوالله'));
     for (var s = 2; s <= 114; s++) {
-      final head =
-          parsed.surahs[s]!.first.split(' ').take(4).map(quranSkeleton).toList();
-      expect(head, isNot(equals(bWords)),
-          reason: 'surah $s still carries the basmala');
+      expect(letters(parsed.surahs[s]!.first), isNot(startsWith('بسمالله')),
+          reason: 'surah $s');
     }
-    expect(parsed.surahs[95]!.first, startsWith('وَٱلتِّينِ'));
-    expect(parsed.surahs[97]!.first, startsWith('إِنَّآ أَنزَلْنَٰهُ'));
-    // The basmala inside An-Naml 30 is part of the ayah and must stay.
-    expect(parsed.surahs[27]![29].split(' ').map(quranSkeleton).join(' '),
-        contains(bWords.join(' ')));
+    // The basmala inside An-Naml 30 is part of the ayah.
+    expect(parsed.surahs[27]![29], contains(parsed.basmala));
   });
 
   test('parser rejects a corrupted file instead of showing wrong text', () {
-    final broken = raw.replaceFirst(RegExp(r'^95\|1\|\S+ ', multiLine: true), '95|1|');
-    expect(() => parseTanzil(broken), throwsFormatException);
+    // wrong ayah-number tail
+    expect(() => parseHafsJson(raw.replaceFirst('\xA0١"', '\xA0٢"')),
+        throwsFormatException);
+    // a missing record
+    expect(() => parseHafsJson(raw.replaceFirst('"aya_no" : 2,', '"aya_no" : 3,')),
+        throwsFormatException);
+    expect(() => parseHafsJson('{}'), throwsFormatException);
   });
 
-  test('long surahs (quran_data.dart) equal the asset byte-for-byte', () {
-    const digits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-    String marker(int n) =>
-        '﴿${n.toString().split('').map((d) => digits[int.parse(d)]).join()}﴾';
+  test('every ayah body has no ayah-number tail left and no stray NBSP at its end', () {
+    for (final e in parsed.surahs.entries) {
+      for (final v in e.value) {
+        expect(v.trim(), isNotEmpty, reason: 'surah ${e.key}');
+        expect(v.endsWith('\xA0'), isFalse, reason: 'surah ${e.key}');
+        expect(RegExp('[٠-٩]').hasMatch(v), isFalse, reason: 'surah ${e.key}');
+      }
+    }
+  });
+
+  test('long surahs (quran_data.dart) equal aya_text verbatim', () {
     final sets = {
       8: long_surahs.anfalVerses,
       44: long_surahs.dukhanVerses,
@@ -82,19 +114,11 @@ void main() {
       final ref = parsed.surahs[e.key]!;
       expect(e.value.length, ref.length, reason: 'surah ${e.key}');
       for (var i = 0; i < ref.length; i++) {
-        expect(e.value[i], '${ref[i]} ${marker(i + 1)}',
+        expect(e.value[i], withAyahNumber(ref[i], i + 1),
             reason: '${e.key}:${i + 1}');
       }
     }
     expect(long_surahs.basmala, parsed.basmala);
-  });
-
-  test('no empty ayah anywhere', () {
-    for (final e in parsed.surahs.entries) {
-      for (final v in e.value) {
-        expect(v.trim(), isNotEmpty, reason: 'surah ${e.key}');
-      }
-    }
   });
 
   test('generated extracts equal the asset verse by verse', () {
@@ -103,6 +127,18 @@ void main() {
       for (var i = 0; i < e.verses.length; i++) {
         expect(e.verses[i], parsed.surahs[e.surah]![e.from + i - 1],
             reason: '${e.surah}:${e.from + i}');
+      }
+    }
+  });
+
+  test('withAyahNumber / quranForSharing round trip', () {
+    expect(withAyahNumber('س', 12), 'س\xA0١٢');
+    expect(quranForSharing('س\xA0١٢'), 'س ﴿١٢﴾');
+    expect(quranForSharing(parsed.basmala), parsed.basmala);
+    for (final e in parsed.surahs.entries) {
+      for (var i = 0; i < e.value.length; i++) {
+        final shared = quranForSharing(withAyahNumber(e.value[i], i + 1));
+        expect(shared, '${e.value[i]} ﴿${arabicIndicDigits(i + 1)}﴾');
       }
     }
   });

@@ -2,6 +2,7 @@
 # change the Quran file and break its SHA-256 pin).
 assets/quran/** -text
 assets/google_fonts/** -text
+assets/fonts/** -text
 scripts/ref/** -text
 *.ttf binary
 *.mp3 binary

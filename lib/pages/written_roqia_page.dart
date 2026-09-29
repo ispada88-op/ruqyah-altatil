@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
-import 'package:roqia_altatil/utils/quran_display.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/data/written_roqia_data.dart';
+import 'package:roqia_altatil/widgets/quran_text.dart';
 
 /// Written Roqia page with Quran-style design
 class WrittenRoqiaPage extends StatefulWidget {
@@ -573,11 +572,10 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
           ],
           Divider(color: isDark ? AppColors.accentGold : const Color(0xFFD4AF37), thickness: 1, height: 24),
           if (basmala != null) ...[
-            Text(
-              mushafDisplay(basmala),
-              style: GoogleFonts.amiri(
+            QuranText(
+              basmala,
+              style: AppTextStyles.mushaf(
                 fontSize: _fontSize + 2,
-                fontWeight: FontWeight.bold,
                 color: isDark ? AppColors.accentGold : const Color(0xFFD4AF37),
               ),
               textAlign: TextAlign.center,
@@ -589,11 +587,10 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
               ? const SizedBox(height: 12)
               : Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    mushafDisplay(verse),
-                    style: GoogleFonts.notoNaskhArabic(
+                  child: QuranText(
+                    verse,
+                    style: AppTextStyles.mushaf(
                       fontSize: _fontSize,
-                      height: 2,
                       color: isDark ? AppColors.textOnDark : const Color(0xFF6F4E37),
                     ),
                     textAlign: TextAlign.right,

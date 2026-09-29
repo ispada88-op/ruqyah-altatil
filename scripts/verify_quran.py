@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Verify every Quran string in the app against the bundled Tanzil text.
+"""Verify every Quran string in the app against the bundled KFGQPC (Madinah) text.
 
     python3 scripts/verify_quran.py          # exit 0 = all verified
 
-Reference: assets/quran/quran-uthmani.txt (Tanzil Uthmani 1.1, verbatim; its
-SHA-256 is pinned in test/quran_asset_test.dart). Cross-checked 2026-09-28:
-all 6236 ayat identical to Quran.com (text_uthmani) letter-for-letter and
-mark-for-mark, and letter-identical to the King Fahd Complex Hafs text.
+Reference: assets/quran/hafsData_v18.json — King Fahd Glorious Quran Printing
+Complex «Hafs Uthmanic Script» data v0.18, verbatim (SHA-256 pinned in
+test/quran_asset_test.dart), shown with the bundled font hafs.18.ttf.
+Each record's aya_text is «body NBSP number»; the body is what is compared.
 
 Checked (no allowlist, no equivalences — byte equality only):
-  lib/data/quran_data.dart      GENERATED — byte-identical to the asset
+  lib/data/quran_data.dart      GENERATED — byte-identical to the asset (body + tail)
   lib/data/quran_extracts.dart  GENERATED — byte-identical to the asset
   lib/data/verified_quran.dart  GENERATED — byte-identical to the asset
   every basmala constant        byte-identical to 1:1
@@ -23,6 +23,8 @@ Checked (no allowlist, no equivalences — byte equality only):
 Never "fix" a failure by editing this script — re-run scripts/gen_quran_data.py
 or check a printed Madinah Mushaf and fix the text.
 """
+import hashlib
+import json
 import re
 import sys
 import unicodedata
@@ -46,23 +48,27 @@ def skeleton(word):
     return ''.join(out)
 
 
-def load_tanzil():
-    t = {}
-    for line in (ROOT / 'assets/quran/quran-uthmani.txt').read_text(encoding='utf-8').splitlines():
-        if not line or line.startswith('#'):
-            continue
-        s, a, txt = line.split('|', 2)
-        t[(int(s), int(a))] = txt
-    head = [skeleton(w) for w in t[(1, 1)].split(' ')]
-    for s in range(2, 115):
-        words = t[(s, 1)].split(' ')
-        has = [skeleton(w) for w in words[:len(head)]] == head and len(words) > len(head)
-        if s == 9:
-            assert not has
-            continue
-        assert has, f'surah {s}: basmala prefix not found'  # 95, 97 use «بِّسْمِ»
-        t[(s, 1)] = ' '.join(words[len(head):])
-    return t
+KF_JSON = ROOT / 'assets/quran/hafsData_v18.json'
+KF_SHA256 = '5d8bb91726e482839d0057633cb1973031e4d706fa9604eea5e08892f20ba140'
+NBSP = '\N{NO-BREAK SPACE}'
+
+
+def load_kf():
+    """-> ({(surah, ayah): body}, {(surah, ayah): aya_text})"""
+    raw = KF_JSON.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == KF_SHA256, 'hafsData_v18.json changed'
+    body, full = {}, {}
+    for r in json.loads(raw.decode('utf-8')):
+        m = re.fullmatch(r'(.*)' + NBSP + r'([٠-٩]+)', r['aya_text'], re.S)
+        assert m and m.group(2).translate(AR_TO_INT) == str(r['aya_no']), (r['sora'], r['aya_no'])
+        body[(r['sora'], r['aya_no'])] = m.group(1)
+        full[(r['sora'], r['aya_no'])] = r['aya_text']
+    return body, full
+
+
+def dart_unescape(lit):
+    """Inverse of gen_quran_data.dart_str for the escapes it emits."""
+    return re.sub(r'\\(u00A0|.)', lambda m: NBSP if m.group(1) == 'u00A0' else m.group(1), lit)
 
 
 def nfc(x):
@@ -94,17 +100,17 @@ def whole_words_of(quote, ayah):
     return f' {quote} ' in f' {ayah} '
 
 
-def split_marker(v, expected):
-    m = re.fullmatch(r'(.*) ﴿([٠-٩]+)﴾', v, re.S)
+def split_tail(v, expected):
+    m = re.fullmatch(r'(.*)' + NBSP + r'([٠-٩]+)', v, re.S)
     if not m:
-        return v, 'missing ayah marker'
+        return v, 'missing ayah-number tail'
     if m.group(2) != str(expected).translate(AR_DIGITS):
-        return m.group(1), f'ayah marker ﴿{m.group(2)}﴾ != {expected}'
+        return m.group(1), f'ayah number {m.group(2)} != {expected}'
     return m.group(1), None
 
 
 def main():
-    t = load_tanzil()
+    t, full = load_kf()
     assert len(t) == 6236, len(t)
     counts = {}
     for s, a in t:
@@ -121,7 +127,7 @@ def main():
     for block in re.split(r'\nconst \w+ = SurahVerses\(', src)[1:]:
         s = int(re.search(r'surahNumber:\s*(\d+)', block).group(1))
         for n, parts in re.findall(r"Verse\((\d+),\s*((?:'[^']*'\s*)+)\)", block):
-            text = ''.join(re.findall(r"'([^']*)'", parts))
+            text = dart_unescape(''.join(re.findall(r"'([^']*)'", parts)))
             checked += 1
             ref = t[(s, int(n))]
             if text != ref:
@@ -132,15 +138,15 @@ def main():
     src = (ROOT / 'lib/data/quran_data.dart').read_text(encoding='utf-8')
     for name, s in [('anfalVerses', 8), ('dukhanVerses', 44), ('saffatVerses', 37), ('haqqaVerses', 69)]:
         body = re.search(r'const List<String> ' + name + r' = \[(.*?)\n\];', src, re.S).group(1)
-        verses = re.findall(r"'([^']*)'", body)
+        verses = [dart_unescape(x) for x in re.findall(r"'([^']*)'", body)]
         if len(verses) != counts[s]:
             fail(f'quran_data.dart {name}: {len(verses)} ayat, surah {s} has {counts[s]}')
         for i, v in enumerate(verses, 1):
             checked += 1
-            text, err = split_marker(v, i)
+            text, err = split_tail(v, i)
             if err:
                 fail(f'quran_data.dart {s}:{i} {err}')
-            elif text != t[(s, i)]:
+            elif v != full[(s, i)] or text != t[(s, i)]:
                 fail(f'quran_data.dart {s}:{i} not byte-identical — re-run gen_quran_data.py')
 
     src = (ROOT / 'lib/data/quran_extracts.dart').read_text(encoding='utf-8')
@@ -148,7 +154,7 @@ def main():
     if not extracts:
         fail('quran_extracts.dart: no extracts parsed')
     for s, a, b, body in extracts:
-        verses = re.findall(r"'([^']*)'", body)
+        verses = [dart_unescape(x) for x in re.findall(r"'([^']*)'", body)]
         if len(verses) != int(b) - int(a) + 1:
             fail(f'quran_extracts.dart {s}:{a}-{b}: {len(verses)} verses')
         for i, v in enumerate(verses):
@@ -161,6 +167,7 @@ def main():
     for f in ('lib/data/quran_data.dart', 'lib/data/verified_quran.dart',
               'lib/services/quran_repository.dart'):
         for lit in re.findall(r"basmala\w*\s*[=:]\s*'([^']*)'", (ROOT / f).read_text(encoding='utf-8')):
+            lit = dart_unescape(lit)
             checked += 1
             if lit != basmala_ref:
                 fail(f'{f}: basmala literal differs from 1:1\n  app: {lit}\n  ref: {basmala_ref}')

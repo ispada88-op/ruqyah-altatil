@@ -7,7 +7,7 @@ import 'package:roqia_altatil/services/quran_repository.dart';
 
 /// Structural integrity checks for the Quran text used in the app.
 /// These guard against missing/duplicated/empty verses (a content-safety
-/// regression guard). Orthography itself is sourced from Tanzil Uthmani.
+/// regression guard). Orthography itself is sourced from the KFGQPC Hafs text.
 void main() {
   group('Long surahs (quran_data.dart) — exact ayah counts', () {
     test('Al-Anfal has 75 verses', () => expect(anfalVerses.length, 75));
@@ -70,25 +70,27 @@ void main() {
       expect(hudFloodVerse.verses.single.number, 44);
     });
 
-    // Byte-exact pin against the SHA-256-pinned Tanzil asset (the single
-    // source of truth) — not against hand-typed literals, whose combining-mark
-    // order silently differs (e.g. U+0622 vs U+0627 U+0653, shadda/kasra order).
-    Map<String, String> asset() => {
-          for (final l in File(QuranRepository.assetPath).readAsLinesSync())
-            if (RegExp(r'^\d+\|\d+\|').hasMatch(l))
-              l.substring(0, l.indexOf('|', l.indexOf('|') + 1)):
-                  l.substring(l.indexOf('|', l.indexOf('|') + 1) + 1),
-        };
+    // Byte-exact pin against the SHA-256-pinned KFGQPC asset (the single source
+    // of truth) — not against hand-typed literals, whose combining-mark order
+    // silently differs (e.g. U+0622 vs U+0627 U+0653, shadda/kasra order).
+    final parsed = parseHafsJson(File(QuranRepository.assetPath).readAsStringSync());
+    String asset(int s, int a) => parsed.surahs[s]![a - 1];
 
-    test('TaHa 105-107 byte-identical to the Tanzil asset', () {
-      final a = asset();
+    test('TaHa 105-107 byte-identical to the KFGQPC asset', () {
       for (final v in taHaMountains.verses) {
-        expect(v.text, a['20|${v.number}'], reason: 'TaHa ${v.number}');
+        expect(v.text, asset(20, v.number), reason: 'TaHa ${v.number}');
       }
     });
 
-    test('Hud 44 byte-identical to the Tanzil asset', () {
-      expect(hudFloodVerse.verses.single.text, asset()['11|44']);
+    test('Hud 44 byte-identical to the KFGQPC asset', () {
+      expect(hudFloodVerse.verses.single.text, asset(11, 44));
     });
+  });
+
+  test('Verse.withMarker = body + NBSP + Arabic-Indic number (KFGQPC aya_text form)', () {
+    final v = surahAlFatiha.verses[1];
+    expect(v.withMarker, '${v.text}\xA0٢');
+    expect(surahAlFatiha.verses.last.withMarker.endsWith('\xA0٧'), isTrue);
+    expect(taHaMountains.verses.first.withMarker.endsWith('\xA0١٠٥'), isTrue);
   });
 }

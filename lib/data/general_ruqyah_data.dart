@@ -15,6 +15,7 @@
 // الأذكار مضبوطة بالشكل ومصادرها مثبتة.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'package:roqia_altatil/services/quran_repository.dart' show quranForSharing;
 import 'verified_quran.dart';
 
 /// كتلة نصية داخل فقرة رقية: عنوان اختياري (اسم سورة/بسملة) + أسطر النص.
@@ -51,7 +52,7 @@ class GeneralRuqyahItem {
     for (final b in blocks) {
       if (b.heading != null) sb.writeln(b.heading);
       for (final l in b.lines) {
-        sb.writeln(l);
+        sb.writeln(isQuran ? quranForSharing(l) : l);
       }
     }
     sb.write('(يُقرأ $repeatLabel)');
@@ -70,7 +71,7 @@ String repeatLabelFor(int n) {
   return n <= 10 ? '$digits مرات' : '$digits مرة';
 }
 
-/// أسطر الآيات مع علامة رقم الآية ﴿N﴾.
+/// أسطر الآيات: النص + مسافة غير قاطعة + رقم الآية (علامة نهاية آية في خط المجمع).
 List<String> verseLines(SurahVerses s) =>
     s.verses.map((v) => v.withMarker).toList(growable: false);
 

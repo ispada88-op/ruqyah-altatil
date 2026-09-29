@@ -1,80 +1,198 @@
 #!/usr/bin/env python3
-"""Generate every Quran data file of the app from the one pinned Tanzil asset:
+"""Generate every Quran data file of the app from the ONE pinned official asset:
 lib/data/quran_index.dart, quran_extracts.dart, quran_data.dart, verified_quran.dart.
 
-Sources (download both from tanzil.net, never edit by hand):
-  assets/quran/quran-uthmani.txt  - Tanzil Uthmani 1.1, options: pause marks,
-      sajdah signs, superscript alef (NO tatweel, NO rub-el-hizb), txt-2 format
-      https://tanzil.net/pub/download/index.php?quranType=uthmani&marks=true&sajdah=true&alef=true&outType=txt-2&agree=true
-  quran-data.xml                  - https://tanzil.net/res/text/metadata/quran-data.xml
+Source (never edit by hand, SHA-256 pinned in test/quran_asset_test.dart):
+  assets/quran/hafsData_v18.json  - King Fahd Glorious Quran Printing Complex
+      (KFGQPC, Madinah) «Hafs Uthmanic Script» data, v0.18 — the text that goes
+      with the bundled font assets/fonts/kfgqpc/hafs.18.ttf. Verbatim copy of
+      https://qurancomplex.gov.sa/en/techquran/dev/ (hafsData_v18.json); the
+      official site is unreachable from some networks, so the same file was
+      taken from the GitHub mirror thetruetruth/quran-data-kfgqpc (hash equal).
 
-Also generates lib/data/quran_data.dart (full Al-Anfal, Ad-Dukhan, As-Saffat,
-Al-Haqqah for the written ruqyah) byte-for-byte from the asset.
+Each record's aya_text is «<ayah body> NBSP <Arabic-Indic ayah number>»: the
+font draws the number after the NBSP as the ornamental ayah end sign. The body
+is used for verses; the full string (body + marker) for the long surahs.
 
-Usage:  python3 scripts/gen_quran_data.py [path/to/quran-data.xml]
-        (without the XML only the verse files are regenerated)
+Surah names / Meccan-Medinan flags below come from Tanzil metadata (tanzil.net,
+CC BY 3.0) with four hamza fixes already applied (see NAME_FIXES history in
+git). Ayah counts and juz starts are taken from the KFGQPC data itself.
+
+Usage:  python3 scripts/gen_quran_data.py
 """
+import json
 import re
-import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-QURAN = ROOT / 'assets/quran/quran-uthmani.txt'
+QURAN = ROOT / 'assets/quran/hafsData_v18.json'
 
 AR_DIGITS = str.maketrans('0123456789', '٠١٢٣٤٥٦٧٨٩')
+NBSP = '\N{NO-BREAK SPACE}'
+BS = chr(92)  # backslash, spelled out so tooling never rewrites the escapes below
 
 
 def load_quran():
-    t = {}
-    for line in QURAN.read_text(encoding='utf-8').splitlines():
-        if not line or line.startswith('#'):
-            continue
-        s, a, txt = line.split('|', 2)
-        t[(int(s), int(a))] = txt
-    basmala = t[(1, 1)]
-    head = [skeleton(w) for w in basmala.split(' ')]
-    for s in range(2, 115):
-        words = t[(s, 1)].split(' ')
-        has = [skeleton(w) for w in words[:len(head)]] == head and len(words) > len(head)
-        if s == 9:
-            assert not has, 'At-Tawbah must not carry a basmala'
-            continue
-        # 95 and 97 are written «بِّسْمِ» (with shaddah) in Tanzil: match letters only
-        assert has, f'surah {s}: ayah 1 lacks the basmala prefix'
-        t[(s, 1)] = ' '.join(words[len(head):])
-    return t, basmala
+    """-> ({(surah, ayah): body}, {(surah, ayah): body + NBSP + digits}, [records], basmala)"""
+    records = json.loads(QURAN.read_text(encoding='utf-8'))
+    assert len(records) == 6236, len(records)
+    body, full = {}, {}
+    for i, r in enumerate(records, 1):
+        assert r['id'] == i
+        s, a, txt = r['sora'], r['aya_no'], r['aya_text']
+        m = re.fullmatch(r'(.*)' + NBSP + r'([٠-٩]+)', txt, re.S)
+        assert m, f'{s}:{a} has no NBSP+number tail'
+        assert m.group(2) == str(a).translate(AR_DIGITS), f'{s}:{a} marker mismatch'
+        assert (s, a) not in body
+        body[(s, a)] = m.group(1)
+        full[(s, a)] = txt
+    basmala = body[(1, 1)]
+    return body, full, records, basmala
 
 
-def skeleton(word: str) -> str:
-    """Letters only (no harakat / Quranic marks / tatweel; alef wasla -> alef)."""
-    out = []
-    for ch in word:
-        o = ord(ch)
-        if (0x0610 <= o <= 0x061A or 0x064B <= o <= 0x065F or o == 0x0670
-                or 0x06D6 <= o <= 0x06ED or 0x08D3 <= o <= 0x08FF or o == 0x0640):
-            continue
-        out.append('\u0627' if o == 0x0671 else ch)
-    return ''.join(out)
+def write_lf(path, text):
+    """Always LF, on every OS (the repo pins byte-exact generated files)."""
+    with open(path, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(text)
 
 
 def dart_str(s: str) -> str:
-    return "'" + s.replace('\\', '\\\\').replace("'", "\\'") + "'"
+    """Dart single-quoted literal; the only invisible character (NBSP) is escaped."""
+    return "'" + (s.replace(BS, BS + BS).replace("'", BS + "'")
+                  .replace(NBSP, BS + 'u00A0')) + "'"
 
 
-# Tanzil/Quran.com metadata misspell four names (hamzat al-qat' vs al-wasl):
-# إبراهيم and الإنسان take hamzat qat'; الانفطار and الانشقاق are masdars of
-# «انفعل» and take hamzat wasl. Everything else in the XML is used as-is.
-NAME_FIXES = {14: 'إبراهيم', 76: 'الإنسان', 82: 'الانفطار', 84: 'الانشقاق'}
+# (number, name, Meccan) — Tanzil metadata + hamza fixes (إبراهيم، الإنسان بهمزة
+# القطع؛ الانفطار، الانشقاق بهمزة الوصل).
+SURAHS = [
+    (1, 'الفاتحة', True),
+    (2, 'البقرة', False),
+    (3, 'آل عمران', False),
+    (4, 'النساء', False),
+    (5, 'المائدة', False),
+    (6, 'الأنعام', True),
+    (7, 'الأعراف', True),
+    (8, 'الأنفال', False),
+    (9, 'التوبة', False),
+    (10, 'يونس', True),
+    (11, 'هود', True),
+    (12, 'يوسف', True),
+    (13, 'الرعد', False),
+    (14, 'إبراهيم', True),
+    (15, 'الحجر', True),
+    (16, 'النحل', True),
+    (17, 'الإسراء', True),
+    (18, 'الكهف', True),
+    (19, 'مريم', True),
+    (20, 'طه', True),
+    (21, 'الأنبياء', True),
+    (22, 'الحج', False),
+    (23, 'المؤمنون', True),
+    (24, 'النور', False),
+    (25, 'الفرقان', True),
+    (26, 'الشعراء', True),
+    (27, 'النمل', True),
+    (28, 'القصص', True),
+    (29, 'العنكبوت', True),
+    (30, 'الروم', True),
+    (31, 'لقمان', True),
+    (32, 'السجدة', True),
+    (33, 'الأحزاب', False),
+    (34, 'سبإ', True),
+    (35, 'فاطر', True),
+    (36, 'يس', True),
+    (37, 'الصافات', True),
+    (38, 'ص', True),
+    (39, 'الزمر', True),
+    (40, 'غافر', True),
+    (41, 'فصلت', True),
+    (42, 'الشورى', True),
+    (43, 'الزخرف', True),
+    (44, 'الدخان', True),
+    (45, 'الجاثية', True),
+    (46, 'الأحقاف', True),
+    (47, 'محمد', False),
+    (48, 'الفتح', False),
+    (49, 'الحجرات', False),
+    (50, 'ق', True),
+    (51, 'الذاريات', True),
+    (52, 'الطور', True),
+    (53, 'النجم', True),
+    (54, 'القمر', True),
+    (55, 'الرحمن', False),
+    (56, 'الواقعة', True),
+    (57, 'الحديد', False),
+    (58, 'المجادلة', False),
+    (59, 'الحشر', False),
+    (60, 'الممتحنة', False),
+    (61, 'الصف', False),
+    (62, 'الجمعة', False),
+    (63, 'المنافقون', False),
+    (64, 'التغابن', False),
+    (65, 'الطلاق', False),
+    (66, 'التحريم', False),
+    (67, 'الملك', True),
+    (68, 'القلم', True),
+    (69, 'الحاقة', True),
+    (70, 'المعارج', True),
+    (71, 'نوح', True),
+    (72, 'الجن', True),
+    (73, 'المزمل', True),
+    (74, 'المدثر', True),
+    (75, 'القيامة', True),
+    (76, 'الإنسان', False),
+    (77, 'المرسلات', True),
+    (78, 'النبإ', True),
+    (79, 'النازعات', True),
+    (80, 'عبس', True),
+    (81, 'التكوير', True),
+    (82, 'الانفطار', True),
+    (83, 'المطففين', True),
+    (84, 'الانشقاق', True),
+    (85, 'البروج', True),
+    (86, 'الطارق', True),
+    (87, 'الأعلى', True),
+    (88, 'الغاشية', True),
+    (89, 'الفجر', True),
+    (90, 'البلد', True),
+    (91, 'الشمس', True),
+    (92, 'الليل', True),
+    (93, 'الضحى', True),
+    (94, 'الشرح', True),
+    (95, 'التين', True),
+    (96, 'العلق', True),
+    (97, 'القدر', True),
+    (98, 'البينة', False),
+    (99, 'الزلزلة', False),
+    (100, 'العاديات', True),
+    (101, 'القارعة', True),
+    (102, 'التكاثر', True),
+    (103, 'العصر', True),
+    (104, 'الهمزة', True),
+    (105, 'الفيل', True),
+    (106, 'قريش', True),
+    (107, 'الماعون', True),
+    (108, 'الكوثر', True),
+    (109, 'الكافرون', True),
+    (110, 'النصر', False),
+    (111, 'المسد', True),
+    (112, 'الإخلاص', True),
+    (113, 'الفلق', True),
+    (114, 'الناس', True),
+]
 
 
-def gen_index(xml_path):
-    root = ET.parse(xml_path).getroot()
-    suras = root.find('suras').findall('sura')
-    juzs = root.find('juzs').findall('juz')
+def gen_index(records):
+    counts, juz = {}, {}
+    for r in records:
+        counts[r['sora']] = max(counts.get(r['sora'], 0), r['aya_no'])
+        juz.setdefault(r['jozz'], (r['sora'], r['aya_no']))
+    assert len(SURAHS) == 114 and sorted(counts) == list(range(1, 115))
+    assert sorted(juz) == list(range(1, 31))
     out = [
-        '// GENERATED by scripts/gen_quran_data.py from Tanzil quran-data.xml — DO NOT EDIT.',
-        '// Source: Tanzil Project (tanzil.net), CC BY 3.0. Surah-name hamza fixes: NAME_FIXES.',
+        '// GENERATED by scripts/gen_quran_data.py from assets/quran/hafsData_v18.json — DO NOT EDIT.',
+        '// Ayah counts and juz starts: King Fahd Glorious Quran Printing Complex (Madinah Mushaf).',
+        '// Surah names / type: Tanzil Project (tanzil.net), CC BY 3.0, with hamza fixes.',
         '',
         'class SurahInfo {',
         '  final int number;',
@@ -84,7 +202,7 @@ def gen_index(xml_path):
         '  const SurahInfo(this.number, this.name, this.ayahCount, this.meccan);',
         '}',
         '',
-        '/// (surah, ayah) where each of the 30 juz starts.',
+        '/// (surah, ayah) where each of the 30 juz starts (Madinah Mushaf).',
         'class JuzStart {',
         '  final int juz;',
         '  final int surah;',
@@ -94,23 +212,15 @@ def gen_index(xml_path):
         '',
         'const List<SurahInfo> kSurahs = [',
     ]
-    total = 0
-    for s in suras:
-        n, ay = int(s.get('index')), int(s.get('ayas'))
-        total += ay
-        meccan = 'true' if s.get('type') == 'Meccan' else 'false'
-        name = NAME_FIXES.get(n, s.get('name'))
-        out.append(f"  SurahInfo({n}, {dart_str(name)}, {ay}, {meccan}),")
+    for n, name, meccan in SURAHS:
+        out.append(f"  SurahInfo({n}, {dart_str(name)}, {counts[n]}, {'true' if meccan else 'false'}),")
+    out += ['];', '', f'const int kTotalAyat = {sum(counts.values())};', '',
+            'const List<JuzStart> kJuzStarts = [']
+    for j in range(1, 31):
+        out.append(f'  JuzStart({j}, {juz[j][0]}, {juz[j][1]}),')
     out.append('];')
-    out.append('')
-    out.append(f'const int kTotalAyat = {total};')
-    out.append('')
-    out.append('const List<JuzStart> kJuzStarts = [')
-    for j in juzs:
-        out.append(f"  JuzStart({j.get('index')}, {j.get('sura')}, {j.get('aya')}),")
-    out.append('];')
-    (ROOT / 'lib/data/quran_index.dart').write_text('\n'.join(out) + '\n', encoding='utf-8')
-    return len(suras), total
+    write_lf(ROOT / 'lib/data/quran_index.dart', '\n'.join(out) + '\n')
+    assert sum(counts.values()) == 6236
 
 
 # Verse ranges used by «رقى حسب الحالة» (see lib/data/ruqyah_types_data.dart).
@@ -120,14 +230,17 @@ EXTRACTS = {
     'tahaSihr': (20, 65, 69),    # طه ٦٥-٦٩
 }
 
+SRC_LINE = '// GENERATED by scripts/gen_quran_data.py from assets/quran/hafsData_v18.json'
+SRC_LINE2 = '// (KFGQPC Hafs v0.18, SHA-256 pinned in test/quran_asset_test.dart) — DO NOT EDIT.'
 
-def gen_extracts(t):
+
+def gen_extracts(body):
     out = [
-        '// GENERATED by scripts/gen_quran_data.py from assets/quran/quran-uthmani.txt',
-        '// (Tanzil Uthmani 1.1) — DO NOT EDIT. test/quran_asset_test.dart re-checks',
-        '// every line against the bundled asset.',
+        SRC_LINE, SRC_LINE2,
+        '// test/quran_asset_test.dart re-checks every line against the bundled asset.',
         '',
-        '/// A contiguous verse range, text exactly as in the Tanzil asset.',
+        '/// A contiguous verse range: ayah bodies exactly as in the KFGQPC asset',
+        '/// (without the ayah-number tail).',
         'class QuranExtract {',
         '  final int surah;',
         '  final int from;',
@@ -140,10 +253,10 @@ def gen_extracts(t):
     for name, (s, a, b) in EXTRACTS.items():
         out.append(f'const {name} = QuranExtract({s}, {a}, {b}, [')
         for i in range(a, b + 1):
-            out.append(f'  {dart_str(t[(s, i)])},')
+            out.append(f'  {dart_str(body[(s, i)])},')
         out.append(']);')
         out.append('')
-    (ROOT / 'lib/data/quran_extracts.dart').write_text('\n'.join(out), encoding='utf-8')
+    write_lf(ROOT / 'lib/data/quran_extracts.dart', '\n'.join(out))
 
 
 # Whole surahs used by the written ruqyah (lib/data/written_roqia_data.dart).
@@ -155,25 +268,23 @@ LONG_SURAHS = [
 ]
 
 
-def gen_long_surahs(t, basmala):
+def gen_long_surahs(full, basmala):
     out = [
-        '// GENERATED by scripts/gen_quran_data.py from assets/quran/quran-uthmani.txt',
-        '// (Tanzil Uthmani 1.1) — DO NOT EDIT. Each verse is the asset text verbatim',
-        '// followed by « ﴿N﴾»; test/quran_asset_test.dart re-checks every line.',
+        SRC_LINE, SRC_LINE2,
+        '// Each verse is the asset\'s aya_text verbatim (body + NBSP + Arabic-Indic',
+        '// number, which the font draws as the ayah end sign).',
         '// ' + ' + '.join(f'{name} ({count})' for _, _, count, name in LONG_SURAHS),
         '',
         f'const String basmala = {dart_str(basmala)};',
     ]
     for const, s, count, _ in LONG_SURAHS:
-        ayat = [t[(s, a)] for a in range(1, count + 1)]
-        assert (s, count + 1) not in t, f'surah {s} has more than {count} ayat'
+        assert (s, count) in full and (s, count + 1) not in full, f'surah {s} ayah count'
         out.append('')
         out.append(f'const List<String> {const} = [')
-        for a, txt in enumerate(ayat, 1):
-            marker = str(a).translate(AR_DIGITS)
-            out.append(f'  {dart_str(txt + " ﴿" + marker + "﴾")},')
+        for a in range(1, count + 1):
+            out.append(f'  {dart_str(full[(s, a)])},')
         out.append('];')
-    (ROOT / 'lib/data/quran_data.dart').write_text('\n'.join(out) + '\n', encoding='utf-8')
+    write_lf(ROOT / 'lib/data/quran_data.dart', '\n'.join(out) + '\n')
 
 
 # (const name, doc comment, SurahVerses.name, surah, first, last, show basmala)
@@ -198,13 +309,12 @@ class Verse {
   final String text;
   const Verse(this.number, this.text);
 
-  /// النص مع علامة رقم الآية بالأرقام العربية ﴿N﴾.
+  /// النص متبوعاً بمسافة غير قاطعة ورقم الآية بالأرقام العربية الهندية —
+  /// الصيغة نفسها في ملف مجمع الملك فهد، وخط المجمع يرسم الرقم علامةَ نهاية آية.
   String get withMarker {
-    final arabicNum = number.toString().split('').map((d) {
-      const map = {'0':'٠','1':'١','2':'٢','3':'٣','4':'٤','5':'٥','6':'٦','7':'٧','8':'٨','9':'٩'};
-      return map[d] ?? d;
-    }).join();
-    return '$text ﴿$arabicNum﴾';
+    const map = {'0':'٠','1':'١','2':'٢','3':'٣','4':'٤','5':'٥','6':'٦','7':'٧','8':'٨','9':'٩'};
+    final arabicNum = number.toString().split('').map((d) => map[d] ?? d).join();
+    return '$text\\u00A0$arabicNum';
   }
 }
 
@@ -225,10 +335,9 @@ class SurahVerses {
 """
 
 
-def gen_verified(t, basmala):
+def gen_verified(body, basmala):
     out = [
-        '// GENERATED by scripts/gen_quran_data.py from assets/quran/quran-uthmani.txt',
-        '// (Tanzil Uthmani 1.1, SHA-256 pinned in test/quran_asset_test.dart) — DO NOT EDIT.',
+        SRC_LINE, SRC_LINE2,
         '// Every verse is the asset text byte for byte; scripts/verify_quran.py re-checks it.',
         '// To add verses: extend VERIFIED in the generator and re-run it.',
         '',
@@ -236,26 +345,24 @@ def gen_verified(t, basmala):
         f'const String basmalaUthmani = {dart_str(basmala)};',
     ]
     for const, doc, name, s, a, b, show in VERIFIED:
-        assert (s, b) in t
+        assert (s, b) in body
         out += ['', f'/// {doc}', f'const {const} = SurahVerses(',
                 f'  name: {dart_str(name)},', f'  surahNumber: {s},']
         if show:
             out.append('  basmala: basmalaUthmani,')
         out.append('  verses: [')
         for n in range(a, b + 1):
-            out.append(f'    Verse({n}, {dart_str(t[(s, n)])}),')
+            out.append(f'    Verse({n}, {dart_str(body[(s, n)])}),')
         out += ['  ],', ');']
-    (ROOT / 'lib/data/verified_quran.dart').write_text('\n'.join(out) + '\n', encoding='utf-8')
+    write_lf(ROOT / 'lib/data/verified_quran.dart', '\n'.join(out) + '\n')
 
 
 if __name__ == '__main__':
-    t, basmala = load_quran()
-    assert len(t) == 6236, len(t)
-    if len(sys.argv) > 1:
-        n, total = gen_index(sys.argv[1])
-        assert (n, total) == (114, 6236), (n, total)
-    gen_extracts(t)
-    gen_long_surahs(t, basmala)
-    gen_verified(t, basmala)
+    body, full, records, basmala = load_quran()
+    assert len(body) == 6236
+    gen_index(records)
+    gen_extracts(body)
+    gen_long_surahs(full, basmala)
+    gen_verified(body, basmala)
     print('ok: 6236 ayat; extracts:', ', '.join(EXTRACTS),
           '; long surahs:', ', '.join(c for c, *_ in LONG_SURAHS))

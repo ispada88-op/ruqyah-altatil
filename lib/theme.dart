@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// عائلة «الخط العثماني حفص» (مجمع الملك فهد) المعرّفة في pubspec.yaml.
+const String kQuranFontFamily = 'KFGQPCHafs';
+
 // =============================================================================
 // PROFESSIONAL COLOR PALETTE
 // =============================================================================
@@ -74,7 +77,8 @@ class AppElevation {
 // =============================================================================
 // TYPOGRAPHY
 //   • Tajawal              → UI text (واضح، حروف منفصلة، غير متداخل)
-//   • Amiri Quran          → الآيات القرآنية (نسخ مزخرف، أصيل)
+//   • KFGQPC Hafs          → الآيات القرآنية بالرسم العثماني (مصحف المدينة)
+//   • Amiri                → اقتباسات إملائية قصيرة خارج المصحف
 //   • حجم متباعد + height مرتفع → القراءة المريحة
 // =============================================================================
 
@@ -119,13 +123,23 @@ class AppTextStyles {
         color: color ?? Colors.white,
       );
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━ Quranic style (Amiri) ━━━━━━━━━━━━━━━━━━━━━
-  // Amiri: خط نسخ كلاسيكي مزخرف - مناسب للقرآن.
+  // ━━━━━━━━━━━━━━━━━━━━━━━ Imla'i Quran quotes (Amiri) ━━━━━━━━━━━━━━━━━
+  // Amiri: للاقتباسات الإملائية القصيرة فقط؛ الرسم العثماني = mushaf() أدناه.
   // height: 2.2-2.4 لاستيعاب علامات التشكيل والوقف بدون تداخل.
   static TextStyle quran({Color? color, double? fontSize}) => GoogleFonts.amiri(
         fontSize: fontSize ?? 24,
         fontWeight: FontWeight.w500,
         height: 2.2,
+        color: color ?? AppColors.textPrimary,
+      );
+
+  /// نص المصحف: خط «الخط العثماني حفص» لمجمع الملك فهد (مصحف المدينة) — الخط
+  /// الوحيد الذي يرسم علامات المصحف كما في المطبوع. لا تضع [fontWeight]:
+  /// الخط له وزن واحد وأي وزن آخر يُصطنع تشويهاً.
+  static TextStyle mushaf({Color? color, double? fontSize, double? height}) => TextStyle(
+        fontFamily: kQuranFontFamily,
+        fontSize: fontSize ?? 26,
+        height: height ?? 2.0,
         color: color ?? AppColors.textPrimary,
       );
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roqia_altatil/data/general_ruqyah_data.dart';
+import 'package:roqia_altatil/data/verified_quran.dart' show basmalaUthmani;
 import 'package:roqia_altatil/pages/general_ruqyah_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,7 +46,7 @@ void main() {
       expect(m.blocks.map((b) => b.heading).toList(),
           ['سورة الإخلاص', 'سورة الفلق', 'سورة الناس']);
       for (final b in m.blocks) {
-        expect(b.lines.first, contains('بِسْمِ'));
+        expect(b.lines.first, basmalaUthmani);
         expect(b.lines.length, greaterThan(1));
       }
     });

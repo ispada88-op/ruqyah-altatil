@@ -1,30 +1,38 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../data/verified_quran.dart' show basmalaUthmani;
 import 'error_reporter.dart';
 
-/// النص القرآني الكامل (مشروع تنزيل — عثماني 1.1) من
-/// `assets/quran/quran-uthmani.txt`. يُحمَّل مرة واحدة عند أول استخدام.
+/// النص القرآني الكامل — مصحف المدينة (مجمع الملك فهد لطباعة المصحف الشريف،
+/// «الخط العثماني حفص» الإصدار 0.18) من `assets/quran/hafsData_v18.json`.
+/// يُحمَّل مرة واحدة عند أول استخدام.
 ///
-/// الملف نسخة حرفية من tanzil.net ولا يُعدَّل أبداً (اختبار
-/// `quran_asset_test.dart` يثبّت بصمته). البسملة الملصقة بأول آية في السور
-/// (عدا الفاتحة والتوبة) تُفصل هنا للعرض فقط لتظهر كعنوان مستقل.
+/// الملف نسخة حرفية من الموقع الرسمي للمجمع ولا يُعدَّل أبداً (اختبار
+/// `quran_asset_test.dart` يثبّت بصمته)، ويُعرض بخط المجمع نفسه
+/// (`assets/fonts/kfgqpc/hafs.18.ttf`، عائلة `kQuranFontFamily` في theme.dart).
 class QuranRepository {
   QuranRepository._();
   static final QuranRepository instance = QuranRepository._();
 
-  static const String assetPath = 'assets/quran/quran-uthmani.txt';
+  static const String assetPath = 'assets/quran/hafsData_v18.json';
 
   Map<int, List<String>>? _surahs;
   Future<Map<int, List<String>>>? _loading;
 
-  /// البسملة كما في النص (آية الفاتحة الأولى).
-  String basmala = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+  /// البسملة كما في النص (آية الفاتحة الأولى) — تُعرض عنواناً لكل سورة عدا
+  /// الفاتحة والتوبة. الحرف الأول من كل سورة بعدها ليس بسملة: ملف المجمع لا
+  /// يلصق البسملة بالآية الأولى، فلا حاجة لفصلها.
+  String basmala = basmalaUthmani;  // generated constant, verified = 1:1
 
   Future<Map<int, List<String>>> _load() {
     return _loading ??= () async {
       try {
         final raw = await rootBundle.loadString(assetPath);
-        final parsed = parseTanzil(raw);
+        // ‎3.5MB JSON: يُحلَّل في isolate حتى لا يتجمّد أول فتح للمصحف.
+        final parsed = await compute(parseHafsJson, raw);
         basmala = parsed.basmala;
         _surahs = parsed.surahs;
         return parsed.surahs;
@@ -36,7 +44,14 @@ class QuranRepository {
     }();
   }
 
-  /// آيات سورة [number] (1..114) بدون البسملة الملصقة.
+  /// يبدأ التحميل في الخلفية (فهرس المصحف يستدعيه) فيكون النص جاهزاً حين يفتح
+  /// القارئ سورة. الخطأ يُسجَّل في [ErrorReporter] وتُعاد المحاولة عند أول قراءة.
+  void preload() {
+    if (_surahs != null) return;
+    _load().then<void>((_) {}, onError: (Object _) {});
+  }
+
+  /// آيات سورة [number] (1..114) — نص الآية بدون رقمها.
   Future<List<String>> surah(int number) async {
     final all = _surahs ?? await _load();
     return all[number] ?? const [];
@@ -51,67 +66,55 @@ class ParsedQuran {
   int get totalAyat => surahs.values.fold(0, (a, s) => a + s.length);
 }
 
-/// يحلل صيغة تنزيل txt-2 (`سورة|آية|نص`) ويتجاهل أسطر الحقوق (#).
-ParsedQuran parseTanzil(String raw) {
+const String _nbsp = '\xA0';
+
+/// يحلل `hafsData_v18.json`: قائمة سجلات `{sora, aya_no, aya_text, ...}` حيث
+/// `aya_text` = نص الآية + مسافة غير قاطعة + رقمها بالأرقام العربية الهندية.
+/// يُرجع نص الآية بدون الذيل (الرقم يُضاف عند العرض بـ [withAyahNumber]).
+/// يرمي [FormatException] لأي شذوذ (ترقيم، ذيل، عدد).
+ParsedQuran parseHafsJson(String raw) {
+  final list = jsonDecode(raw);
+  if (list is! List) {
+    throw const FormatException('Quran text: expected a JSON list');
+  }
   final surahs = <int, List<String>>{};
-  for (final line in raw.split('\n')) {
-    final l = line.endsWith('\r') ? line.substring(0, line.length - 1) : line;
-    if (l.isEmpty || l.startsWith('#')) continue;
-    final first = l.indexOf('|');
-    final second = l.indexOf('|', first + 1);
-    if (first < 0 || second < 0) continue;
-    final s = int.parse(l.substring(0, first));
-    surahs.putIfAbsent(s, () => []).add(l.substring(second + 1));
+  var total = 0;
+  for (final rec in list) {
+    final r = rec as Map<String, dynamic>;
+    final s = r['sora'] as int;
+    final a = r['aya_no'] as int;
+    final text = r['aya_text'] as String;
+    final ayat = surahs.putIfAbsent(s, () => []);
+    if (a != ayat.length + 1) {
+      throw FormatException('Quran text: $s:$a out of order');
+    }
+    final cut = text.lastIndexOf(_nbsp);
+    if (cut < 0 || text.substring(cut + 1) != arabicIndicDigits(a)) {
+      throw FormatException('Quran text: $s:$a has a wrong ayah-number tail');
+    }
+    ayat.add(text.substring(0, cut));
+    total++;
+  }
+  if (total != 6236 || surahs.length != 114) {
+    throw FormatException('Quran text: $total ayat / ${surahs.length} surahs');
   }
   final basmala = surahs[1]!.first;
-  final basmalaWords = basmala.split(' ').map(quranSkeleton).toList();
-  for (var s = 2; s <= 114; s++) {
-    final ayat = surahs[s];
-    if (ayat == null || ayat.isEmpty) {
-      throw FormatException('Quran text: surah $s is missing');
-    }
-    final words = ayat.first.split(' ');
-    final head = words.take(basmalaWords.length).map(quranSkeleton).toList();
-    final hasBasmala = words.length > basmalaWords.length &&
-        _sameWords(head, basmalaWords);
-    if (s == 9) {
-      if (hasBasmala) {
-        throw const FormatException('Quran text: At-Tawbah must not carry a basmala');
-      }
-      continue;
-    }
-    // Tanzil writes the basmala of At-Tin (95) and Al-Qadr (97) as «بِّسْمِ»
-    // (with shaddah), so match by letters, never by exact string.
-    if (!hasBasmala) {
-      throw FormatException('Quran text: surah $s ayah 1 lacks the basmala prefix');
-    }
-    ayat[0] = words.skip(basmalaWords.length).join(' ');
-  }
   return ParsedQuran(surahs, basmala);
 }
 
-bool _sameWords(List<String> a, List<String> b) {
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
+/// رقم بالأرقام العربية الهندية (٠-٩).
+String arabicIndicDigits(int n) {
+  const d = '٠١٢٣٤٥٦٧٨٩';
+  return n.toString().split('').map((c) => d[int.parse(c)]).join();
 }
 
-/// Letters only: drops harakat, Quranic annotation marks and tatweel, and
-/// reads alef wasla as alef. Used to recognise words regardless of marks —
-/// never to display text.
-String quranSkeleton(String word) {
-  final sb = StringBuffer();
-  for (final r in word.runes) {
-    final isMark = (r >= 0x0610 && r <= 0x061A) ||
-        (r >= 0x064B && r <= 0x065F) ||
-        r == 0x0670 ||
-        (r >= 0x06D6 && r <= 0x06ED) ||
-        (r >= 0x08D3 && r <= 0x08FF) ||
-        r == 0x0640;
-    if (isMark) continue;
-    sb.writeCharCode(r == 0x0671 ? 0x0627 : r);
-  }
-  return sb.toString();
-}
+/// نص قرآني للنسخ/المشاركة خارج التطبيق: ذيل «مسافة + رقم» (الذي يرسمه خط
+/// المجمع علامةً مزخرفة) يصير ﴿N﴾ حتى يُقرأ سليماً في أي خط. الحروف والحركات
+/// لا تتغير. إن لم يكن في السطر ذيل رقم (بسملة، عنوان) يعود كما هو.
+String quranForSharing(String line) => line.replaceFirstMapped(
+    RegExp('$_nbsp([٠-٩]+)\$'), (m) => ' ﴿${m[1]}﴾');
+
+/// نص آية مع رقمها كما في ملف المجمع: نص + مسافة غير قاطعة + رقم — يرسمه
+/// خط المجمع علامةَ نهاية آية مزخرفة.
+String withAyahNumber(String ayahBody, int number) =>
+    '$ayahBody$_nbsp${arabicIndicDigits(number)}';

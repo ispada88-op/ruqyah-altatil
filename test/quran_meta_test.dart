@@ -47,4 +47,12 @@ void main() {
       reason: 'the shahada is two half-verses, not one ayah',
     );
   });
+
+  test('shared Quran text uses ﴿N﴾ (no NBSP tail that other fonts would mis-draw)', () {
+    for (final i in generalRuqyahItems.where((i) => i.isQuran)) {
+      final t = i.plainText;
+      expect(t.contains('\xA0'), isFalse, reason: i.title);
+      expect(RegExp('﴿[٠-٩]+﴾').hasMatch(t), isTrue, reason: i.title);
+    }
+  });
 }

@@ -5,13 +5,13 @@
 // هذا الملف يحوّل البيانات من `verified_quran.dart` إلى الصيغة المتوقعة
 // من `_buildSurahCard()` (List<String> مع علامة الآية).
 //
-// كل النصوص هنا مولَّدة من ملف تنزيل المثبّت ويفحصها scripts/verify_quran.py.
+// كل النصوص هنا مولَّدة من ملف مجمع الملك فهد المثبّت ويفحصها scripts/verify_quran.py.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'verified_quran.dart';
 import 'quran_data.dart' show anfalVerses, dukhanVerses, saffatVerses, haqqaVerses, basmala;
 
-/// تحويل قائمة Verse إلى `List<String>` بصيغة "النص ﴿N﴾".
+/// تحويل قائمة Verse إلى `List<String>` بصيغة "النص + مسافة + رقم الآية" (يرسمه خط المجمع علامة نهاية آية).
 List<String> _versesToStrings(List<Verse> verses) =>
     verses.map((v) => v.withMarker).toList();
 
