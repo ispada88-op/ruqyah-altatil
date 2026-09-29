@@ -241,11 +241,16 @@ class NotificationService {
         isQuietHour: _isQuietHour,
       );
       for (final scheduledDate in times) {
-        // اختيار ذكر بدون تكرار مباشر
+        // اختيار ذكر بدون تكرار مباشر. أذكار النوم لا تُرسل قبل الثامنة مساءً
+        // (كان تحصين النوم يصل الساعة ٩ صباحاً).
+        final pool = [
+          for (var i = 0; i < hisnAlmuslimDhikr.length; i++)
+            if (scheduledDate.hour >= 20 || !hisnAlmuslimDhikr[i].title.contains('النوم')) i,
+        ];
         int idx;
         do {
-          idx = rng.nextInt(hisnAlmuslimDhikr.length);
-        } while (idx == lastIdx && hisnAlmuslimDhikr.length > 1);
+          idx = pool[rng.nextInt(pool.length)];
+        } while (idx == lastIdx && pool.length > 1);
         lastIdx = idx;
 
         final dhikr = hisnAlmuslimDhikr[idx];

@@ -68,6 +68,12 @@ void main() {
           isEmpty);
     });
 
+    test('one wrongly-typed entry does not wipe the valid ones', () {
+      final out = CustomRemindersStore.decode(
+          '[{"text":123,"h":1,"m":1},{"text":"ok","h":7,"m":30,"id":"a"},{"id":5,"text":"y","h":8,"m":0}]');
+      expect(out.map((r) => r.text), ['ok']);
+    });
+
     test('capped at maxCount and text sanitised', () {
       final many = [
         for (var i = 0; i < 15; i++)

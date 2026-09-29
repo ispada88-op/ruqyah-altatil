@@ -97,6 +97,12 @@ class AudioPlayerService extends ChangeNotifier {
       if (state.processingState == ProcessingState.completed) {
         _position = Duration.zero;
         _persistPosition();
+        // just_audio يُبقي playing=true بعد النهاية فتظهر أيقونة «إيقاف» على مقطع
+        // منتهٍ (وشاشة القفل). نوقفه ونعيده للبداية ليعود زر التشغيل.
+        if (state.playing) {
+          _player.pause();
+          _player.seek(Duration.zero);
+        }
       }
       notifyListeners();
     });
@@ -170,6 +176,7 @@ class AudioPlayerService extends ChangeNotifier {
   Future<void> play() async {
     try {
       if (!_isLoaded) await loadReciter(_currentReciter);
+      if (!_isLoaded) return; // فشل التحميل: لا نبدأ تشغيلاً بلا مصدر
       await _player.play();
       notifyListeners();
     } catch (e, st) {

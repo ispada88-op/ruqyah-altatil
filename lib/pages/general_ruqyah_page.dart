@@ -67,7 +67,8 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (mounted) {
-        setState(() => _fontSize = prefs.getDouble(_kFontSizeKey) ?? 20.0);
+        // المفتاح مشترك مع المصحف (نطاقه ١٦-٣٦) — نقصّه لنطاق هذا السلايدر.
+        setState(() => _fontSize = (prefs.getDouble(_kFontSizeKey) ?? 20.0).clamp(14.0, 32.0));
       }
     } catch (_) {/* ignore */}
   }

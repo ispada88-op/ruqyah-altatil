@@ -114,7 +114,13 @@ class _RuqyahAppState extends State<RuqyahApp> with WidgetsBindingObserver {
 
   void _syncSystemUI() {
     if (!mounted) return;
-    final isDark = widget.themeProvider.isDarkMode(context);
+    // هذا الـ State فوق MaterialApp فلا يوجد MediaQuery هنا (كان يعود دائماً
+    // «فاتح» فتختفي أيقونات شريط النظام في الوضع الليلي) — نقرأ نظام التشغيل مباشرة.
+    final mode = widget.themeProvider.themeMode;
+    final isDark = mode == ThemeMode.dark ||
+        (mode == ThemeMode.system &&
+            WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+                Brightness.dark);
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,

@@ -13,6 +13,9 @@ Future<void> showSleepTimerSheet(BuildContext context) {
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
+    // بدونه يُقصّ الـ sheet عند 9/16 من الشاشة فيضيع زر إلغاء المؤقّت.
+    isScrollControlled: true,
+    useSafeArea: true,
     builder: (_) => const _SleepTimerSheet(),
   );
 }
@@ -33,7 +36,8 @@ class _SleepTimerSheet extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final audio = context.watch<AudioPlayerService>();
 
-    return Container(
+    return SingleChildScrollView(
+      child: Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSecondary : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -135,6 +139,7 @@ class _SleepTimerSheet extends StatelessWidget {
               ),
             ),
         ],
+      ),
       ),
     );
   }

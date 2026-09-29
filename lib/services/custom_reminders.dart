@@ -80,11 +80,16 @@ class CustomRemindersStore {
     try {
       final list = jsonDecode(raw);
       if (list is! List) return [];
-      return list
-          .map(CustomReminder.fromJson)
-          .whereType<CustomReminder>()
-          .take(maxCount)
-          .toList();
+      // كل عنصر على حدة: عنصر تالف واحد (نوع خاطئ) لا يمسح بقية التذكيرات.
+      CustomReminder? safe(Object? j) {
+        try {
+          return CustomReminder.fromJson(j);
+        } catch (_) {
+          return null;
+        }
+      }
+
+      return list.map(safe).whereType<CustomReminder>().take(maxCount).toList();
     } catch (_) {
       return []; // corrupted value — start clean rather than crash
     }

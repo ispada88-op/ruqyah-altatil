@@ -13,7 +13,6 @@
             android:targetPackage="com.ruqyah.altatil"
             android:targetClass="com.ruqyah.altatil.MainActivity"
             android:data="ruqyah://open/audio-roqia" />
-        <categories android:name="android.shortcut.conversation" />
     </shortcut>
 
     <!-- اختصار 2: الأذكار -->

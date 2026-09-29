@@ -56,7 +56,7 @@ lib/
 |---|---|
 | `lib/data/verified_quran.dart` + `quran_data.dart` + `quran_extracts.dart` + `quran_index.dart` | مولَّدة من ملف مجمع الملك فهد المثبّت عبر `scripts/gen_quran_data.py` — لا تُعدَّل يدوياً أبداً |
 | `assets/audio/*.mp3` | ملفات صوت كبيرة، تُضغط مرة واحدة فقط عبر `scripts/compress_audio.sh` |
-| `android/app/build.gradle` `targetSdk` | لا تنقصه عن 35 (إلزامي Google Play 2025) |
+| `android/app/build.gradle` `targetSdk` | لا تنقصه عن 36 (إلزامي Google Play لتحديثات ما بعد 2026-08-31) |
 | `applicationId = "com.ruqyah.altatil"` | منشور بهذا الـ id على Apple Store |
 
 ## Build & Test

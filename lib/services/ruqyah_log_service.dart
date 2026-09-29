@@ -83,7 +83,7 @@ String dayKey(DateTime d) =>
 int currentStreak(Set<String> days, DateTime today) {
   var d = DateTime(today.year, today.month, today.day);
   if (!days.contains(dayKey(d))) {
-    d = d.subtract(const Duration(days: 1));
+    d = DateTime(d.year, d.month, d.day - 1); // لا subtract(24h): خطأ عند تغيّر التوقيت الصيفي
   }
   var n = 0;
   while (days.contains(dayKey(d))) {
