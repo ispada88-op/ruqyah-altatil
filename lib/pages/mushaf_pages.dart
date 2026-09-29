@@ -8,6 +8,7 @@ import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/quran_repository.dart';
+import 'package:roqia_altatil/utils/quran_display.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
 import 'package:roqia_altatil/widgets/section_back_bar.dart';
@@ -17,7 +18,7 @@ const _kLastOffsetKey = 'mushaf_last_offset';
 const _kFontSizeKey = 'written_font_size'; // موحّد مع صفحات القراءة
 
 const String kTanzilCredit =
-    'النص القرآني: مصحف المدينة برواية حفص — مشروع تنزيل tanzil.net';
+    'النص القرآني: الرسم العثماني برواية حفص عن عاصم — مشروع تنزيل tanzil.net';
 
 /// إزالة التشكيل للبحث في أسماء السور.
 String _plain(String s) => s
@@ -168,7 +169,7 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
                         title: Text('سورة ${s.name}',
                             style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text(
-                            '${s.meccan ? 'مكية' : 'مدنية'} • ${arDigits(s.ayahCount)} آية'),
+                            '${s.meccan ? 'مكية' : 'مدنية'} • ${ayatLabel(s.ayahCount)}'),
                         onTap: () => _open(s.number),
                       );
                     },
@@ -343,7 +344,7 @@ class _MushafReaderPageState extends State<MushafReaderPage> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Text(
-                              QuranRepository.instance.basmala,
+                              mushafDisplay(QuranRepository.instance.basmala),
                               textAlign: TextAlign.center,
                               style: GoogleFonts.amiri(
                                   fontSize: _fontSize + 2, color: textColor, height: 2),
@@ -354,7 +355,7 @@ class _MushafReaderPageState extends State<MushafReaderPage> {
                             key: widget.ayah == i + 1 ? _targetKey : null,
                             padding: const EdgeInsets.only(bottom: 10),
                             child: Text(
-                              '${verses[i]} ﴿${arDigits(i + 1)}﴾',
+                              '${mushafDisplay(verses[i])} ﴿${arDigits(i + 1)}﴾',
                               textAlign: TextAlign.justify,
                               textDirection: TextDirection.rtl,
                               style: GoogleFonts.notoNaskhArabic(
@@ -437,7 +438,7 @@ class _SurahHeader extends StatelessWidget {
               style: GoogleFonts.amiri(
                   fontSize: 26, fontWeight: FontWeight.bold, color: textColor)),
           Text(
-            '${info.meccan ? 'مكية' : 'مدنية'} • ${arDigits(info.ayahCount)} آية',
+            '${info.meccan ? 'مكية' : 'مدنية'} • ${ayatLabel(info.ayahCount)}',
             style: TextStyle(color: gold, fontSize: 13),
           ),
         ],

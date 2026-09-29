@@ -54,3 +54,12 @@ String daysLabel(int n) {
   if (n >= 3 && n <= 10) return '${arDigits(n)} أيام';
   return '${arDigits(n)} يوماً';
 }
+
+/// عدد الآيات بصيغته العربية الصحيحة: «آية واحدة» «آيتان» «٧ آيات» «١١٠ آيات» «٢٨٦ آية».
+String ayatLabel(int n) {
+  if (n == 1) return 'آية واحدة';
+  if (n == 2) return 'آيتان';
+  final m = n % 100;
+  if (m >= 3 && m <= 10) return '${arDigits(n)} آيات';
+  return '${arDigits(n)} آية';
+}

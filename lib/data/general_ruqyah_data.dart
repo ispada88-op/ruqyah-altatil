@@ -44,9 +44,10 @@ class GeneralRuqyahItem {
     this.isQuran = false,
   });
 
-  /// نص كامل للنسخ/المشاركة.
+  /// نص كامل للنسخ/المشاركة (مع اسم السورة وموضع الآيات للنص القرآني).
   String get plainText {
     final sb = StringBuffer();
+    if (isQuran) sb.writeln(subtitle != null ? '$title — $subtitle' : title);
     for (final b in blocks) {
       if (b.heading != null) sb.writeln(b.heading);
       for (final l in b.lines) {

@@ -8,17 +8,17 @@ SHA-256 is pinned in test/quran_asset_test.dart). Cross-checked 2026-09-28:
 all 6236 ayat identical to Quran.com (text_uthmani) letter-for-letter and
 mark-for-mark, and letter-identical to the King Fahd Complex Hafs text.
 
-Checked:
-  lib/data/quran_data.dart      GENERATED — must be byte-identical to the asset
-  lib/data/quran_extracts.dart  GENERATED — must be byte-identical to the asset
-  lib/data/verified_quran.dart  hand-imported from Tanzil 1.0.2 — NFC-equal to
-                                the asset, with exactly two representation
-                                equivalences of 1.0.2 vs 1.1 (never letters):
-                                  ـٰ  ≡  ٰ     (superscript alef on a kashida)
-                                  ءَا ≡ ـَٔا   (hamza before alef, e.g. ٱلْءَاخِرَةِ)
-  every basmala constant        must equal 1:1 (NFC)
+Checked (no allowlist, no equivalences — byte equality only):
+  lib/data/quran_data.dart      GENERATED — byte-identical to the asset
+  lib/data/quran_extracts.dart  GENERATED — byte-identical to the asset
+  lib/data/verified_quran.dart  GENERATED — byte-identical to the asset
+  every basmala constant        byte-identical to 1:1
   every other .dart file        must contain NO Uthmani-script text at all, so
                                 no unverified ayah can hide anywhere in lib/.
+  imla'i Quran quotes           (category 'ayah' adhkar, lib/data/quran_quotes.dart,
+                                any ﴿…﴾ quote) must be whole words of the cited
+                                (or, for ﴿…﴾, of some) ayah in Tanzil "simple"
+                                text, scripts/ref/quran-simple.txt (SHA-256 pinned).
 
 Never "fix" a failure by editing this script — re-run scripts/gen_quran_data.py
 or check a printed Madinah Mushaf and fix the text.
@@ -69,11 +69,29 @@ def nfc(x):
     return unicodedata.normalize('NFC', x)
 
 
-def equivalent_102(x):
-    """Tanzil 1.0.2 -> 1.1 representation (see module docstring)."""
-    x = nfc(x).replace('ـٰ', 'ٰ')
-    x = x.replace('ءَا', 'ـَٔا')
-    return nfc(x)
+SIMPLE = ROOT / 'scripts/ref/quran-simple.txt'
+SIMPLE_SHA256 = 'f3268cfe7a400add8a8024fe23368d66f58cc8baa51773fe94e323625c66344b'
+AR_TO_INT = str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')
+
+
+def load_simple():
+    import hashlib
+    raw = SIMPLE.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == SIMPLE_SHA256, 'quran-simple.txt changed'
+    t = {}
+    for line in raw.decode('utf-8').splitlines():
+        if line and not line.startswith('#'):
+            s, a, x = line.split('|', 2)
+            t[(int(s), int(a))] = x
+    b = t[(1, 1)] + ' '
+    for s in range(2, 115):
+        if s != 9 and t[(s, 1)].startswith(b):
+            t[(s, 1)] = t[(s, 1)][len(b):]
+    return t
+
+
+def whole_words_of(quote, ayah):
+    return f' {quote} ' in f' {ayah} '
 
 
 def split_marker(v, expected):
@@ -91,7 +109,7 @@ def main():
     counts = {}
     for s, a in t:
         counts[s] = max(counts.get(s, 0), a)
-    checked = failures = equivalences = 0
+    checked = failures = 0
 
     def fail(msg):
         nonlocal failures
@@ -106,12 +124,9 @@ def main():
             text = ''.join(re.findall(r"'([^']*)'", parts))
             checked += 1
             ref = t[(s, int(n))]
-            if nfc(text) == nfc(ref):
-                continue
-            if equivalent_102(text) == equivalent_102(ref):
-                equivalences += 1
-                continue
-            fail(f'verified_quran.dart {s}:{n}\n  app: {text}\n  ref: {ref}')
+            if text != ref:
+                fail(f'verified_quran.dart {s}:{n} not byte-identical — re-run gen_quran_data.py'
+                     f'\n  app: {text}\n  ref: {ref}')
 
     # 2) generated files: byte-identical, complete, correctly numbered
     src = (ROOT / 'lib/data/quran_data.dart').read_text(encoding='utf-8')
@@ -147,7 +162,7 @@ def main():
               'lib/services/quran_repository.dart'):
         for lit in re.findall(r"basmala\w*\s*[=:]\s*'([^']*)'", (ROOT / f).read_text(encoding='utf-8')):
             checked += 1
-            if nfc(lit) != nfc(basmala_ref):
+            if lit != basmala_ref:
                 fail(f'{f}: basmala literal differs from 1:1\n  app: {lit}\n  ref: {basmala_ref}')
 
     # 4) no Uthmani text anywhere else in lib/
@@ -162,8 +177,41 @@ def main():
             fail(f'{p.relative_to(ROOT)}:{line} Uthmani text outside the verified Quran files')
             break
 
-    print(f'verify_quran: {checked} strings checked, {failures} failures, '
-          f'{equivalences} verses via the two 1.0.2 representation equivalences')
+    # 5) imla'i Quran quotes outside the Uthmani files
+    simple = load_simple()
+    names = {name: int(n) for n, name in re.findall(
+        r"SurahInfo\((\d+), '([^']+)'", (ROOT / 'lib/data/quran_index.dart').read_text(encoding='utf-8'))}
+    hisn = (ROOT / 'lib/data/hisn_almuslim_dhikr.dart').read_text(encoding='utf-8')
+    ayah_entries = re.findall(r"category: 'ayah', title: '([^']*)',\s*body: '([^']*)'", hisn)
+    if len(ayah_entries) != hisn.count("category: 'ayah'"):
+        fail("hisn_almuslim_dhikr.dart: an 'ayah' entry could not be parsed")
+    for title, body in ayah_entries:
+        checked += 1
+        m = re.fullmatch(r'آية — (.+) ([٠-٩]+)', title)
+        if not m or m.group(1) not in names:
+            fail(f"hisn_almuslim_dhikr.dart: 'ayah' title must be «آية — السورة رقم»: {title}")
+            continue
+        key = (names[m.group(1)], int(m.group(2).translate(AR_TO_INT)))
+        if key not in simple or not whole_words_of(body, simple[key]):
+            fail(f'hisn_almuslim_dhikr.dart {title}: not whole words of the ayah'
+                 f'\n  app: {body}\n  ref: {simple.get(key)}')
+    quotes = re.findall(r"QuranQuote\((\d+), (\d+), '([^']*)'\)",
+                        (ROOT / 'lib/data/quran_quotes.dart').read_text(encoding='utf-8'))
+    if not quotes:
+        fail('quran_quotes.dart: no quotes parsed')
+    for s, a, text in quotes:
+        checked += 1
+        if not whole_words_of(text, simple.get((int(s), int(a)), '')):
+            fail(f'quran_quotes.dart {s}:{a} not whole words of the ayah\n  app: {text}')
+    for p in sorted((ROOT / 'lib').rglob('*.dart')):
+        if p.name in QURAN_FILES:
+            continue
+        for q in re.findall(r'﴿([^﴾$]*[ء-ي][^﴾$]*)﴾', p.read_text(encoding='utf-8')):
+            checked += 1
+            if not any(whole_words_of(q, x) for x in simple.values()):
+                fail(f'{p.relative_to(ROOT)}: ﴿{q}﴾ is not whole words of any ayah')
+
+    print(f'verify_quran: {checked} strings checked, {failures} failures')
     return 1 if failures else 0
 
 

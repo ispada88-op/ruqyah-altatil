@@ -31,7 +31,7 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
     _OnboardingItem(
       icon: '📖',
       title: 'الرقية المكتوبة',
-      description: 'اقرأ آيات الرقية بخط عثماني واضح\nمطابق لمصحف المدينة المنورة',
+      description: 'اقرأ آيات الرقية بالرسم العثماني\nبرواية حفص عن عاصم، بضبطها الكامل',
       gradient: [Color(0xFFD4AF37), Color(0xFFE5C158)],
     ),
     _OnboardingItem(

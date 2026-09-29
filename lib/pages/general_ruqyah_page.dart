@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:roqia_altatil/data/general_ruqyah_data.dart';
 import 'package:roqia_altatil/services/share_service.dart';
+import 'package:roqia_altatil/utils/quran_display.dart';
 import 'package:roqia_altatil/theme.dart';
 
 /// صفحة «الرقية المستقلة» — رقية مستقلة عن رقية التعطيل.
@@ -452,7 +453,9 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
               yield Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Text(
-                  line, // Quran text shown verbatim (every mark kept)
+                  // Quran: every letter and mark kept; only the two documented
+                  // display substitutions of mushafDisplay (jazm sukun, NBSP).
+                  item.isQuran ? mushafDisplay(line) : line,
                   style: GoogleFonts.notoNaskhArabic(
                     fontSize: _fontSize,
                     height: 2,

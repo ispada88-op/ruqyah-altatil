@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roqia_altatil/data/quran_data.dart';
 import 'package:roqia_altatil/data/verified_quran.dart';
+import 'package:roqia_altatil/services/quran_repository.dart';
 
 /// Structural integrity checks for the Quran text used in the app.
 /// These guard against missing/duplicated/empty verses (a content-safety
@@ -67,19 +70,25 @@ void main() {
       expect(hudFloodVerse.verses.single.number, 44);
     });
 
-    // تثبيت حرفي ضد أي تعديل عرضي — النص مطابق لجلب KFGQPC Uthmani
-    // (Quran.com API v4، مع تطبيع ـٰ → ٰ وفق أسلوب الملف).
-    test('TaHa 105-107 exact text pinned', () {
-      expect(taHaMountains.verses[0].text,
-          'وَيَسْـَٔلُونَكَ عَنِ ٱلْجِبَالِ فَقُلْ يَنسِفُهَا رَبِّى نَسْفًا');
-      expect(taHaMountains.verses[1].text, 'فَيَذَرُهَا قَاعًا صَفْصَفًا');
-      expect(taHaMountains.verses[2].text,
-          'لَّا تَرَىٰ فِيهَا عِوَجًا وَلَآ أَمْتًا');
+    // Byte-exact pin against the SHA-256-pinned Tanzil asset (the single
+    // source of truth) — not against hand-typed literals, whose combining-mark
+    // order silently differs (e.g. U+0622 vs U+0627 U+0653, shadda/kasra order).
+    Map<String, String> asset() => {
+          for (final l in File(QuranRepository.assetPath).readAsLinesSync())
+            if (RegExp(r'^\d+\|\d+\|').hasMatch(l))
+              l.substring(0, l.indexOf('|', l.indexOf('|') + 1)):
+                  l.substring(l.indexOf('|', l.indexOf('|') + 1) + 1),
+        };
+
+    test('TaHa 105-107 byte-identical to the Tanzil asset', () {
+      final a = asset();
+      for (final v in taHaMountains.verses) {
+        expect(v.text, a['20|${v.number}'], reason: 'TaHa ${v.number}');
+      }
     });
 
-    test('Hud 44 exact text pinned', () {
-      expect(hudFloodVerse.verses.single.text,
-          'وَقِيلَ يَٰٓأَرْضُ ٱبْلَعِى مَآءَكِ وَيَٰسَمَآءُ أَقْلِعِى وَغِيضَ ٱلْمَآءُ وَقُضِىَ ٱلْأَمْرُ وَٱسْتَوَتْ عَلَى ٱلْجُودِىِّ ۖ وَقِيلَ بُعْدًا لِّلْقَوْمِ ٱلظَّٰلِمِينَ');
+    test('Hud 44 byte-identical to the Tanzil asset', () {
+      expect(hudFloodVerse.verses.single.text, asset()['11|44']);
     });
   });
 }

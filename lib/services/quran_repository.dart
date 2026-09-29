@@ -18,7 +18,7 @@ class QuranRepository {
   Future<Map<int, List<String>>>? _loading;
 
   /// البسملة كما في النص (آية الفاتحة الأولى).
-  String basmala = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+  String basmala = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
 
   Future<Map<int, List<String>>> _load() {
     return _loading ??= () async {

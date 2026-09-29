@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:roqia_altatil/utils/arabic_format.dart';
+import 'package:roqia_altatil/utils/quran_display.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/data/written_roqia_data.dart';
 
@@ -541,7 +543,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                     border: Border.all(color: isDark ? AppColors.accentGold : const Color(0xFFD4AF37)),
                   ),
                   child: Text(
-                    '$totalVerses آية',
+                    ayatLabel(totalVerses),
                     style: TextStyle(
                       fontSize: _fontSize - 4,
                       color: isDark ? AppColors.textOnDark : const Color(0xFF6F4E37),
@@ -572,7 +574,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
           Divider(color: isDark ? AppColors.accentGold : const Color(0xFFD4AF37), thickness: 1, height: 24),
           if (basmala != null) ...[
             Text(
-              basmala,
+              mushafDisplay(basmala),
               style: GoogleFonts.amiri(
                 fontSize: _fontSize + 2,
                 fontWeight: FontWeight.bold,
@@ -588,7 +590,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
               : Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(
-                    verse,
+                    mushafDisplay(verse),
                     style: GoogleFonts.notoNaskhArabic(
                       fontSize: _fontSize,
                       height: 2,

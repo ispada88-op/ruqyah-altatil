@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:roqia_altatil/data/quran_quotes.dart';
 import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/share_service.dart';
@@ -82,7 +83,7 @@ class HomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ',
+                        kHomeBasmala.text,
                         style: AppTextStyles.quran(
                           color: isDark ? AppColors.textOnDark : AppColors.primaryTeal,
                           fontSize: 24,
@@ -309,7 +310,7 @@ class HomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'قُلْ أَعُوذُ بِرَبِّ النَّاسِ',
+                        kHomeFooterAyah.text,
                         style: AppTextStyles.quran(
                           color: isDark
                               ? AppColors.textOnDarkSecondary
