@@ -15,7 +15,7 @@
 Go to: https://play.google.com/console
 
 **App Details:**
-- **App name**: رقية التعطيل
+- **App name**: الرقية الشاملة – رقية التعطيل
 - **Package name**: `com.ruqyah.altatil`
 - **Category**: Lifestyle / Religion
 - **Content rating**: Everyone (3+)
@@ -27,7 +27,7 @@ Go to: https://play.google.com/console
 
 **Full description:**
 ```
-تطبيق رقية التعطيل والسحر
+تطبيق الرقية الشاملة (رقية التعطيل لفضيلة الشيخ فهد القرني)
 
 🎙️ الرقية الصوتية:
 استمع إلى الرقية الشرعية بأصوات أفاضل المشايخ:

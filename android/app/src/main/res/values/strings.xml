@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Ruqyah Altatil</string>
+    <string name="app_name">Al-Ruqyah Al-Shamila</string>
 
     <string name="shortcut_audio_short">Audio Ruqyah</string>
     <string name="shortcut_audio_long">Start audio Ruqyah</string>

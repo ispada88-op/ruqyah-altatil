@@ -45,7 +45,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
       final name = _nameController.text.trim().isEmpty ? 'مستخدم مجهول' : _nameController.text.trim();
       final message = _messageController.text.trim();
       
-      final subject = 'رسالة من تطبيق رقية التعطيل - $_selectedType';
+      final subject = 'رسالة من تطبيق الرقية الشاملة - $_selectedType';
       final plainBody = '''
 نوع الرسالة: $_selectedType
 الاسم: $name

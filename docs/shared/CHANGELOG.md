@@ -1,4 +1,4 @@
-# Changelog — Ruqyah Altatil (رقية التعطيل)
+# Changelog — Ruqyah Altatil (الرقية الشاملة، سابقاً: رقية التعطيل)
 ## Version 1.0.2+4 (2026-06-12)
 
 ### 🛠️ Fixes

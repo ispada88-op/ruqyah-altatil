@@ -137,7 +137,7 @@ class AudioPlayerService extends ChangeNotifier {
           reciter.localAsset,
           tag: MediaItem(
             id: reciter.id,
-            album: 'رقية التعطيل',
+            album: 'الرقية الشاملة',
             title: 'الرقية الشرعية',
             artist: reciter.name,
           ),

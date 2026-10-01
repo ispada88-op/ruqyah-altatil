@@ -10,6 +10,7 @@ import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/share_service.dart';
 import 'package:roqia_altatil/theme.dart';
+import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/widgets/adhkar_reminders_card.dart';
 import 'package:roqia_altatil/widgets/notifications_settings_card.dart';
 import 'package:roqia_altatil/widgets/quran_text.dart';
@@ -96,13 +97,19 @@ class HomePage extends StatelessWidget {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.sm),
+                      // نسبة رقية التعطيل للشيخ — بخط عريض واضح.
                       Text(
-                        'رقية التعطيل والسحر',
-                        style: AppTextStyles.body(
-                          color: isDark
-                              ? AppColors.textOnDarkSecondary
-                              : AppColors.textSecondary,
-                        ),
+                        AppIdentity.taTil,
+                        style: AppTextStyles.header(
+                          color: isDark ? AppColors.accentGold : AppColors.primaryTeal,
+                        ).copyWith(fontWeight: FontWeight.w800, fontSize: 24),
+                        textAlign: TextAlign.center,
+                      ),
+                      Text(
+                        AppIdentity.taTilOwner,
+                        style: AppTextStyles.subheader(
+                          color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
+                        ).copyWith(fontWeight: FontWeight.w700),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -515,6 +522,10 @@ class _DisclaimerCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
+          _line(Icons.menu_book_rounded,
+              'رقية التعطيل في هذا التطبيق هي رقية الشيخ فهد القرني.',
+              teal, textColor),
+          const SizedBox(height: AppSpacing.sm),
           _line(Icons.volunteer_activism_rounded,
               'تطبيق خيري بالكامل — بدون أي إعلانات، ولا يجمع بياناتك.',
               teal, textColor),
@@ -586,8 +597,9 @@ class _VersionAndLicensesState extends State<_VersionAndLicenses> {
         TextButton(
           onPressed: () => showLicensePage(
             context: context,
-            applicationName: 'رقية التعطيل',
+            applicationName: AppIdentity.name,
             applicationVersion: _version,
+            applicationLegalese: AppIdentity.taTilAttribution,
           ),
           child: Text('التراخيص والمصادر',
               style: AppTextStyles.caption(color: widget.color)),

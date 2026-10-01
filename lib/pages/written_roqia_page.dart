@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
+import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/data/written_roqia_data.dart';
 import 'package:roqia_altatil/widgets/quran_text.dart';
@@ -102,7 +103,10 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Application Method Card (first)
+                // نسبة رقية التعطيل للشيخ — أول ما يراه القارئ.
+                _buildTaTilBanner(),
+                const SizedBox(height: 12),
+                // Application Method Card
                 _buildApplicationMethodCard(),
                 const SizedBox(height: 12),
                 _buildTahrijCard(),
@@ -126,6 +130,37 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                 _buildDuasCard(),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaTilBanner() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isDark ? AppColors.accentGold : AppColors.primaryTeal;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.14 : 0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            AppIdentity.taTil,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.header(color: color)
+                .copyWith(fontWeight: FontWeight.w800, fontSize: 22),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            AppIdentity.taTilOwner,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.subheader(
+              color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
+            ).copyWith(fontWeight: FontWeight.w700),
           ),
         ],
       ),

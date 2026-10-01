@@ -566,7 +566,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                   HapticFeedback.lightImpact();
                   ShareService.shareText(
                     context,
-                    text: '${item.plainText}\n\nمن تطبيق رقية التعطيل',
+                    text: '${item.plainText}\n\nمن تطبيق الرقية الشاملة',
                     subject: item.title,
                   );
                 },

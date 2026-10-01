@@ -57,10 +57,10 @@ class ShareService {
 
   /// مشاركة التطبيق نفسه (الدال على الخير كفاعله).
   static Future<void> shareApp(BuildContext context) async {
-    const text = 'تطبيق رقية التعطيل 🕊\n'
+    const text = 'تطبيق الرقية الشاملة (ومعه رقية التعطيل) 🕊\n'
         'رقية شرعية مكتوبة وصوتية وأذكار يومية — تطبيق خيري بدون إعلانات.\n\n'
         '$appShareUrl';
-    await _share(context, text: text, subject: 'تطبيق رقية التعطيل');
+    await _share(context, text: text, subject: 'تطبيق الرقية الشاملة');
   }
 
   /// مشاركة نص عام (ذِكر/دعاء) مع ذيل التطبيق.
@@ -130,7 +130,7 @@ class ShareService {
     }
     body
       ..writeln()
-      ..writeln('— من تطبيق رقية التعطيل');
+      ..writeln('— من تطبيق الرقية الشاملة');
     await _share(context, text: body.toString(), subject: surahName);
   }
 
@@ -140,6 +140,6 @@ class ShareService {
     int? verseNumber,
   }) {
     final ref = verseNumber != null ? '$surahName: $verseNumber' : surahName;
-    return '$verseText\n\n— $ref\n\nمن تطبيق رقية التعطيل';
+    return '$verseText\n\n— $ref\n\nمن تطبيق الرقية الشاملة';
   }
 }

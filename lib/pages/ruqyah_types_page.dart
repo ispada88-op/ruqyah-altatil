@@ -101,7 +101,7 @@ class RuqyahTypesPage extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(
             'الشفاء بيد الله وحده، والرقية سبب. هذه الأقسام من القرآن والسنة '
-            'عامة.',
+            'عامة، وليست رقية خاصة بالشيخ فهد القرني.',
             textAlign: TextAlign.center,
             style: AppTextStyles.caption(
               color: isDark

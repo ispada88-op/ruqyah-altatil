@@ -127,7 +127,7 @@ class _TahseenCard extends StatelessWidget {
     HapticFeedback.lightImpact();
     await ShareService.shareText(
       context,
-      text: '${entry.body}\n\n— ${entry.title}\n\nمن تطبيق رقية التعطيل',
+      text: '${entry.body}\n\n— ${entry.title}\n\nمن تطبيق الرقية الشاملة',
       subject: entry.title,
     );
   }

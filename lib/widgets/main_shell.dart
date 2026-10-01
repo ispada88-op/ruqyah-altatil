@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/widgets/mini_player.dart';
@@ -81,7 +82,7 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'رقية التعطيل',
+          AppIdentity.name,
           style: AppTextStyles.header(
             color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
           ),
