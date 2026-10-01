@@ -9,6 +9,7 @@ import 'package:roqia_altatil/pages/feedback_page.dart';
 import 'package:roqia_altatil/pages/general_ruqyah_page.dart';
 import 'package:roqia_altatil/pages/tahseen_page.dart';
 import 'package:roqia_altatil/pages/adhkar_page.dart';
+import 'package:roqia_altatil/pages/mushaf_page_reader.dart';
 import 'package:roqia_altatil/pages/mushaf_pages.dart';
 import 'package:roqia_altatil/pages/reminders_page.dart';
 import 'package:roqia_altatil/pages/ruqyah_tracker_page.dart';
@@ -125,6 +126,16 @@ class AppRouter {
               transitionsBuilder: _fadeTransition,
             ),
             routes: [
+              GoRoute(
+                path: 'page/:n',
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: MushafPageReaderPage(
+                    page: int.tryParse(state.pathParameters['n'] ?? '') ?? 1,
+                  ),
+                  transitionsBuilder: _fadeSlideTransition,
+                ),
+              ),
               GoRoute(
                 path: ':surah',
                 pageBuilder: (context, state) => CustomTransitionPage(
@@ -245,6 +256,9 @@ class AppRoutes {
         _ => null,
       };
 
+  /// قارئ المصحف بالصفحات (١..٦٠٤).
+  static String mushafPage(int page) => '$mushaf/page/$page';
+
   static String mushafSurah(int surah, {int? ayah, bool resume = false}) {
     final q = <String>[
       if (ayah != null) 'ayah=$ayah',
@@ -274,6 +288,11 @@ class AppRoutes {
     if (surah != null) {
       final n = int.parse(surah.group(1)!);
       return n >= 1 && n <= 114 ? (p == path ? null : p) : mushaf;
+    }
+    final pg = RegExp(r'^/mushaf/page/(\d{1,3})$').firstMatch(p);
+    if (pg != null) {
+      final n = int.parse(pg.group(1)!);
+      return n >= 1 && n <= 604 ? (p == path ? null : p) : mushaf;
     }
     final type = RegExp(r'^/ruqyah-types/([a-z]+)$').firstMatch(p);
     if (type != null) {

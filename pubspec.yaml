@@ -56,6 +56,10 @@ flutter:
     - assets/quran/
     # KFGQPC font EULA (must ship with the font).
     - assets/fonts/kfgqpc/KFGQPC-EULA.txt
+    # Madinah Mushaf page layout (604 pages) + its 47 page fonts (one glyph per
+    # word, byte-identical to KFGQPC «Mushaf Publisher»). Loaded lazily with
+    # FontLoader (NOT declared under `fonts:`) — see MushafPagesRepository.
+    - assets/fonts/qcf4/
 
   fonts:
     # «KFGQPC HAFS Uthmanic Script» v0.18 — the Madinah Mushaf font. Byte-identical

@@ -31,6 +31,10 @@ Future<void> main() async {
       final kf = await rootBundle.loadString('assets/fonts/kfgqpc/KFGQPC-EULA.txt');
       yield LicenseEntryWithLineBreaks(
           ['KFGQPC HAFS Uthmanic Script (King Fahd Glorious Quran Printing Complex)'], kf);
+      // خطوط صفحات المصحف (QCF4) — حقوقها محفوظة للمجمع، تُضمَّن دون تعديل.
+      final qcf = await rootBundle.loadString('assets/fonts/qcf4/NOTICE.txt');
+      yield LicenseEntryWithLineBreaks(
+          ['KFGQPC Hafs page fonts (King Fahd Glorious Quran Printing Complex)'], qcf);
     });
 
     // ═══ Edge-to-edge display + transparent system bars (Android) ═══

@@ -27,10 +27,14 @@ void main() {
     expect(AppRoutes.normalize('/ruqyah-types/sihr'), isNull);
     expect(AppRoutes.normalize('/ruqyah-types/xyz'), AppRoutes.ruqyahTypes);
     expect(AppRoutes.normalize('/quran'), AppRoutes.mushaf);
+    expect(AppRoutes.normalize('/mushaf/page/604'), isNull);
+    expect(AppRoutes.normalize('/mushaf/page/0'), AppRoutes.mushaf);
+    expect(AppRoutes.normalize('/mushaf/page/605'), AppRoutes.mushaf);
   });
 
   test('route builders', () {
     expect(AppRoutes.mushafSurah(2), '/mushaf/2');
+    expect(AppRoutes.mushafPage(42), '/mushaf/page/42');
     expect(AppRoutes.mushafSurah(2, ayah: 142), '/mushaf/2?ayah=142');
     expect(AppRoutes.mushafSurah(18, resume: true), '/mushaf/18?resume=1');
     expect(AppRoutes.ruqyahType('ayn'), '/ruqyah-types/ayn');

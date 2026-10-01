@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:roqia_altatil/data/quran_index.dart';
 import 'package:roqia_altatil/nav.dart';
+import 'package:roqia_altatil/pages/mushaf_page_reader.dart' show kLastPageKey;
+import 'package:roqia_altatil/services/mushaf_pages_repository.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/quran_repository.dart';
@@ -18,7 +20,7 @@ const _kLastOffsetKey = 'mushaf_last_offset';
 const _kFontSizeKey = 'written_font_size'; // موحّد مع صفحات القراءة
 
 const String kQuranCredit =
-    'النص والخط: مجمع الملك فهد لطباعة المصحف الشريف بالمدينة المنورة (الخط العثماني — رواية حفص عن عاصم)\nأسماء السور والاقتباسات الإملائية: tanzil.net';
+    'النص والخط ورسم الصفحات: مجمع الملك فهد لطباعة المصحف الشريف بالمدينة المنورة (رواية حفص عن عاصم)\nأسماء السور والاقتباسات الإملائية: tanzil.net';
 
 /// إزالة التشكيل للبحث في أسماء السور.
 String _plain(String s) => s
@@ -42,12 +44,13 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
   final _search = TextEditingController();
   String _query = '';
   bool _byJuz = false;
-  int? _lastSurah;
+  int? _lastPage;
 
   @override
   void initState() {
     super.initState();
     QuranRepository.instance.preload();
+    MushafPagesRepository.instance.layout().then<void>((_) {}, onError: (Object _) {});
     _loadLast();
   }
 
@@ -60,14 +63,25 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
   Future<void> _loadLast() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final s = prefs.getInt(_kLastSurahKey);
-      if (mounted && s != null && s >= 1 && s <= 114) setState(() => _lastSurah = s);
+      final p = prefs.getInt(kLastPageKey);
+      if (mounted && p != null && p >= 1 && p <= MushafLayout.pageCount) {
+        setState(() => _lastPage = p);
+      }
     } catch (_) {/* optional */}
   }
 
-  void _open(int surah, {int? ayah, bool resume = false}) {
+  /// يفتح المصحف بالصفحات عند أول صفحة السورة أو الجزء أو الصفحة المحفوظة.
+  Future<void> _openPage(int Function(MushafLayout) pick) async {
     Haptic.light();
-    context.push(AppRoutes.mushafSurah(surah, ayah: ayah, resume: resume));
+    try {
+      final layout = await MushafPagesRepository.instance.layout();
+      if (!mounted) return;
+      context.push(AppRoutes.mushafPage(pick(layout)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذّر تحميل المصحف، أعد المحاولة')));
+    }
   }
 
   @override
@@ -89,14 +103,14 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
             child: Text('المصحف الشريف',
                 style: AppTextStyles.header(color: teal)),
           ),
-          if (_lastSurah != null)
+          if (_lastPage != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(backgroundColor: teal),
-                onPressed: () => _open(_lastSurah!, resume: true),
+                onPressed: () => _openPage((_) => _lastPage!),
                 icon: const Icon(Icons.bookmark_rounded),
-                label: Text('متابعة القراءة — سورة ${kSurahs[_lastSurah! - 1].name}'),
+                label: Text('متابعة القراءة — صفحة ${arDigits(_lastPage!)}'),
               ),
             ),
           Padding(
@@ -145,7 +159,7 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
                         title: Text('الجزء ${arDigits(j.juz)}'),
                         subtitle: Text(
                             'يبدأ من سورة ${kSurahs[j.surah - 1].name} — آية ${arDigits(j.ayah)}'),
-                        onTap: () => _open(j.surah, ayah: j.ayah),
+                        onTap: () => _openPage((l) => l.pageOfJuz(j.juz)),
                       );
                     },
                   )
@@ -171,7 +185,7 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
                             style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text(
                             '${s.meccan ? 'مكية' : 'مدنية'} • ${ayatLabel(s.ayahCount)}'),
-                        onTap: () => _open(s.number),
+                        onTap: () => _openPage((l) => l.pageOfSurah(s.number)),
                       );
                     },
                   ),
