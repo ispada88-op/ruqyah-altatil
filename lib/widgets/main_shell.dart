@@ -81,7 +81,7 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'رقية التعطيل — الشيخ فهد القرني',
+          'رقية التعطيل',
           style: AppTextStyles.header(
             color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
           ),

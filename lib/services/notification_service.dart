@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'adhkar_reminders.dart';
 import 'custom_reminders.dart';
 import 'error_reporter.dart';
 import '../data/hisn_almuslim_dhikr.dart';
@@ -37,6 +38,17 @@ class NotificationService {
 
   /// IDs تذكيرات المستخدم الخاصة: 600..609.
   static const int _customIdBase = 600;
+
+  /// IDs تذكير أذكار الصباح (700) والمساء (701).
+  static const int _adhkarIdBase = 700;
+  static const _adhkarChannelId = 'adhkar_reminder_channel';
+  static const _adhkarChannelName = 'تذكير أذكار الصباح والمساء';
+
+  /// يُستدعى عند الضغط على إشعار والتطبيق يعمل (يربطه main بالتنقل).
+  void Function(String payload)? onOpenPayload;
+
+  /// حمولة الإشعار الذي فُتح التطبيق بالضغط عليه (إقلاع بارد)، مرة واحدة.
+  String? initialPayload;
 
   static const List<(String, String)> _ruqyahReminders = [
     ('تذكير بالرقية 🕊', 'لا تنسَ قراءة رقية التعطيل اليوم — جعلها الله شفاءً وعافيةً لك.'),
@@ -100,8 +112,16 @@ class NotificationService {
 
       await _plugin.initialize(
         const InitializationSettings(android: androidInit, iOS: iosInit),
+        onDidReceiveNotificationResponse: (response) {
+          final p = response.payload;
+          if (p != null && p.isNotEmpty) onOpenPayload?.call(p);
+        },
       );
       _initialized = true;
+      final launch = await _plugin.getNotificationAppLaunchDetails();
+      if (launch?.didNotificationLaunchApp == true) {
+        initialPayload = launch?.notificationResponse?.payload;
+      }
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'NotificationService.initialize');
     }
@@ -223,8 +243,46 @@ class NotificationService {
         );
       }
 
+      // ─── تذكير أذكار الصباح والمساء (مستقل عن المفتاح العام، يتكرر يومياً) ───
+      // الوقت «ساعة جدار» بمنطقة الجهاز، ويُعاد حسابه عند كل فتح للتطبيق
+      // فيتبع المستخدم إن سافر أو تغيّرت منطقته.
+      const adhkarDetails = NotificationDetails(
+        android: AndroidNotificationDetails(
+          _adhkarChannelId,
+          _adhkarChannelName,
+          channelDescription: 'تذكير يومي بأذكار الصباح وأذكار المساء',
+          importance: Importance.high,
+          priority: Priority.high,
+          playSound: true,
+          styleInformation: BigTextStyleInformation(''),
+        ),
+        iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
+      );
+      var adhkarCount = 0;
+      for (final slot in AdhkarSlot.values) {
+        final cfg = await AdhkarRemindersStore.load(slot);
+        if (!cfg.enabled) continue;
+        final (aTitle, aBody) = AdhkarRemindersStore.message(slot);
+        await _plugin.zonedSchedule(
+          _adhkarIdBase + slot.index,
+          aTitle,
+          aBody,
+          NotificationPlan.nextAt(now, cfg.hour, minute: cfg.minute),
+          adhkarDetails,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.time,
+          payload: AdhkarRemindersStore.payload(slot),
+          // ignore: deprecated_member_use
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+        adhkarCount++;
+      }
+
       if (!await isEnabled) {
-        if (kDebugMode) debugPrint('✅ Scheduled ${custom.length} custom reminders only');
+        if (kDebugMode) {
+          debugPrint('✅ Scheduled ${custom.length} custom + $adhkarCount adhkar reminders only');
+        }
         return;
       }
 
@@ -237,7 +295,8 @@ class NotificationService {
       final times = NotificationPlan.dhikrTimes(
         now: now,
         slots: NotificationPlan.slotsFor(hours),
-        budget: NotificationPlan.dhikrBudget(customCount: custom.length),
+        budget: NotificationPlan.dhikrBudget(
+            customCount: custom.length, adhkarCount: adhkarCount),
         isQuietHour: _isQuietHour,
       );
       for (final scheduledDate in times) {
@@ -294,6 +353,13 @@ class NotificationService {
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'NotificationService._scheduleAll');
     }
+  }
+
+  /// تفعيل/تعطيل تذكير الصباح أو المساء و/أو تغيير وقته ثم إعادة الجدولة.
+  Future<void> setAdhkarReminder(AdhkarSlot slot,
+      {bool? enabled, int? minutes}) async {
+    await AdhkarRemindersStore.save(slot, enabled: enabled, minutes: minutes);
+    await _scheduleAll();
   }
 
   /// إعادة جدولة (يُستدعى عند تغيير الإعدادات).
@@ -384,7 +450,8 @@ class NotificationPlan {
     return t;
   }
 
-  /// عدد إشعارات الأذكار المتاح بعد حجز التذكير اليومي وتذكيرات المستخدم.
-  static int dhikrBudget({required int customCount}) =>
-      NotificationService.maxPending - 1 - customCount;
+  /// عدد إشعارات الأذكار المتاح بعد حجز التذكير اليومي وتذكيرات المستخدم
+  /// وتذكيري أذكار الصباح والمساء.
+  static int dhikrBudget({required int customCount, int adhkarCount = 0}) =>
+      NotificationService.maxPending - 1 - customCount - adhkarCount;
 }

@@ -82,6 +82,19 @@ Future<void> main() async {
     ReviewService.instance.markSessionStart();
 
     runApp(RuqyahApp(themeProvider: themeProvider));
+
+    // الضغط على إشعار (أذكار الصباح/المساء) يفتح الصفحة المناسبة مباشرة.
+    void openFromPayload(String payload) {
+      final route = AppRoutes.fromNotificationPayload(payload);
+      if (route != null) AppRouter.router.go(route);
+    }
+
+    NotificationService.instance.onOpenPayload = openFromPayload;
+    final launchPayload = NotificationService.instance.initialPayload;
+    if (launchPayload != null) {
+      NotificationService.instance.initialPayload = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) => openFromPayload(launchPayload));
+    }
   });
 }
 

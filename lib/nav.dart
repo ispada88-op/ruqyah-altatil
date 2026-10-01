@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:roqia_altatil/data/adhkar_data.dart';
 import 'package:roqia_altatil/pages/home_page.dart';
 import 'package:roqia_altatil/pages/written_roqia_page.dart';
 import 'package:roqia_altatil/pages/audio_roqia_page.dart';
@@ -86,7 +87,13 @@ class AppRouter {
             name: 'adhkar',
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
-              child: const AdhkarPage(),
+              child: AdhkarPage(
+                initial: switch (state.uri.queryParameters['time']) {
+                  'morning' => AdhkarTime.morning,
+                  'evening' => AdhkarTime.evening,
+                  _ => null,
+                },
+              ),
               transitionsBuilder: _fadeSlideTransition,
             ),
           ),
@@ -226,6 +233,17 @@ class AppRoutes {
   static const Set<String> ruqyahTypeIds = {'sihr', 'ayn', 'hamm'};
 
   static String ruqyahType(String id) => '$ruqyahTypes/$id';
+
+  /// مسار أذكار الصباح أو المساء مباشرة (يُستعمل عند الضغط على الإشعار).
+  static String adhkarAt(AdhkarTime t) => '$adhkar?time=${t.name}';
+
+  /// المسار الذي يُفتح عند الضغط على إشعار بحمولة [payload]، أو null إن لم
+  /// تكن حمولة معروفة (إشعارات الأذكار الدورية بلا حمولة فتفتح الرئيسية).
+  static String? fromNotificationPayload(String? payload) => switch (payload) {
+        'adhkar:morning' => adhkarAt(AdhkarTime.morning),
+        'adhkar:evening' => adhkarAt(AdhkarTime.evening),
+        _ => null,
+      };
 
   static String mushafSurah(int surah, {int? ayah, bool resume = false}) {
     final q = <String>[

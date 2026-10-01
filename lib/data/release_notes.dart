@@ -28,7 +28,10 @@ const Map<String, ReleaseEntry> kReleaseNotes = {
         Icons.auto_stories_rounded,
         'المصحف الشريف كاملاً للتلاوة: فهرس السور والأجزاء ومتابعة آخر قراءة'
       ),
-      (Icons.alarm_add_outlined, 'تذكيراتك الخاصة: اكتب الذكر واختر وقته'),
+      (
+        Icons.alarm_add_outlined,
+        'تذكير أذكار الصباح والمساء بوقتك المحلي (يفتح الأذكار بالضغط عليه)، وتذكيراتك الخاصة'
+      ),
       (
         Icons.event_available_rounded,
         'متابعة أيام الرقية: سجّل قراءتك اليومية وتابع استمرارك'

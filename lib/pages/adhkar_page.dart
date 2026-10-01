@@ -24,6 +24,14 @@ class _AdhkarPageState extends State<AdhkarPage> {
       widget.initial ?? AdhkarPage.defaultFor(DateTime.now());
 
   @override
+  void didUpdateWidget(AdhkarPage old) {
+    super.didUpdateWidget(old);
+    // ضغط إشعار الصباح/المساء والصفحة مفتوحة: انتقل للوقت المطلوب.
+    final next = widget.initial;
+    if (next != null && next != old.initial) _time = next;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final morning = _time == AdhkarTime.morning;

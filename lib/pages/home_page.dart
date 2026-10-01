@@ -10,6 +10,7 @@ import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/share_service.dart';
 import 'package:roqia_altatil/theme.dart';
+import 'package:roqia_altatil/widgets/adhkar_reminders_card.dart';
 import 'package:roqia_altatil/widgets/notifications_settings_card.dart';
 import 'package:roqia_altatil/widgets/quran_text.dart';
 
@@ -96,7 +97,7 @@ class HomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'رقية التعطيل والسحر — الشيخ فهد القرني',
+                        'رقية التعطيل والسحر',
                         style: AppTextStyles.body(
                           color: isDark
                               ? AppColors.textOnDarkSecondary
@@ -265,6 +266,13 @@ class HomePage extends StatelessWidget {
                     context.go(AppRoutes.tracker);
                   },
                 ).animate().fadeIn(delay: 380.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
+
+                const SizedBox(height: AppSpacing.lg),
+
+                const AdhkarRemindersCard()
+                    .animate()
+                    .fadeIn(delay: 390.ms, duration: 600.ms)
+                    .slideX(begin: -0.1, end: 0),
 
                 const SizedBox(height: AppSpacing.lg),
 
@@ -507,10 +515,6 @@ class _DisclaimerCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          _line(Icons.menu_book_rounded,
-              'الرقية الشرعية في هذا التطبيق منقولة عن الشيخ فهد القرني.',
-              teal, textColor),
-          const SizedBox(height: AppSpacing.sm),
           _line(Icons.volunteer_activism_rounded,
               'تطبيق خيري بالكامل — بدون أي إعلانات، ولا يجمع بياناتك.',
               teal, textColor),
