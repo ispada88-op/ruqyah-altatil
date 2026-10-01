@@ -26,7 +26,7 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
     _OnboardingItem(
       icon: '🕊',
       title: AppIdentity.name,
-      highlight: AppIdentity.taTilAttribution,
+      highlight: '${AppIdentity.taTil}\n${AppIdentity.taTilOwner}',
       description: 'رقية صوتية ومكتوبة وأذكار يومية\nتطبيق خيري بدون إعلانات',
       gradient: [Color(0xFF004D4D), Color(0xFF008B8B)],
     ),
