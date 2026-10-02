@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:roqia_altatil/theme.dart';
@@ -280,21 +281,34 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
 
               const SizedBox(height: AppSpacing.xl),
 
-              // Title
+              // العنوان: رقية التعطيل (للشيخ فهد القرني) — والصوت بصوت القارئ.
               Text(
-                'رقية التعطيل والسحر',
+                'الرقية الصوتية',
+                style: AppTextStyles.caption(color: AppColors.accentGold)
+                    .copyWith(fontWeight: FontWeight.w700),
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                AppIdentity.taTil,
                 style: AppTextStyles.header(
                   color: isDark ? AppColors.textOnDark : AppColors.primaryTeal,
-                ),
+                ).copyWith(fontWeight: FontWeight.w800, fontSize: 28),
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                AppIdentity.taTilOwner,
+                style: AppTextStyles.subheader(
+                  color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
+                ).copyWith(fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: AppSpacing.sm),
 
-              // Sheikh name
+              // القارئ
               Text(
-                selectedReciter.name,
-                style: AppTextStyles.subheader(
+                'بصوت ${selectedReciter.name}',
+                style: AppTextStyles.body(
                   color: isDark
                       ? AppColors.textOnDarkSecondary
                       : AppColors.textSecondary,
@@ -426,8 +440,9 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      runSpacing: 4,
                       children: [0.5, 0.75, 1.0, 1.25, 1.5].map((speed) {
                         final isSelected = _playbackSpeed == speed;
                         return Padding(

@@ -37,28 +37,30 @@ class _MainShellState extends State<MainShell> {
         context.go(AppRoutes.home);
         break;
       case 1:
-        context.go(AppRoutes.audioRoqia);
+        context.go(AppRoutes.mushaf);
         break;
       case 2:
-        context.go(AppRoutes.writtenRoqia);
+        context.go(AppRoutes.audioRoqia);
         break;
       case 3:
-        context.go(AppRoutes.dhikr);
+        context.go(AppRoutes.writtenRoqia);
         break;
       case 4:
-        context.go(AppRoutes.feedback);
+        context.go(AppRoutes.dhikr);
         break;
     }
   }
 
   void _updateIndex(BuildContext context) {
-    final currentPath = GoRouterState.of(context).uri.toString();
-    final newIndex = switch (currentPath) {
+    final path = GoRouterState.of(context).uri.path;
+    final newIndex = switch (path) {
       AppRoutes.home => 0,
-      AppRoutes.audioRoqia => 1,
-      AppRoutes.writtenRoqia => 2,
-      AppRoutes.dhikr => 3,
-      AppRoutes.feedback => 4,
+      AppRoutes.audioRoqia => 2,
+      AppRoutes.writtenRoqia => 3,
+      AppRoutes.dhikr => 4,
+      _ when path == AppRoutes.mushaf ||
+          path.startsWith('${AppRoutes.mushaf}/') =>
+        1,
       _ => 0,
     };
     if (_currentIndex != newIndex) {
@@ -134,15 +136,16 @@ class _MainShellState extends State<MainShell> {
               onTap: _onNavItemTapped,
               type: BottomNavigationBarType.fixed,
               items: const [
-                BottomNavigationBarItem(icon: Icon(Icons.home), label: 'الرئيسية'),
                 BottomNavigationBarItem(
-                    icon: Icon(Icons.headphones), label: 'الرقية الصوتية'),
+                    icon: Icon(Icons.home_rounded), label: 'الرئيسية'),
                 BottomNavigationBarItem(
-                    icon: Icon(Icons.menu_book), label: 'الرقية المكتوبة'),
+                    icon: Icon(Icons.auto_stories_rounded), label: 'المصحف'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.headphones_rounded), label: 'رقية التعطيل'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.text_snippet_outlined), label: 'المكتوبة'),
                 BottomNavigationBarItem(
                     icon: Icon(Icons.circle_outlined), label: 'الأذكار'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.chat_bubble_outline), label: 'اقتراحات'),
               ],
             ),
           ),

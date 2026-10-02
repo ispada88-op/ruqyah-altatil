@@ -3,10 +3,13 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/data/quran_quotes.dart';
 import 'package:roqia_altatil/data/verified_quran.dart' show basmalaUthmani;
 import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/nav.dart';
+import 'package:roqia_altatil/pages/mushaf_page_reader.dart' show kLastPageKey;
+import 'package:roqia_altatil/utils/arabic_format.dart';
 import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/share_service.dart';
 import 'package:roqia_altatil/theme.dart';
@@ -40,11 +43,19 @@ class HomePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const SizedBox(height: AppSpacing.md),
+
+                // ١) المصحف وحده أولاً.
+                const _MushafHero()
+                    .animate()
+                    .fadeIn(delay: 100.ms, duration: 500.ms)
+                    .slideY(begin: 0.1, end: 0),
+
                 const SizedBox(height: AppSpacing.lg),
 
-                // Welcome Section
+                // نسبة رقية التعطيل (مطلوبة بخط عريض واضح)
                 Container(
-                  padding: AppSpacing.paddingXl,
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: isDark
@@ -62,32 +73,6 @@ class HomePage extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isDark
-                                ? [AppColors.darkTeal, AppColors.accentGold]
-                                : [AppColors.primaryTeal, AppColors.accentGold],
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: (isDark ? AppColors.darkTeal : AppColors.primaryTeal)
-                                  .withValues(alpha: 0.3),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.spa,
-                          size: 40,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
                       QuranText(
                         basmalaUthmani,
                         style: AppTextStyles.mushaf(
@@ -118,161 +103,88 @@ class HomePage extends StatelessWidget {
 
                 const SizedBox(height: AppSpacing.xl),
 
-                Text(
-                  'الأقسام الرئيسية',
-                  style: AppTextStyles.subheader(
-                    color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-
-                _FeatureCard(
-                  title: 'الرقية الشرعية الصوتية',
-                  subtitle: 'استمع إلى الرقية بأصوات مشايخ مختارين',
-                  icon: Icons.headphones_rounded,
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [AppColors.darkTeal, AppColors.primaryTealDark]
-                        : [AppColors.primaryTeal, AppColors.primaryTealLight],
-                  ),
-                  onTap: () {
-                    Haptic.light();
-                    context.go(AppRoutes.audioRoqia);
-                  },
-                ).animate().fadeIn(delay: 100.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
-
-                const SizedBox(height: AppSpacing.md),
-
-                _FeatureCard(
-                  title: 'الرقية الشرعية المكتوبة',
-                  subtitle: 'اقرأ آيات الرقية بخط واضح وجميل',
-                  icon: Icons.menu_book_rounded,
-                  gradient: const LinearGradient(
-                    colors: [AppColors.accentGold, AppColors.accentGoldLight],
-                  ),
-                  onTap: () {
-                    Haptic.light();
-                    context.go(AppRoutes.writtenRoqia);
-                  },
-                ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
+                // ٢) ثم الباقي في مجموعات قصيرة وواضحة.
+                _MenuGroup(
+                  title: 'الرقية',
+                  rows: [
+                    _MenuRow(
+                      title: 'رقية التعطيل — صوتية',
+                      subtitle: '${AppIdentity.taTilOwner} • بأصوات مشايخ مختارين',
+                      icon: Icons.headphones_rounded,
+                      route: AppRoutes.audioRoqia,
+                    ),
+                    _MenuRow(
+                      title: 'رقية التعطيل — مكتوبة',
+                      subtitle: '${AppIdentity.taTilOwner} • اقرأها بخط واضح',
+                      icon: Icons.text_snippet_outlined,
+                      route: AppRoutes.writtenRoqia,
+                    ),
+                    _MenuRow(
+                      title: 'الرقية المستقلة',
+                      subtitle: 'الفاتحة والمعوذات وآيات وأدعية بعدد التكرار',
+                      iconWidget: _RuqyahBadge(),
+                      route: AppRoutes.generalRuqyah,
+                    ),
+                    _MenuRow(
+                      title: 'رقى حسب الحالة',
+                      subtitle: 'السحر • العين والحسد • الهم والحزن',
+                      icon: Icons.healing_rounded,
+                      route: AppRoutes.ruqyahTypes,
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 180.ms, duration: 500.ms),
 
                 const SizedBox(height: AppSpacing.md),
 
-                _FeatureCard(
-                  title: 'الرقية المستقلة',
-                  subtitle: 'رقية مستقلة: الفاتحة والمعوذات وآيات وأدعية — بعدد التكرار',
-                  iconWidget: const _RuqyahBadge(),
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [AppColors.darkTeal, AppColors.darkSecondary]
-                        : [AppColors.primaryTealLight, AppColors.accentGold],
-                  ),
-                  onTap: () {
-                    Haptic.light();
-                    context.go(AppRoutes.generalRuqyah);
-                  },
-                ).animate().fadeIn(delay: 250.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
+                _MenuGroup(
+                  title: 'الأذكار',
+                  rows: [
+                    _MenuRow(
+                      title: 'أذكار الصباح والمساء',
+                      subtitle: 'كاملة من حصن المسلم بعدّاد لكل ذكر',
+                      icon: Icons.wb_twilight_rounded,
+                      route: AppRoutes.adhkar,
+                    ),
+                    _MenuRow(
+                      title: 'الأذكار اليومية',
+                      subtitle: 'عداد التسبيح والأدعية المأثورة',
+                      icon: Icons.favorite_rounded,
+                      route: AppRoutes.dhikr,
+                    ),
+                    _MenuRow(
+                      title: 'أذكار التحصين',
+                      subtitle: 'أذكار مأثورة بمصادرها للحفظ بإذن الله',
+                      icon: Icons.shield_moon_outlined,
+                      route: AppRoutes.tahseen,
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 240.ms, duration: 500.ms),
 
                 const SizedBox(height: AppSpacing.md),
 
-                _FeatureCard(
-                  title: 'رقى حسب الحالة',
-                  subtitle: 'السحر • العين والحسد • الهم والحزن — من القرآن والسنة',
-                  icon: Icons.healing_rounded,
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [AppColors.primaryTealDark, AppColors.darkSecondary]
-                        : [AppColors.primaryTeal, AppColors.accentGoldDark],
-                  ),
-                  onTap: () {
-                    Haptic.light();
-                    context.go(AppRoutes.ruqyahTypes);
-                  },
-                ).animate().fadeIn(delay: 270.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
-
-                const SizedBox(height: AppSpacing.md),
-
-                _FeatureCard(
-                  title: 'أذكار الصباح والمساء',
-                  subtitle: 'كاملة من حصن المسلم بعدّاد لكل ذكر',
-                  icon: Icons.wb_twilight_rounded,
-                  gradient: const LinearGradient(
-                    colors: [AppColors.accentGoldDark, AppColors.accentGold],
-                  ),
-                  onTap: () {
-                    Haptic.light();
-                    context.go(AppRoutes.adhkar);
-                  },
-                ).animate().fadeIn(delay: 280.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
-
-                const SizedBox(height: AppSpacing.md),
-
-                _FeatureCard(
-                  title: 'المصحف الشريف',
-                  subtitle: 'القرآن كاملاً للتلاوة — السور والأجزاء ومتابعة آخر قراءة',
-                  icon: Icons.auto_stories_rounded,
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [AppColors.darkTeal, AppColors.primaryTealDark]
-                        : [AppColors.primaryTealDark, AppColors.primaryTeal],
-                  ),
-                  onTap: () {
-                    Haptic.light();
-                    context.go(AppRoutes.mushaf);
-                  },
-                ).animate().fadeIn(delay: 290.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
-
-                const SizedBox(height: AppSpacing.md),
-
-                _FeatureCard(
-                  title: 'الأذكار اليومية',
-                  subtitle: 'عداد التسبيح والأدعية المأثورة',
-                  icon: Icons.favorite_rounded,
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [AppColors.darkSecondary, AppColors.darkSurface]
-                        : [AppColors.backgroundCreamDark, AppColors.backgroundCream],
-                  ),
-                  textColor: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
-                  onTap: () {
-                    Haptic.light();
-                    context.go(AppRoutes.dhikr);
-                  },
-                ).animate().fadeIn(delay: 300.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
-
-                const SizedBox(height: AppSpacing.md),
-
-                _FeatureCard(
-                  title: 'أذكار التحصين',
-                  subtitle: 'أذكار مأثورة بمصادرها وأدعية للحفظ بإذن الله',
-                  icon: Icons.shield_moon_outlined,
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [AppColors.primaryTealDark, AppColors.darkTeal]
-                        : [AppColors.primaryTealLight, AppColors.primaryTeal],
-                  ),
-                  onTap: () {
-                    Haptic.light();
-                    context.go(AppRoutes.tahseen);
-                  },
-                ).animate().fadeIn(delay: 350.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
-
-                const SizedBox(height: AppSpacing.md),
-
-                _FeatureCard(
-                  title: 'متابعة أيام الرقية',
-                  subtitle: 'سجّل قراءتك اليومية وتابع استمرارك نحو هدفك',
-                  icon: Icons.event_available_rounded,
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [AppColors.darkSecondary, AppColors.darkTeal]
-                        : [AppColors.primaryTealLight, AppColors.primaryTeal],
-                  ),
-                  onTap: () {
-                    Haptic.light();
-                    context.go(AppRoutes.tracker);
-                  },
-                ).animate().fadeIn(delay: 380.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
+                _MenuGroup(
+                  title: 'المزيد',
+                  rows: [
+                    _MenuRow(
+                      title: 'متابعة أيام الرقية',
+                      subtitle: 'سجّل قراءتك اليومية وتابع استمرارك',
+                      icon: Icons.event_available_rounded,
+                      route: AppRoutes.tracker,
+                    ),
+                    _MenuRow(
+                      title: 'اقتراحات',
+                      subtitle: 'اكتب لنا رأيك أو ملاحظتك',
+                      icon: Icons.chat_bubble_outline_rounded,
+                      route: AppRoutes.feedback,
+                    ),
+                    const _MenuRow(
+                      title: 'شارك التطبيق',
+                      subtitle: 'الدال على الخير كفاعله',
+                      icon: Icons.share_rounded,
+                      shareApp: true,
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
 
                 const SizedBox(height: AppSpacing.lg),
 
@@ -294,21 +206,6 @@ class HomePage extends StatelessWidget {
                     .animate()
                     .fadeIn(delay: 450.ms, duration: 600.ms)
                     .slideX(begin: -0.1, end: 0),
-
-                const SizedBox(height: AppSpacing.lg),
-
-                _FeatureCard(
-                  title: 'شارك التطبيق',
-                  subtitle: 'الدال على الخير كفاعله — شاركه مع من تحب',
-                  icon: Icons.share_rounded,
-                  gradient: const LinearGradient(
-                    colors: [AppColors.accentGold, AppColors.accentGoldLight],
-                  ),
-                  onTap: () {
-                    Haptic.light();
-                    ShareService.shareApp(context);
-                  },
-                ).animate().fadeIn(delay: 500.ms, duration: 600.ms).slideX(begin: -0.1, end: 0),
 
                 const SizedBox(height: AppSpacing.xxl),
 
@@ -356,111 +253,285 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class _FeatureCard extends StatefulWidget {
-  final String title;
-  final String subtitle;
-  final IconData? icon;
-  final Widget? iconWidget; // بديل مخصص للأيقونة (مثل شارة «رقية»)
-  final Gradient gradient;
-  final Color? textColor;
-  final VoidCallback onTap;
-
-  const _FeatureCard({
-    required this.title,
-    required this.subtitle,
-    this.icon,
-    this.iconWidget,
-    required this.gradient,
-    this.textColor,
-    required this.onTap,
-  }) : assert(icon != null || iconWidget != null,
-            'يجب تمرير icon أو iconWidget');
+/// المصحف: بطاقة كبيرة وحدها أعلى الرئيسية، مع «تابع القراءة» إن وُجدت صفحة محفوظة.
+class _MushafHero extends StatefulWidget {
+  const _MushafHero();
 
   @override
-  State<_FeatureCard> createState() => _FeatureCardState();
+  State<_MushafHero> createState() => _MushafHeroState();
 }
 
-class _FeatureCardState extends State<_FeatureCard> {
-  bool _isPressed = false;
+class _MushafHeroState extends State<_MushafHero> {
+  int? _lastPage;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final p = prefs.getInt(kLastPageKey);
+      if (mounted && p != null && p >= 1 && p <= 604) setState(() => _lastPage = p);
+    } catch (_) {/* اختياري */}
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return AnimatedScale(
-      duration: const Duration(milliseconds: 120),
-      scale: _isPressed ? 0.97 : 1.0,
-      curve: Curves.easeOut,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
         decoration: BoxDecoration(
-          gradient: widget.gradient,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: isDark
+                ? [AppColors.primaryTealDark, AppColors.darkSecondary]
+                : [AppColors.primaryTealDark, AppColors.primaryTeal],
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.6)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.15),
-              blurRadius: _isPressed ? 8 : 12,
-              offset: Offset(0, _isPressed ? 2 : 6),
+              color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.18),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: widget.onTap,
-            onHighlightChanged: (v) => setState(() => _isPressed = v),
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            child: Padding(
-              padding: AppSpacing.paddingLg,
-              child: Row(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          onTap: () {
+            Haptic.light();
+            context.go(AppRoutes.mushaf);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentGold.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(AppRadius.md + 6),
+                      ),
+                      child: const Icon(Icons.auto_stories_rounded,
+                          size: 30, color: AppColors.accentGoldLight),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'المصحف الشريف',
+                            style: AppTextStyles.header(color: Colors.white)
+                                .copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'مصحف المدينة النبوية — ٦٠٤ صفحة',
+                            style: AppTextStyles.caption(
+                                color: Colors.white.withValues(alpha: 0.85)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.accentGold,
+                          foregroundColor: AppColors.textPrimary,
+                          minimumSize: const Size.fromHeight(46),
+                        ),
+                        onPressed: () {
+                          Haptic.light();
+                          context.go(_lastPage == null
+                              ? AppRoutes.mushaf
+                              : AppRoutes.mushafPage(_lastPage!));
+                        },
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            _lastPage == null
+                                ? 'ابدأ القراءة'
+                                : 'تابع من صفحة ${arDigits(_lastPage!)}',
+                            maxLines: 1,
+                            style: AppTextStyles.button(color: AppColors.textPrimary),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_lastPage != null) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: BorderSide(color: Colors.white.withValues(alpha: 0.6)),
+                          minimumSize: const Size(0, 46),
+                        ),
+                        onPressed: () {
+                          Haptic.light();
+                          context.go(AppRoutes.mushaf);
+                        },
+                        child: Text('الفهرس',
+                            style: AppTextStyles.button(color: Colors.white)),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// مجموعة صفوف بعنوان صغير: حاوية واحدة بخلفية موحّدة وفواصل رفيعة.
+class _MenuGroup extends StatelessWidget {
+  final String title;
+  final List<_MenuRow> rows;
+  const _MenuGroup({required this.title, required this.rows});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final teal = isDark ? AppColors.darkTeal : AppColors.primaryTeal;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, AppSpacing.sm),
+          child: Text(
+            title,
+            style: AppTextStyles.subheader(color: teal)
+                .copyWith(fontWeight: FontWeight.w800),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSecondary : Colors.white,
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.07),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var i = 0; i < rows.length; i++) ...[
+                if (i > 0)
+                  Divider(
+                    height: 1,
+                    indent: 72,
+                    color: (isDark ? Colors.white : Colors.black)
+                        .withValues(alpha: 0.08),
+                  ),
+                rows[i],
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// صف واحد: أيقونة، عنوان، سطر وصف، سهم. يفتح [route] أو يشارك التطبيق.
+class _MenuRow extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData? icon;
+  final Widget? iconWidget;
+  final String? route;
+  final bool shareApp;
+
+  const _MenuRow({
+    required this.title,
+    required this.subtitle,
+    this.icon,
+    this.iconWidget,
+    this.route,
+    this.shareApp = false,
+  }) : assert(icon != null || iconWidget != null);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final teal = isDark ? AppColors.darkTeal : AppColors.primaryTeal;
+    return InkWell(
+      onTap: () {
+        Haptic.light();
+        if (shareApp) {
+          ShareService.shareApp(context);
+        } else if (route != null) {
+          context.go(route!);
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: teal.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.md + 2),
+              ),
+              child: iconWidget != null
+                  ? Center(
+                      child: DefaultTextStyle.merge(
+                        style: TextStyle(color: teal),
+                        child: iconWidget!,
+                      ),
+                    )
+                  : Icon(icon, size: 24, color: teal),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: (widget.textColor ?? Colors.white)
-                          .withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: widget.iconWidget ??
-                        Icon(
-                          widget.icon,
-                          size: 32,
-                          color: widget.textColor ?? Colors.white,
-                        ),
+                  Text(
+                    title,
+                    style: AppTextStyles.body(
+                      color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
+                    ).copyWith(fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.title,
-                          style: AppTextStyles.subheader(
-                            color: widget.textColor ?? Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          widget.subtitle,
-                          style: AppTextStyles.caption(
-                            color: (widget.textColor ?? Colors.white)
-                                .withValues(alpha: 0.9),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppTextStyles.caption(
+                      color: isDark
+                          ? AppColors.textOnDarkSecondary
+                          : AppColors.textSecondary,
                     ),
-                  ),
-                  Icon(
-                    Icons.arrow_back_ios_new,
-                    color: (widget.textColor ?? Colors.white)
-                        .withValues(alpha: 0.7),
-                    size: 18,
                   ),
                 ],
               ),
             ),
-          ),
+            Icon(Icons.arrow_back_ios_new,
+                size: 16, color: teal.withValues(alpha: 0.7)),
+          ],
         ),
       ),
     );
@@ -473,13 +544,14 @@ class _RuqyahBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = DefaultTextStyle.of(context).style.color;
     return Center(
       child: Text(
         'رقية',
         style: GoogleFonts.amiri(
-          fontSize: 22,
+          fontSize: 17,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: color,
           height: 1.1,
         ),
       ),

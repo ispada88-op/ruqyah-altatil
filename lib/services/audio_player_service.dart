@@ -5,6 +5,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config/app_identity.dart';
 import 'error_reporter.dart';
 
 /// نموذج القارئ.
@@ -138,7 +139,7 @@ class AudioPlayerService extends ChangeNotifier {
           tag: MediaItem(
             id: reciter.id,
             album: 'الرقية الشاملة',
-            title: 'الرقية الشرعية',
+            title: AppIdentity.taTil,
             artist: reciter.name,
           ),
         ),
