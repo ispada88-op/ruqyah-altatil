@@ -10,7 +10,17 @@ class AdhkarReminderConfig {
   final bool enabled;
   final int minutes;
 
-  const AdhkarReminderConfig({required this.enabled, required this.minutes});
+  /// «حسب الصلاة»: الصباح بعد الفجر والمساء بعد العصر بـ [offsetMin] دقيقة
+  /// (يتطلب موقعاً محدداً في صفحة المواقيت). وإلا فالوقت الثابت [minutes].
+  final bool byPrayer;
+  final int offsetMin;
+
+  const AdhkarReminderConfig({
+    required this.enabled,
+    required this.minutes,
+    this.byPrayer = false,
+    this.offsetMin = AdhkarRemindersStore.defaultOffsetMinutes,
+  });
 
   int get hour => minutes ~/ 60;
   int get minute => minutes % 60;
@@ -32,6 +42,16 @@ class AdhkarRemindersStore {
       ? defaultMorningMinutes
       : defaultEveningMinutes;
 
+  /// الإزاحة الافتراضية بعد صلاة الفجر/العصر: بعد أذكار ما بعد الصلاة وقبل
+  /// الشروق/الغروب (يُقصّ في الجدولة عند الحاجة).
+  static const int defaultOffsetMinutes = 40;
+  static const List<int> offsetChoices = [20, 40, 60];
+
+  static int sanitizeOffset(Object? v) =>
+      v is int && v >= 0 && v <= 180 ? v : defaultOffsetMinutes;
+
+  static String _byKey(AdhkarSlot s) => 'adhkar_reminder_${s.name}_by_prayer';
+  static String _offKey(AdhkarSlot s) => 'adhkar_reminder_${s.name}_offset';
   static String _onKey(AdhkarSlot s) => 'adhkar_reminder_${s.name}_on';
   static String _minKey(AdhkarSlot s) => 'adhkar_reminder_${s.name}_min';
 
@@ -46,6 +66,8 @@ class AdhkarRemindersStore {
       return AdhkarReminderConfig(
         enabled: on == true,
         minutes: sanitizeMinutes(prefs.get(_minKey(s)), defaultMinutes(s)),
+        byPrayer: prefs.get(_byKey(s)) == true,
+        offsetMin: sanitizeOffset(prefs.get(_offKey(s))),
       );
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'AdhkarRemindersStore.load');
@@ -53,9 +75,14 @@ class AdhkarRemindersStore {
     }
   }
 
-  static Future<void> save(AdhkarSlot s, {bool? enabled, int? minutes}) async {
+  static Future<void> save(AdhkarSlot s,
+      {bool? enabled, int? minutes, bool? byPrayer, int? offsetMin}) async {
     final prefs = await SharedPreferences.getInstance();
     if (enabled != null) await prefs.setBool(_onKey(s), enabled);
+    if (byPrayer != null) await prefs.setBool(_byKey(s), byPrayer);
+    if (offsetMin != null) {
+      await prefs.setInt(_offKey(s), sanitizeOffset(offsetMin));
+    }
     if (minutes != null) {
       await prefs.setInt(_minKey(s), sanitizeMinutes(minutes, defaultMinutes(s)));
     }

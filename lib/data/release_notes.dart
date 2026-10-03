@@ -18,6 +18,36 @@ class ReleaseEntry {
 }
 
 const Map<String, ReleaseEntry> kReleaseNotes = {
+  '1.1.0': ReleaseEntry(
+    highlights: [
+      (
+        Icons.access_time_rounded,
+        'مواقيت الصلاة واتجاه القبلة بحساب داخل جهازك بلا إنترنت، مع تنبيهات اختيارية للأذان'
+      ),
+      (
+        Icons.menu_book_outlined,
+        'أذكار بعد الصلاة من حصن المسلم، وتذكير بها بعد كل فريضة، وتذكير سورة الكهف يوم الجمعة'
+      ),
+      (
+        Icons.flag_outlined,
+        'ختمة القرآن بورد يومي يتقدّم بقراءتك، وعلامات مرجعية في المصحف'
+      ),
+      (
+        Icons.manage_search_rounded,
+        'البحث في آيات القرآن، وبطاقة آية جميلة تشاركها كصورة'
+      ),
+      (
+        Icons.checklist_rounded,
+        'برنامج المداومة: مهام يومية قصيرة نحو ٧ أو ٢١ أو ٤٠ يوماً متتالية'
+      ),
+      (
+        Icons.rule_rounded,
+        'صفحة «ضوابط الرقية الشرعية»: الشروط والأدلة وما يُحذَّر منه'
+      ),
+    ],
+    ctaLabel: 'افتح مواقيت الصلاة',
+    ctaRoute: AppRoutes.prayerTimes,
+  ),
   '1.0.6': ReleaseEntry(
     highlights: [
       (

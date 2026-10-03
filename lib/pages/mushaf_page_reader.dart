@@ -4,8 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:roqia_altatil/data/quran_index.dart';
 import 'package:roqia_altatil/nav.dart';
+import 'package:roqia_altatil/services/bookmarks_service.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/services/haptic.dart';
+import 'package:roqia_altatil/services/khatma_service.dart';
 import 'package:roqia_altatil/services/mushaf_pages_repository.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
@@ -37,6 +39,8 @@ class _MushafPageReaderPageState extends State<MushafPageReaderPage> {
     _controller = PageController(initialPage: _current - 1);
     _layout = MushafPagesRepository.instance.layout();
     _save(_current);
+    BookmarksService.instance.ensureLoaded();
+    KhatmaService.instance.onPageViewed(_current);
   }
 
   @override
@@ -58,6 +62,7 @@ class _MushafPageReaderPageState extends State<MushafPageReaderPage> {
     final p = index + 1;
     setState(() => _current = p);
     _save(p);
+    KhatmaService.instance.onPageViewed(p);
     // حمّل خط الصفحتين المجاورتين مسبقاً ليكون السحب سلساً.
     for (final n in [p - 1, p + 1]) {
       if (n >= 1 && n <= MushafLayout.pageCount) {
@@ -130,6 +135,22 @@ class _MushafPageReaderPageState extends State<MushafPageReaderPage> {
                       style: AppTextStyles.caption(color: gold),
                     ),
                     const Spacer(),
+                    ListenableBuilder(
+                      listenable: BookmarksService.instance,
+                      builder: (context, _) {
+                        final marked = BookmarksService.instance.contains(_current);
+                        return IconButton(
+                          tooltip: marked ? 'إزالة العلامة' : 'حفظ علامة في هذه الصفحة',
+                          isSelected: marked,
+                          icon: Icon(Icons.bookmark_border_rounded, color: teal),
+                          selectedIcon: Icon(Icons.bookmark_rounded, color: gold),
+                          onPressed: () {
+                            Haptic.select();
+                            BookmarksService.instance.toggle(_current);
+                          },
+                        );
+                      },
+                    ),
                     IconButton(
                       tooltip: 'الانتقال إلى صفحة',
                       icon: Icon(Icons.pin_outlined, color: teal),

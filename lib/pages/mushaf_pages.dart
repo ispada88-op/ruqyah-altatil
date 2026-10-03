@@ -10,6 +10,7 @@ import 'package:roqia_altatil/services/mushaf_pages_repository.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/quran_repository.dart';
+import 'package:roqia_altatil/services/share_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
 import 'package:roqia_altatil/widgets/quran_text.dart';
@@ -113,6 +114,29 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
                 label: Text('متابعة القراءة — صفحة ${arDigits(_lastPage!)}'),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final (icon, label, route) in [
+                  (Icons.manage_search_rounded, 'بحث في الآيات', AppRoutes.quranSearch),
+                  (Icons.bookmarks_outlined, 'العلامات', AppRoutes.bookmarks),
+                  (Icons.flag_outlined, 'الختمة', AppRoutes.khatma),
+                ])
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(foregroundColor: teal),
+                    onPressed: () {
+                      Haptic.light();
+                      context.push(route);
+                    },
+                    icon: Icon(icon, size: 20),
+                    label: Text(label),
+                  ),
+              ],
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -289,6 +313,60 @@ class _MushafReaderPageState extends State<MushafReaderPage> {
     } catch (_) {/* optional */}
   }
 
+  /// ضغطة مطوّلة على آية: نسخ، مشاركة نصاً، أو بطاقة صورة.
+  Future<void> _verseActions(int ayah, String body) async {
+    Haptic.medium();
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text('${_info.name} · الآية ${arDigits(ayah)}',
+                    style: AppTextStyles.subheader()),
+              ),
+              ListTile(
+                minTileHeight: 56,
+                leading: const Icon(Icons.copy_rounded),
+                title: const Text('نسخ الآية'),
+                onTap: () => Navigator.pop(ctx, 'copy'),
+              ),
+              ListTile(
+                minTileHeight: 56,
+                leading: const Icon(Icons.share_outlined),
+                title: const Text('مشاركة نصاً'),
+                onTap: () => Navigator.pop(ctx, 'share'),
+              ),
+              ListTile(
+                minTileHeight: 56,
+                leading: const Icon(Icons.image_outlined),
+                title: const Text('بطاقة صورة'),
+                onTap: () => Navigator.pop(ctx, 'card'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    final text = quranForSharing(withAyahNumber(body, ayah));
+    switch (action) {
+      case 'copy':
+        await ShareService.copyVerse(
+            context: context, verseText: text, surahName: _info.name, verseNumber: ayah);
+      case 'share':
+        await ShareService.shareVerse(context,
+            verseText: text, surahName: _info.name, verseNumber: ayah);
+      case 'card':
+        context.push(AppRoutes.verseCardFor(_info.number, ayah));
+    }
+  }
+
   void _goTo(int surah) {
     Haptic.select();
     context.pushReplacement(AppRoutes.mushafSurah(surah));
@@ -369,14 +447,18 @@ class _MushafReaderPageState extends State<MushafReaderPage> {
                           Padding(
                             key: widget.ayah == i + 1 ? _targetKey : null,
                             padding: const EdgeInsets.only(bottom: 10),
-                            child: QuranText(
-                              withAyahNumber(verses[i], i + 1),
-                              textAlign: TextAlign.justify,
-                              textDirection: TextDirection.rtl,
-                              style: AppTextStyles.mushaf(
-                                fontSize: _fontSize,
-                                height: 2.1,
-                                color: textColor,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onLongPress: () => _verseActions(i + 1, verses[i]),
+                              child: QuranText(
+                                withAyahNumber(verses[i], i + 1),
+                                textAlign: TextAlign.justify,
+                                textDirection: TextDirection.rtl,
+                                style: AppTextStyles.mushaf(
+                                  fontSize: _fontSize,
+                                  height: 2.1,
+                                  color: textColor,
+                                ),
                               ),
                             ),
                           ),

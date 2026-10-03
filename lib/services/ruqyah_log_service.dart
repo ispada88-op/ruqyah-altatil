@@ -10,6 +10,9 @@ class RuqyahLogService extends ChangeNotifier {
   RuqyahLogService._();
   static final RuqyahLogService instance = RuqyahLogService._();
 
+  @visibleForTesting
+  RuqyahLogService.test();
+
   static const _kDaysKey = 'ruqyah_log_days';
   static const _kGoalKey = 'ruqyah_goal_days';
   static const List<int> goals = [7, 21, 40];

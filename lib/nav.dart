@@ -9,11 +9,20 @@ import 'package:roqia_altatil/pages/feedback_page.dart';
 import 'package:roqia_altatil/pages/general_ruqyah_page.dart';
 import 'package:roqia_altatil/pages/tahseen_page.dart';
 import 'package:roqia_altatil/pages/adhkar_page.dart';
+import 'package:roqia_altatil/pages/after_prayer_page.dart';
+import 'package:roqia_altatil/pages/bookmarks_page.dart';
+import 'package:roqia_altatil/pages/khatma_page.dart';
+import 'package:roqia_altatil/pages/quran_search_page.dart';
 import 'package:roqia_altatil/pages/mushaf_page_reader.dart';
 import 'package:roqia_altatil/pages/mushaf_pages.dart';
+import 'package:roqia_altatil/pages/prayer_times_page.dart';
+import 'package:roqia_altatil/pages/program_page.dart';
+import 'package:roqia_altatil/pages/qibla_page.dart';
 import 'package:roqia_altatil/pages/reminders_page.dart';
+import 'package:roqia_altatil/pages/ruqyah_rules_page.dart';
 import 'package:roqia_altatil/pages/ruqyah_tracker_page.dart';
 import 'package:roqia_altatil/pages/ruqyah_types_page.dart';
+import 'package:roqia_altatil/pages/verse_card_page.dart';
 import 'package:roqia_altatil/widgets/main_shell.dart';
 
 /// GoRouter configuration with bottom navigation shell
@@ -116,6 +125,90 @@ class AppRouter {
                 ),
               ),
             ],
+          ),
+          GoRoute(
+            path: AppRoutes.prayerTimes,
+            name: 'prayer-times',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const PrayerTimesPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.afterPrayer,
+            name: 'after-prayer',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const AfterPrayerPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.khatma,
+            name: 'khatma',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const KhatmaPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.bookmarks,
+            name: 'bookmarks',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const BookmarksPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.quranSearch,
+            name: 'quran-search',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const QuranSearchPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.ruqyahRules,
+            name: 'ruqyah-rules',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const RuqyahRulesPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.program,
+            name: 'program',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const ProgramPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.verseCard,
+            name: 'verse-card',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: VerseCardPage(
+                surah: int.tryParse(state.uri.queryParameters['s'] ?? '') ?? 0,
+                ayah: int.tryParse(state.uri.queryParameters['a'] ?? '') ?? 0,
+              ),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.qibla,
+            name: 'qibla',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const QiblaPage(),
+              transitionsBuilder: _fadeSlideTransition,
+            ),
           ),
           GoRoute(
             path: AppRoutes.mushaf,
@@ -234,10 +327,26 @@ class AppRoutes {
   static const String mushaf = '/mushaf';
   static const String tracker = '/ruqyah-tracker';
   static const String reminders = '/reminders';
+  static const String prayerTimes = '/prayer-times';
+  static const String qibla = '/qibla';
+  static const String afterPrayer = '/after-prayer';
+  static const String khatma = '/khatma';
+  static const String bookmarks = '/bookmarks';
+  static const String quranSearch = '/quran-search';
+  static const String ruqyahRules = '/ruqyah-rules';
+  static const String program = '/program';
+  static const String verseCard = '/verse-card';
+
+  /// بطاقة الآية ([surah]:[ayah]) للمشاركة كصورة.
+  static String verseCardFor(int surah, int ayah) => '$verseCard?s=$surah&a=$ayah';
+
+  /// صفحة بداية سورة الكهف في مصحف المدينة (يثبّتها اختبار mushaf_pages_test).
+  static const int kKahfPage = 293;
 
   static const Set<String> all = {
     home, writtenRoqia, audioRoqia, dhikr, tahseen, generalRuqyah, feedback,
-    adhkar, ruqyahTypes, mushaf, tracker, reminders,
+    adhkar, ruqyahTypes, mushaf, tracker, reminders, prayerTimes, qibla, afterPrayer,
+    khatma, bookmarks, quranSearch, ruqyahRules, program, verseCard,
   };
 
   /// أنواع «رقى حسب الحالة» المعروفة للمسار /ruqyah-types/:type.
@@ -253,6 +362,10 @@ class AppRoutes {
   static String? fromNotificationPayload(String? payload) => switch (payload) {
         'adhkar:morning' => adhkarAt(AdhkarTime.morning),
         'adhkar:evening' => adhkarAt(AdhkarTime.evening),
+        'prayer' => prayerTimes,
+        'afterprayer' => afterPrayer,
+        'kahf' => mushafPage(kKahfPage),
+        'sleep' => tahseen,
         _ => null,
       };
 

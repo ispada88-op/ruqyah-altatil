@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:roqia_altatil/services/adhkar_reminders.dart';
 import 'package:roqia_altatil/services/notification_service.dart';
+import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/theme.dart';
+import 'package:roqia_altatil/utils/arabic_format.dart';
 
 /// بطاقة تذكير أذكار الصباح والمساء: مفتاح ووقت لكل منهما، بتوقيت الجهاز.
 class AdhkarRemindersCard extends StatefulWidget {
@@ -63,6 +65,18 @@ class _AdhkarRemindersCardState extends State<AdhkarRemindersCard> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _setByPrayer(AdhkarSlot slot, bool v) async {
+    await NotificationService.instance.setAdhkarReminder(slot, byPrayer: v);
+    final cfg = await AdhkarRemindersStore.load(slot);
+    if (mounted) setState(() => _cfg[slot] = cfg);
+  }
+
+  Future<void> _setOffset(AdhkarSlot slot, int m) async {
+    await NotificationService.instance.setAdhkarReminder(slot, offsetMin: m);
+    final cfg = await AdhkarRemindersStore.load(slot);
+    if (mounted) setState(() => _cfg[slot] = cfg);
   }
 
   Future<void> _pickTime(AdhkarSlot slot) async {
@@ -141,27 +155,75 @@ class _AdhkarRemindersCardState extends State<AdhkarRemindersCard> {
     final time = MaterialLocalizations.of(context).formatTimeOfDay(
       TimeOfDay(hour: cfg.hour, minute: cfg.minute),
     );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      child: Row(
-        children: [
-          Icon(morning ? Icons.wb_sunny_outlined : Icons.nights_stay_outlined,
-              size: 20, color: accent),
-          const SizedBox(width: AppSpacing.sm),
-          Text(morning ? 'أذكار الصباح' : 'أذكار المساء',
+    final hasLoc = PrayerTimesService.instance.hasLocation;
+    final byPrayer = cfg.byPrayer && hasLoc;
+    final anchor = morning ? 'الفجر' : 'العصر';
+    final fixedRow = Row(
+      children: [
+        Icon(morning ? Icons.wb_sunny_outlined : Icons.nights_stay_outlined,
+            size: 20, color: accent),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(morning ? 'أذكار الصباح' : 'أذكار المساء',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTextStyles.body(color: textColor)
                   .copyWith(fontWeight: FontWeight.w500)),
-          const Spacer(),
+        ),
+        if (!byPrayer)
           TextButton(
             onPressed: () => _pickTime(slot),
             style: TextButton.styleFrom(foregroundColor: accent),
             child: Text(time),
           ),
-          Switch.adaptive(
-            value: cfg.enabled,
-            onChanged: _busy ? null : (v) => _toggle(slot, v),
-            activeThumbColor: accent,
+        Switch.adaptive(
+          value: cfg.enabled,
+          onChanged: _busy ? null : (v) => _toggle(slot, v),
+          activeThumbColor: accent,
+        ),
+      ],
+    );
+    if (!hasLoc) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        child: fixedRow,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          fixedRow,
+          Row(
+            children: [
+              Expanded(
+                child: Text('حسب الصلاة (بعد $anchor)',
+                    style: AppTextStyles.caption(color: subColor)),
+              ),
+              Switch.adaptive(
+                value: byPrayer,
+                onChanged: (_busy || !cfg.enabled)
+                    ? null
+                    : (v) => _setByPrayer(slot, v),
+                activeThumbColor: accent,
+              ),
+            ],
           ),
+          if (byPrayer)
+            Wrap(
+              spacing: AppSpacing.sm,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('بعد الصلاة بـ', style: AppTextStyles.caption(color: subColor)),
+                for (final m in AdhkarRemindersStore.offsetChoices)
+                  ChoiceChip(
+                    label: Text('${arDigits(m)} د'),
+                    selected: cfg.offsetMin == m,
+                    onSelected: _busy ? null : (_) => _setOffset(slot, m),
+                  ),
+              ],
+            ),
         ],
       ),
     );

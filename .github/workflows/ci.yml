@@ -28,6 +28,8 @@ jobs:
       - run: flutter pub get
       - name: Quran text verification (every verse vs the KFGQPC Madinah asset)
         run: python3 scripts/verify_quran.py
+      - name: After-prayer adhkar are generated from the Hisn al-Muslim reference
+        run: python3 scripts/gen_after_prayer.py --check
       - name: Analyze (errors + warnings fail the build)
         run: flutter analyze --no-fatal-infos
       - name: Tests (Quran integrity, release notes, notifications, routing…)

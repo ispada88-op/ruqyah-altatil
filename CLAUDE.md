@@ -35,8 +35,12 @@ lib/
 │   ├── verified_quran.dart          # ⚠️  نص قرآني عثماني موثّق - لا تعدّله يدوياً
 │   ├── written_roqia_data.dart      # يجمع البيانات لصفحة الرقية المكتوبة
 │   └── quran_data.dart              # مولَّد: سور الأنفال/الدخان/الصافات/الحاقة (لا تعدّله)
-├── pages/                            # Home, AudioRoqia, WrittenRoqia, GeneralRuqyah, Tahseen, Dhikr, Feedback, Onboarding
-├── services/                         # audio, notifications, share, review, whats_new, error_reporter, haptic
+├── pages/                            # Home, AudioRoqia, WrittenRoqia, GeneralRuqyah, Tahseen, Dhikr, Feedback, Onboarding,
+│                                     # PrayerTimes, Qibla, AfterPrayer, Khatma, Bookmarks, QuranSearch, Program, RuqyahRules, VerseCard
+├── services/                         # audio, notifications, share, review, whats_new, error_reporter, haptic,
+│                                     # prayer_times (adhan), prayer_reminders + prayer_notification_plan, khatma, bookmarks,
+│                                     # quran_search, program
+├── utils/                            # arabic_format, arabic_search (تطبيع البحث)، hijri (جدولي، لرمضان فقط)
 └── widgets/
 ```
 
@@ -142,6 +146,27 @@ CI/CD:
 - أذكار حتى 59 إشعاراً قادماً (سقف iOS = 64) + تذكير رقية يومي **متكرر** (8م) لا ينتهي.
 - يحترم وقت النوم (10م-7ص). يعاد الجدولة عند كل فتح (`rescheduleIfEnabled` في `main`).
 - منطق المواعيد في `NotificationPlan` (دوال نقية) ومغطّى بـ `test/notification_plan_test.dart`.
+
+## المواقيت والتنبيهات المرتبطة بالصلاة (1.1.0)
+
+- المواقيت حساب فلكي داخل الجهاز بحزمة `adhan` (بلا إنترنت)؛ الموقع من GPS (دقة منخفضة، يُقرَّب إحداثياه لخانتين)
+  أو من قائمة مدن `lib/data/prayer_cities.dart` بلا إذن. أم القرى: العشاء = المغرب + ٩٠ د (١٢٠ في رمضان — رمضان
+  بتحويل هجري جدولي قد يخطئ يوماً عند حدّي الشهر). الإعدادات في `PrayerTimesService` (shared_preferences فقط).
+- تنبيهات الصلاة وأذكار «حسب الصلاة» تُجدول **أسبوعاً قادماً غير متكرر** (`planPrayerNotifications`، دالة نقية
+  مغطّاة في `test/prayer_plan_test.dart`) وتُجدَّد عند كل فتح. سقف iOS ٦٤ إشعاراً: ميزانية الصلاة تُحجز قبل الأذكار
+  الدورية (`NotificationPlan.dhikrBudget(prayerCount:)`)؛ إن لم يُفتح التطبيق لأيام تنقطع. أندرويد ١٥٠.
+- معرّفات الإشعارات: دورية 0..58، رقية 500، مخصصة 600+، أذكار الصباح/المساء 700/701، **الصلاة ١٠٠٠ + يوم×١٦ + خانة**.
+- الموقع يعني تحديث **سياسة الخصوصية** و«خصوصية التطبيق» في App Store/Play (الموقع يبقى على الجهاز).
+
+## الختمة والعلامات والبحث
+
+- `KhatmaService`: الصفحة التالية تتقدّم فقط حين تُفتح بالتسلسل (القفز لا يُحتسب)؛ ورد اليوم = المتبقي ÷ الأيام
+  المتبقية ويُثبَّت أول كل يوم. `BookmarksService`: علامات على صفحات المصحف.
+- البحث: `assets/quran/quran-simple-tanzil.txt` نسخة **حرفية** من `scripts/ref/quran-simple.txt` (تنزيل؛ الشروط
+  تمنع التعديل وتشترط الإسناد) — بصمتها مثبّتة في `test/quran_tools_test.dart`. التطبيع في `utils/arabic_search.dart`
+  والعرض بنص المجمع (حفص).
+- `scripts/gen_after_prayer.py [--check]` يولّد `lib/data/after_prayer_data.dart` من `scripts/ref/hisn_after_prayer.json`
+  (حصن المسلم)؛ لا تعدّل الملف المولَّد يدوياً.
 
 ## Deep links
 

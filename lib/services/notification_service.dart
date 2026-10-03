@@ -10,6 +10,9 @@ import 'package:timezone/timezone.dart' as tz;
 import 'adhkar_reminders.dart';
 import 'custom_reminders.dart';
 import 'error_reporter.dart';
+import 'prayer_notification_plan.dart';
+import 'prayer_reminders.dart';
+import 'prayer_times_service.dart';
 import '../data/hisn_almuslim_dhikr.dart';
 
 /// خدمة الإشعارات: ترسل ذكراً قصيراً كل 3 أو 5 ساعات (يختاره المستخدم)
@@ -43,6 +46,14 @@ class NotificationService {
   static const int _adhkarIdBase = 700;
   static const _adhkarChannelId = 'adhkar_reminder_channel';
   static const _adhkarChannelName = 'تذكير أذكار الصباح والمساء';
+  static const _prayerChannelId = 'prayer_reminder_channel';
+  static const _prayerChannelName = 'تنبيهات الصلاة والأذكار';
+
+  /// سقف تنبيهات الصلاة على أندرويد (لا يوجد سقف ٦٤ كما في iOS).
+  static const int androidPrayerBudget = 150;
+
+  /// أقل عدد أذكار دورية نبقيه إن كانت مفعّلة ولو ازدحمت تنبيهات الصلاة (iOS).
+  static const int minDhikrWhenEnabled = 10;
 
   /// يُستدعى عند الضغط على إشعار والتطبيق يعمل (يربطه main بالتنقل).
   void Function(String payload)? onOpenPayload;
@@ -259,9 +270,15 @@ class NotificationService {
         iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
       );
       var adhkarCount = 0;
+      final prayerSvc = PrayerTimesService.instance;
+      final adhkarCfg = {
+        for (final slot in AdhkarSlot.values) slot: await AdhkarRemindersStore.load(slot),
+      };
       for (final slot in AdhkarSlot.values) {
-        final cfg = await AdhkarRemindersStore.load(slot);
+        final cfg = adhkarCfg[slot]!;
         if (!cfg.enabled) continue;
+        // «حسب الصلاة» (مع موقع محدد) ⇒ يُجدوَل ضمن خطة المواقيت لا هنا.
+        if (cfg.byPrayer && prayerSvc.hasLocation) continue;
         final (aTitle, aBody) = AdhkarRemindersStore.message(slot);
         await _plugin.zonedSchedule(
           _adhkarIdBase + slot.index,
@@ -279,9 +296,58 @@ class NotificationService {
         adhkarCount++;
       }
 
-      if (!await isEnabled) {
+      // ─── التنبيهات المرتبطة بالصلاة: صباح بعد الفجر، مساء بعد العصر، أذان،
+      // أذكار بعد الصلاة، الكهف، النوم. أيام قادمة ضمن ميزانية المنصة. ───
+      final periodicOn = await isEnabled;
+      final isIos = defaultTargetPlatform == TargetPlatform.iOS;
+      var prayerCount = 0;
+      if (prayerSvc.hasLocation) {
+        final prayerCfg = await PrayerRemindersStore.load();
+        final reserve = periodicOn ? minDhikrWhenEnabled : 0;
+        final budget = isIos
+            ? maxPending - 1 - custom.length - adhkarCount - reserve
+            : androidPrayerBudget;
+        final planned = planPrayerNotifications(
+          now: now,
+          dayFor: (d) => prayerSvc.dayFor(d)!,
+          cfg: prayerCfg,
+          morning: adhkarCfg[AdhkarSlot.morning]!,
+          evening: adhkarCfg[AdhkarSlot.evening]!,
+          budget: budget,
+        );
+        const prayerDetails = NotificationDetails(
+          android: AndroidNotificationDetails(
+            _prayerChannelId,
+            _prayerChannelName,
+            channelDescription: 'تنبيهات أوقات الصلاة وأذكار الصباح والمساء وما بعد الصلاة',
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+            styleInformation: BigTextStyleInformation(''),
+          ),
+          iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
+        );
+        for (final n in planned) {
+          await _plugin.zonedSchedule(
+            n.id,
+            n.title,
+            n.body,
+            n.when,
+            prayerDetails,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            payload: n.payload,
+            // ignore: deprecated_member_use
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
+          );
+        }
+        prayerCount = planned.length;
+      }
+
+      if (!periodicOn) {
         if (kDebugMode) {
-          debugPrint('✅ Scheduled ${custom.length} custom + $adhkarCount adhkar reminders only');
+          debugPrint('✅ Scheduled ${custom.length} custom + $adhkarCount adhkar + '
+              '$prayerCount prayer-linked reminders only');
         }
         return;
       }
@@ -296,7 +362,9 @@ class NotificationService {
         now: now,
         slots: NotificationPlan.slotsFor(hours),
         budget: NotificationPlan.dhikrBudget(
-            customCount: custom.length, adhkarCount: adhkarCount),
+            customCount: custom.length,
+            adhkarCount: adhkarCount,
+            prayerCount: isIos ? prayerCount : 0),
         isQuietHour: _isQuietHour,
       );
       for (final scheduledDate in times) {
@@ -357,8 +425,18 @@ class NotificationService {
 
   /// تفعيل/تعطيل تذكير الصباح أو المساء و/أو تغيير وقته ثم إعادة الجدولة.
   Future<void> setAdhkarReminder(AdhkarSlot slot,
-      {bool? enabled, int? minutes}) async {
-    await AdhkarRemindersStore.save(slot, enabled: enabled, minutes: minutes);
+      {bool? enabled, int? minutes, bool? byPrayer, int? offsetMin}) async {
+    await AdhkarRemindersStore.save(slot,
+        enabled: enabled,
+        minutes: minutes,
+        byPrayer: byPrayer,
+        offsetMin: offsetMin);
+    await _scheduleAll();
+  }
+
+  /// حفظ إعدادات تنبيهات الصلاة ثم إعادة الجدولة.
+  Future<void> setPrayerReminders(PrayerReminderConfig cfg) async {
+    await PrayerRemindersStore.save(cfg);
     await _scheduleAll();
   }
 
@@ -452,6 +530,8 @@ class NotificationPlan {
 
   /// عدد إشعارات الأذكار المتاح بعد حجز التذكير اليومي وتذكيرات المستخدم
   /// وتذكيري أذكار الصباح والمساء.
-  static int dhikrBudget({required int customCount, int adhkarCount = 0}) =>
-      NotificationService.maxPending - 1 - customCount - adhkarCount;
+  static int dhikrBudget(
+          {required int customCount, int adhkarCount = 0, int prayerCount = 0}) =>
+      (NotificationService.maxPending - 1 - customCount - adhkarCount - prayerCount)
+          .clamp(0, NotificationService.maxPending);
 }

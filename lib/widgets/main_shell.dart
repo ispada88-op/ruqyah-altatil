@@ -61,6 +61,7 @@ class _MainShellState extends State<MainShell> {
       _ when path == AppRoutes.mushaf ||
           path.startsWith('${AppRoutes.mushaf}/') =>
         1,
+      AppRoutes.khatma || AppRoutes.bookmarks || AppRoutes.quranSearch => 1,
       _ => 0,
     };
     if (_currentIndex != newIndex) {

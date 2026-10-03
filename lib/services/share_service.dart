@@ -55,6 +55,34 @@ class ShareService {
     }
   }
 
+  /// مشاركة صورة PNG (بطاقة آية) مع نص مرافق.
+  static Future<void> shareImage(
+    BuildContext context, {
+    required Uint8List bytes,
+    required String fileName,
+    String? text,
+  }) async {
+    final origin = _sharePosition(context);
+    try {
+      await Share.shareXFiles(
+        [XFile.fromData(bytes, name: fileName, mimeType: 'image/png')],
+        fileNameOverrides: [fileName],
+        text: text,
+        sharePositionOrigin: origin,
+      );
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'ShareService.shareImage');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذّرت مشاركة الصورة — حاول مرة أخرى'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   /// مشاركة التطبيق نفسه (الدال على الخير كفاعله).
   static Future<void> shareApp(BuildContext context) async {
     const text = 'تطبيق الرقية الشاملة (ومعه رقية التعطيل) 🕊\n'

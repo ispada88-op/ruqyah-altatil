@@ -1,7 +1,7 @@
 name: roqia_altatil
 description: "Roqia Al-Ta'til is a serene Islamic app designed to bring tranquility to your daily life, offering written and audio Roqia, along with a daily Dhikr counter in a beautifully minimalist interface."
 publish_to: "none"
-version: 1.0.6+13
+version: 1.1.0+14
 
 environment:
   sdk: ^3.6.0
@@ -32,6 +32,9 @@ dependencies:
   in_app_review: ^2.0.10       # in-app rating
   package_info_plus: ^9.0.1    # version for whats-new sheet
   flutter_timezone: ^5.1.0
+  adhan: ^2.0.0+1              # prayer times (offline astronomy)
+  geolocator: ^14.0.2          # optional GPS for prayer times / qibla
+  flutter_compass: ^0.8.1      # qibla compass
 
 
 dev_dependencies:

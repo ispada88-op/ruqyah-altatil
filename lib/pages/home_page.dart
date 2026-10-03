@@ -17,6 +17,7 @@ import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/widgets/adhkar_reminders_card.dart';
 import 'package:roqia_altatil/widgets/notifications_settings_card.dart';
 import 'package:roqia_altatil/widgets/quran_text.dart';
+import 'package:roqia_altatil/widgets/today_strip.dart';
 
 /// Enhanced home page with professional design.
 class HomePage extends StatelessWidget {
@@ -50,6 +51,12 @@ class HomePage extends StatelessWidget {
                     .animate()
                     .fadeIn(delay: 100.ms, duration: 500.ms)
                     .slideY(begin: 0.1, end: 0),
+
+                const SizedBox(height: AppSpacing.md),
+
+                const TodayStrip()
+                    .animate()
+                    .fadeIn(delay: 150.ms, duration: 500.ms),
 
                 const SizedBox(height: AppSpacing.lg),
 
@@ -131,8 +138,52 @@ class HomePage extends StatelessWidget {
                       icon: Icons.healing_rounded,
                       route: AppRoutes.ruqyahTypes,
                     ),
+                    _MenuRow(
+                      title: 'ضوابط الرقية الشرعية',
+                      subtitle: 'الشروط والأدلة وما يُحذَّر منه',
+                      icon: Icons.rule_rounded,
+                      route: AppRoutes.ruqyahRules,
+                    ),
                   ],
                 ).animate().fadeIn(delay: 180.ms, duration: 500.ms),
+
+                const SizedBox(height: AppSpacing.md),
+
+                _MenuGroup(
+                  title: 'الصلاة والقرآن',
+                  rows: [
+                    _MenuRow(
+                      title: 'مواقيت الصلاة',
+                      subtitle: 'بدون إنترنت • تنبيهات اختيارية',
+                      icon: Icons.access_time_rounded,
+                      route: AppRoutes.prayerTimes,
+                    ),
+                    _MenuRow(
+                      title: 'اتجاه القبلة',
+                      subtitle: 'بوصلة تدلّك على الكعبة',
+                      icon: Icons.explore_outlined,
+                      route: AppRoutes.qibla,
+                    ),
+                    _MenuRow(
+                      title: 'ختمة القرآن',
+                      subtitle: 'ورد يومي بمدة تختارها',
+                      icon: Icons.flag_outlined,
+                      route: AppRoutes.khatma,
+                    ),
+                    _MenuRow(
+                      title: 'البحث في القرآن',
+                      subtitle: 'ابحث بكلمة من الآية',
+                      icon: Icons.manage_search_rounded,
+                      route: AppRoutes.quranSearch,
+                    ),
+                    _MenuRow(
+                      title: 'العلامات المرجعية',
+                      subtitle: 'صفحات حفظتها في المصحف',
+                      icon: Icons.bookmarks_outlined,
+                      route: AppRoutes.bookmarks,
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 210.ms, duration: 500.ms),
 
                 const SizedBox(height: AppSpacing.md),
 
@@ -144,6 +195,12 @@ class HomePage extends StatelessWidget {
                       subtitle: 'كاملة من حصن المسلم بعدّاد لكل ذكر',
                       icon: Icons.wb_twilight_rounded,
                       route: AppRoutes.adhkar,
+                    ),
+                    _MenuRow(
+                      title: 'أذكار بعد الصلاة',
+                      subtitle: 'بعد السلام من كل فريضة من حصن المسلم',
+                      icon: Icons.menu_book_outlined,
+                      route: AppRoutes.afterPrayer,
                     ),
                     _MenuRow(
                       title: 'الأذكار اليومية',
@@ -165,6 +222,12 @@ class HomePage extends StatelessWidget {
                 _MenuGroup(
                   title: 'المزيد',
                   rows: [
+                    _MenuRow(
+                      title: 'برنامج المداومة',
+                      subtitle: 'مهام يومية نحو ٧ أو ٢١ أو ٤٠ يوماً',
+                      icon: Icons.checklist_rounded,
+                      route: AppRoutes.program,
+                    ),
                     _MenuRow(
                       title: 'متابعة أيام الرقية',
                       subtitle: 'سجّل قراءتك اليومية وتابع استمرارك',

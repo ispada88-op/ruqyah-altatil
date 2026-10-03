@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/services/audio_player_service.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/services/notification_service.dart';
+import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/services/review_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/config/app_identity.dart';
@@ -76,6 +77,7 @@ Future<void> main() async {
     await themeProvider.load();
 
     // ═══ Services ═══
+    await PrayerTimesService.instance.load(); // قبل الجدولة: التنبيهات تعتمد عليه
     await NotificationService.instance.initialize();
     await AudioPlayerService.instance.initialize();
 

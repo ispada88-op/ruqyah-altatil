@@ -51,6 +51,8 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>نستخدم موقعك التقريبي لحساب مواقيت الصلاة واتجاه القبلة داخل جهازك فقط، ولا يُرسل لأي جهة.</string>
 		<key>ITSAppUsesNonExemptEncryption</key>
 		<false/>
 		<key>LSApplicationQueriesSchemes</key>
