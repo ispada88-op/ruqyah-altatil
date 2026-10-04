@@ -8,7 +8,8 @@ import 'package:roqia_altatil/services/khatma_service.dart';
 import 'package:roqia_altatil/utils/arabic_search.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _tanzilSha = 'f3268cfe7a400add8a8024fe23368d66f58cc8baa51773fe94e323625c66344b';
+const _tanzilSha =
+    'f3268cfe7a400add8a8024fe23368d66f58cc8baa51773fe94e323625c66344b';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +18,8 @@ void main() {
   group('search asset', () {
     final file = File('assets/quran/quran-simple-tanzil.txt');
 
-    test('is the verbatim, pinned Tanzil simple text (terms say: no changes)', () {
+    test('is the verbatim, pinned Tanzil simple text (terms say: no changes)',
+        () {
       expect(sha256.convert(file.readAsBytesSync()).toString(), _tanzilSha);
       expect(file.readAsBytesSync(),
           File('scripts/ref/quran-simple.txt').readAsBytesSync());
@@ -50,12 +52,13 @@ void main() {
   });
 
   group('searchVerses', () {
-    final verses =
-        parseTanzilForSearch(File('assets/quran/quran-simple-tanzil.txt').readAsStringSync());
+    final verses = parseTanzilForSearch(
+        File('assets/quran/quran-simple-tanzil.txt').readAsStringSync());
     List<(int, int)> ids(SearchResults r) =>
         [for (final v in r.shown) (v.surah, v.ayah)];
 
-    test('Ayat al-Kursi opening is found in 2:255 and 3:2, in Mushaf order', () {
+    test('Ayat al-Kursi opening is found in 2:255 and 3:2, in Mushaf order',
+        () {
       final r = searchVerses(verses, 'لا اله الا هو الحي القيوم');
       expect(ids(r).first, (2, 255));
       expect(ids(r), contains((3, 2)));
@@ -87,6 +90,22 @@ void main() {
       expect(searchVerses(verses, '   ').total, 0);
       expect(searchVerses(verses, 'zzz').total, 0);
     });
+
+    test('everyday spellings still find the verse (loose fallback)', () {
+      bool has(String q, int surah, int ayah) =>
+          searchVerses(verses, q, limit: 6236)
+              .shown
+              .any((v) => v.surah == surah && v.ayah == ayah);
+      expect(has('آية الكرسي', 2, 255), isTrue);
+      expect(has('داود', 2, 251), isTrue); // «داوود» في الرسم القرآني
+      expect(has('السموات', 2, 255), isTrue); // «السماوات»
+      expect(has('الرحمان', 1, 3), isTrue); // «الرحمن»
+      // المتسامح لا يطابق وسط الكلمة: «داود» ليست «حدود».
+      final d = searchVerses(verses, 'داود', limit: 6236);
+      expect(d.total, lessThan(40));
+      expect(searchVerses(verses, 'آية').total, 0); // كلمة وقف وحدها
+      expect(searchVerses(verses, 'سورة آية').total, 0);
+    });
   });
 
   group('khatma plan', () {
@@ -94,7 +113,8 @@ void main() {
       expect(khatmaDailyTarget(nextPage: 1, daysLeft: 30), 21);
       expect(khatmaDailyTarget(nextPage: 1, daysLeft: 7), 87);
       expect(khatmaDailyTarget(nextPage: 1, daysLeft: 1), 604);
-      expect(khatmaDailyTarget(nextPage: 1, daysLeft: 0), 604); // never divides by 0
+      expect(khatmaDailyTarget(nextPage: 1, daysLeft: 0),
+          604); // never divides by 0
       expect(khatmaDailyTarget(nextPage: 604, daysLeft: 5), 1);
       expect(khatmaDailyTarget(nextPage: 605, daysLeft: 5), 0);
       // تأخّر: بعد ١٥ يوماً من ٣٠ وصفحة ٥٠ فقط → الورد يكبر.
@@ -102,25 +122,30 @@ void main() {
     });
 
     test('calendar days ignore time of day and DST', () {
-      expect(calendarDaysBetween(DateTime(2026, 3, 28, 23, 59), DateTime(2026, 3, 30, 0, 1)), 2);
+      expect(
+          calendarDaysBetween(
+              DateTime(2026, 3, 28, 23, 59), DateTime(2026, 3, 30, 0, 1)),
+          2);
       expect(khatmaDayKey(DateTime(2026, 1, 5)), '2026-01-05');
     });
   });
 
   group('KhatmaService', () {
-    test('start → today target; sequential pages advance; skipping does not', () async {
+    test('start → today target; sequential pages advance; skipping does not',
+        () async {
       final k = KhatmaService.test();
       await k.start(30, now: DateTime(2026, 10, 3, 9));
       expect(k.active, isTrue);
       expect((k.todayStartPage, k.todayEndPage, k.todayTarget), (1, 21, 21));
-      await k.onPageViewed(5); // قفز
+      await k.onPageViewed(5, now: DateTime(2026, 10, 3, 12)); // قفز
       expect(k.nextPage, 1);
-      await k.onPageViewed(1);
-      await k.onPageViewed(2);
+      await k.onPageViewed(1, now: DateTime(2026, 10, 3, 12));
+      await k.onPageViewed(2, now: DateTime(2026, 10, 3, 12));
       expect(k.nextPage, 3);
       expect(k.todayRead, 2);
       expect(k.todayDone, isFalse);
-      await k.onPageViewed(2); // رجوع لصفحة سبقت
+      await k.onPageViewed(2,
+          now: DateTime(2026, 10, 3, 12)); // رجوع لصفحة سبقت
       expect(k.nextPage, 3);
     });
 
@@ -135,16 +160,17 @@ void main() {
     test('finishing page 604 completes a khatma and deactivates', () async {
       final k = KhatmaService.test();
       await k.start(7, fromPage: 604, now: DateTime(2026, 10, 3));
-      await k.onPageViewed(604);
+      await k.onPageViewed(604, now: DateTime(2026, 10, 3, 12));
       expect(k.active, isFalse);
       expect(k.completedCount, 1);
     });
 
-    test('state survives a reload; a new day recomputes from where you are', () async {
+    test('state survives a reload; a new day recomputes from where you are',
+        () async {
       final a = KhatmaService.test();
       await a.start(30, now: DateTime(2026, 10, 3));
       for (var p = 1; p <= 10; p++) {
-        await a.onPageViewed(p);
+        await a.onPageViewed(p, now: DateTime(2026, 10, 3, 12));
       }
       final b = KhatmaService.test();
       await b.ensureLoaded();
@@ -153,6 +179,36 @@ void main() {
       b.refresh(DateTime(2026, 10, 4, 6));
       expect(b.todayStartPage, 11);
       expect(b.todayTarget, khatmaDailyTarget(nextPage: 11, daysLeft: 29));
+    });
+
+    test('reading across midnight rolls the day first', () async {
+      final k = KhatmaService.test();
+      await k.start(30, now: DateTime(2026, 10, 3, 23));
+      for (var p = 1; p <= 5; p++) {
+        await k.onPageViewed(p, now: DateTime(2026, 10, 3, 23, 50));
+      }
+      // بعد منتصف الليل: أول صفحة تُقرأ تبدأ يوم ٤ أكتوبر من الصفحة ٦.
+      await k.onPageViewed(6, now: DateTime(2026, 10, 4, 0, 5));
+      expect(k.todayStartPage, 6);
+      expect(k.todayRead, 1);
+      expect(k.todayDone, isFalse);
+    });
+
+    test('todayDoneAt ignores a stale day and survives finishing the khatma',
+        () async {
+      final k = KhatmaService.test();
+      await k.start(30, now: DateTime(2026, 10, 3));
+      await k.completeToday(now: DateTime(2026, 10, 3));
+      expect(k.todayDoneAt(DateTime(2026, 10, 3, 20)), isTrue);
+      expect(k.todayDoneAt(DateTime(2026, 10, 4, 0, 1)),
+          isFalse); // لم يُجدَّد بعد
+
+      final f = KhatmaService.test();
+      await f.start(7, fromPage: 604, now: DateTime(2026, 10, 3));
+      await f.onPageViewed(604, now: DateTime(2026, 10, 3, 9));
+      expect(f.active, isFalse);
+      expect(f.todayDoneAt(DateTime(2026, 10, 3, 10)), isTrue);
+      expect(f.todayDoneAt(DateTime(2026, 10, 4, 10)), isFalse);
     });
 
     test('corrupt stored values fall back safely', () async {
@@ -203,7 +259,11 @@ void main() {
   });
 
   test('new routes are canonical', () {
-    for (final r in [AppRoutes.khatma, AppRoutes.bookmarks, AppRoutes.quranSearch]) {
+    for (final r in [
+      AppRoutes.khatma,
+      AppRoutes.bookmarks,
+      AppRoutes.quranSearch
+    ]) {
       expect(AppRoutes.normalize(r), isNull);
     }
     expect(AppRoutes.normalize('/khatma/'), '/khatma');

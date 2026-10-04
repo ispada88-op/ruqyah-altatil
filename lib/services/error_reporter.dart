@@ -170,7 +170,7 @@ class _DefaultFallback extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
-                Icons.warning_amber_rounded,
+                Icons.warning_amber_outlined,
                 size: 64,
                 color: Colors.orange,
               ),

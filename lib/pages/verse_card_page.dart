@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/data/quran_index.dart';
@@ -24,9 +25,12 @@ class VerseCardTheme {
 }
 
 const List<VerseCardTheme> kVerseCardThemes = [
-  VerseCardTheme('زمردي', Color(0xFF006B6B), Color(0xFF004B4B), Colors.white, Color(0xFFE5C158)),
-  VerseCardTheme('عاجي', Color(0xFFFFFEF0), Color(0xFFF5F5DC), Color(0xFF1A1A1A), Color(0xFF7A5F0F)),
-  VerseCardTheme('ليلي', Color(0xFF1A1A2E), Color(0xFF0F0F1E), Color(0xFFFAFAFA), Color(0xFFD4AF37)),
+  VerseCardTheme('زمردي', Color(0xFF006B6B), Color(0xFF004B4B), Colors.white,
+      Color(0xFFE5C158)),
+  VerseCardTheme('عاجي', Color(0xFFFFFEF0), Color(0xFFF5F5DC),
+      Color(0xFF1A1A1A), Color(0xFF7A5F0F)),
+  VerseCardTheme('ليلي', Color(0xFF1A1A2E), Color(0xFF0F0F1E),
+      Color(0xFFFAFAFA), Color(0xFFD4AF37)),
 ];
 
 /// البطاقة نفسها (تُرسم كما تُلتقط صورةً): آية واحدة بنص مجمع الملك فهد دون
@@ -61,29 +65,34 @@ class VerseCard extends StatelessWidget {
             end: Alignment.bottomCenter,
             colors: [theme.from, theme.to],
           ),
-          border: Border.all(color: theme.accent.withValues(alpha: 0.7), width: 2),
+          border:
+              Border.all(color: theme.accent.withValues(alpha: 0.7), width: 2),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.auto_awesome, color: theme.accent, size: 22),
-            const SizedBox(height: 20),
             QuranText(
               verse,
               textAlign: TextAlign.center,
-              style: AppTextStyles.mushaf(fontSize: 27, height: 2.1, color: theme.ink),
+              style: AppTextStyles.mushaf(
+                  fontSize: 27, height: 2.1, color: theme.ink),
             ),
             const SizedBox(height: 20),
-            Container(height: 1, width: 72, color: theme.accent.withValues(alpha: 0.7)),
+            Container(
+                height: 1,
+                width: 72,
+                color: theme.accent.withValues(alpha: 0.7)),
             const SizedBox(height: 12),
             Text(
-              'سورة ${kSurahs[surah - 1].name} · الآية ${arDigits(ayah)}',
-              style: AppTextStyles.body(color: theme.accent).copyWith(fontWeight: FontWeight.w600),
+              'سورة ${kSurahs[surah - 1].name}، الآية ${arDigits(ayah)}',
+              style: AppTextStyles.body(color: theme.accent)
+                  .copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 18),
             Text(
               AppIdentity.name,
-              style: AppTextStyles.caption(color: theme.ink.withValues(alpha: 0.75)),
+              style: AppTextStyles.caption(
+                  color: theme.ink.withValues(alpha: 0.75)),
             ),
           ],
         ),
@@ -133,7 +142,8 @@ class _VerseCardPageState extends State<VerseCardPage> {
     try {
       // اللقطة تُؤخذ بعد اكتمال الرسم (الخط والتدرّج).
       await WidgetsBinding.instance.endOfFrame;
-      final box = _boundary.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      final box = _boundary.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
       if (box == null) return;
       final img = await box.toImage(pixelRatio: 3);
       final data = await img.toByteData(format: ui.ImageByteFormat.png);
@@ -144,7 +154,8 @@ class _VerseCardPageState extends State<VerseCardPage> {
         btnContext,
         bytes: data.buffer.asUint8List(),
         fileName: 'ayah-${widget.surah}-${widget.ayah}.png',
-        text: 'سورة ${kSurahs[widget.surah - 1].name}: ${widget.ayah} — ${AppIdentity.name}',
+        text:
+            'سورة ${kSurahs[widget.surah - 1].name}: ${widget.ayah} — ${AppIdentity.name}',
       );
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'VerseCardPage.share');
@@ -160,7 +171,8 @@ class _VerseCardPageState extends State<VerseCardPage> {
       backgroundColor: c.bg,
       body: Column(
         children: [
-          const SectionBackBar(title: 'بطاقة آية', fallbackRoute: AppRoutes.mushaf),
+          const SectionBackBar(
+              title: 'بطاقة آية', fallbackRoute: AppRoutes.mushaf),
           Expanded(
             child: FutureBuilder<String?>(
               future: _verse,
@@ -171,7 +183,31 @@ class _VerseCardPageState extends State<VerseCardPage> {
                 final verse = snap.data;
                 if (verse == null) {
                   return Center(
-                    child: Text('تعذّر تحميل الآية', style: AppTextStyles.body(color: c.ink)),
+                    child: Padding(
+                      padding: AppSpacing.paddingLg,
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.image_not_supported_outlined,
+                            size: 48, color: c.sub),
+                        const SizedBox(height: AppSpacing.md),
+                        Text('تعذّر تحميل الآية',
+                            style: AppTextStyles.subheader(color: c.ink)),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                            'اختر آية من المصحف أو من نتائج البحث ثم اختر «بطاقة صورة» لتصميمها ومشاركتها.',
+                            style: AppTextStyles.caption(color: c.sub),
+                            textAlign: TextAlign.center),
+                        const SizedBox(height: AppSpacing.md),
+                        FilledButton.icon(
+                          style: c.filled,
+                          icon: const Icon(Icons.auto_stories_outlined),
+                          label: const Text('افتح المصحف'),
+                          onPressed: () {
+                            Haptic.light();
+                            context.go(AppRoutes.mushaf);
+                          },
+                        ),
+                      ]),
+                    ),
                   );
                 }
                 return ListView(
@@ -195,7 +231,8 @@ class _VerseCardPageState extends State<VerseCardPage> {
                         children: [
                           for (var i = 0; i < kVerseCardThemes.length; i++)
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.xs),
                               child: ChoiceChip(
                                 label: Text(kVerseCardThemes[i].label),
                                 selected: _theme == i,
@@ -216,8 +253,9 @@ class _VerseCardPageState extends State<VerseCardPage> {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.ios_share_rounded),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.share_outlined),
                         label: const Text('مشاركة كصورة'),
                         onPressed: _busy ? null : () => _share(btnContext),
                       ),

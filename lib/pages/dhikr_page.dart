@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/theme.dart';
+import 'package:roqia_altatil/utils/arabic_format.dart';
 
 class DhikrPage extends StatefulWidget {
   const DhikrPage({super.key});
@@ -142,21 +143,21 @@ class _DhikrPageState extends State<DhikrPage> {
                         _setTarget(33);
                         Navigator.pop(context);
                       },
-                      child: const Text('33 مرة'),
+                      child: const Text('٣٣ مرة'),
                     ),
                     SimpleDialogOption(
                       onPressed: () {
                         _setTarget(100);
                         Navigator.pop(context);
                       },
-                      child: const Text('100 مرة'),
+                      child: const Text('١٠٠ مرة'),
                     ),
                   ],
                 ),
               );
             },
             tooltip: 'اختر الهدف',
-            child: const Icon(Icons.flag),
+            child: const Icon(Icons.flag_outlined),
           ),
         ],
       ),
@@ -258,7 +259,7 @@ class _DhikrPageState extends State<DhikrPage> {
                     Column(
                       children: [
                         Text(
-                          '$_count',
+                          arDigits(_count),
                           style: TextStyle(
                             color: isDark ? AppColors.accentGold : AppColors.primaryTeal,
                             fontWeight: FontWeight.bold,
@@ -266,7 +267,7 @@ class _DhikrPageState extends State<DhikrPage> {
                           ),
                         ),
                         Text(
-                          'من $_target',
+                          'من ${arDigits(_target)}',
                           style: AppTextStyles.subheader(
                             color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
                           ),
@@ -380,7 +381,7 @@ class _DhikrPageState extends State<DhikrPage> {
                       ),
                       const SizedBox(height: 16),
                       _buildDuaCard(
-                        '(3 مرات)',
+                        '(٣ مرات)',
                         'بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ.',
                         isDark,
                       ),
@@ -404,7 +405,7 @@ class _DhikrPageState extends State<DhikrPage> {
                       ),
                       const SizedBox(height: 12),
                       _buildDuaCard(
-                        '(3 مرات)',
+                        '(٣ مرات)',
                         'أَعُوذُ بِكَلِمَاتِ اللهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ.',
                         isDark,
                       ),
@@ -542,7 +543,7 @@ class _DhikrPageState extends State<DhikrPage> {
               Column(
                 children: [
                   Text(
-                    '$count',
+                    arDigits(count),
                     style: TextStyle(
                       color: isDark ? AppColors.accentGold : AppColors.primaryTeal,
                       fontWeight: FontWeight.bold,
@@ -550,7 +551,7 @@ class _DhikrPageState extends State<DhikrPage> {
                     ),
                   ),
                   Text(
-                    'من $target',
+                    'من ${arDigits(target)}',
                     style: AppTextStyles.body(
                       color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
                     ),

@@ -90,7 +90,7 @@ class MiniPlayer extends StatelessWidget {
                     // زر -10s
                     IconButton(
                       icon: const Icon(Icons.replay_10),
-                      onPressed: () { Haptic.select(); audio.skipBackward(); },
+                      onPressed: () { Haptic.select(); audio.skipBackward(const Duration(seconds: 10)); },
                       iconSize: 22,
                       color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
                       visualDensity: VisualDensity.compact,
@@ -108,10 +108,10 @@ class MiniPlayer extends StatelessWidget {
                       iconSize: 36,
                       color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
                     ),
-                    // زر +30s
+                    // زر +10s (مثل المشغّل الكامل)
                     IconButton(
-                      icon: const Icon(Icons.forward_30),
-                      onPressed: () { Haptic.select(); audio.skipForward(); },
+                      icon: const Icon(Icons.forward_10),
+                      onPressed: () { Haptic.select(); audio.skipForward(const Duration(seconds: 10)); },
                       iconSize: 22,
                       color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
                       visualDensity: VisualDensity.compact,

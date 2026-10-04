@@ -51,8 +51,18 @@ String formatTimeAr(int hour, int minute) {
 String daysLabel(int n) {
   if (n == 1) return 'يوم واحد';
   if (n == 2) return 'يومان';
-  if (n >= 3 && n <= 10) return '${arDigits(n)} أيام';
+  final m = n % 100;
+  if (m >= 3 && m <= 10) return '${arDigits(n)} أيام';
   return '${arDigits(n)} يوماً';
+}
+
+/// عدد الصفحات بصيغته العربية الصحيحة: «صفحة واحدة» «صفحتان» «٥ صفحات» «١٢ صفحة».
+String pagesLabel(int n) {
+  if (n == 1) return 'صفحة واحدة';
+  if (n == 2) return 'صفحتان';
+  final m = n % 100;
+  if (m >= 3 && m <= 10) return '${arDigits(n)} صفحات';
+  return '${arDigits(n)} صفحة';
 }
 
 /// عدد الآيات بصيغته العربية الصحيحة: «آية واحدة» «آيتان» «٧ آيات» «١١٠ آيات» «٢٨٦ آية».

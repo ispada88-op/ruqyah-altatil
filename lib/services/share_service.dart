@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'error_reporter.dart';
+import '../config/app_identity.dart';
 import '../config/app_links.dart';
 
 /// خدمة مشاركة ونسخ النصوص القرآنية.
@@ -85,7 +86,7 @@ class ShareService {
 
   /// مشاركة التطبيق نفسه (الدال على الخير كفاعله).
   static Future<void> shareApp(BuildContext context) async {
-    const text = 'تطبيق الرقية الشاملة (ومعه رقية التعطيل) 🕊\n'
+    const text = 'تطبيق الرقية الشاملة (ومعه ${AppIdentity.taTilAttribution}) 🕊\n'
         'رقية شرعية مكتوبة وصوتية وأذكار يومية — تطبيق خيري بدون إعلانات.\n\n'
         '$appShareUrl';
     await _share(context, text: text, subject: 'تطبيق الرقية الشاملة');

@@ -14,7 +14,9 @@ void main() {
   final items = afterPrayerItems();
 
   test('12 items in the order of Hisn al-Muslim', () {
-    expect([for (final i in items) i.title], [
+    expect([
+      for (final i in items) i.title
+    ], [
       'الاستغفار',
       'اللهم أنت السلام',
       'لا مانع لما أعطيت',

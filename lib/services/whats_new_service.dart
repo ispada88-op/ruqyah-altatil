@@ -118,7 +118,7 @@ class WhatsNewService {
                   backgroundColor: teal,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                icon: const Icon(Icons.auto_stories_outlined, size: 20),
+                icon: Icon(cta.ctaIcon, size: 20),
                 label: Text(cta.ctaLabel!),
                 onPressed: () {
                   Navigator.of(ctx).pop();

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/nav.dart';
+import 'package:roqia_altatil/widgets/back_to_home_scope.dart';
 import 'package:roqia_altatil/widgets/mini_player.dart';
 import 'package:roqia_altatil/widgets/sleep_timer_sheet.dart';
 import 'package:roqia_altatil/services/audio_player_service.dart';
@@ -58,8 +59,9 @@ class _MainShellState extends State<MainShell> {
       AppRoutes.audioRoqia => 2,
       AppRoutes.writtenRoqia => 3,
       AppRoutes.dhikr => 4,
-      _ when path == AppRoutes.mushaf ||
-          path.startsWith('${AppRoutes.mushaf}/') =>
+      _
+          when path == AppRoutes.mushaf ||
+              path.startsWith('${AppRoutes.mushaf}/') =>
         1,
       AppRoutes.khatma || AppRoutes.bookmarks || AppRoutes.quranSearch => 1,
       _ => 0,
@@ -77,80 +79,98 @@ class _MainShellState extends State<MainShell> {
     final themeProvider = context.watch<ThemeProvider>();
     // select (لا watch): الـ shell يحتاج حالتين فقط من الصوت؛ watch كان يعيد
     // بناء الـ AppBar وشريط التنقل مع كل تحديث لموضع التشغيل.
-    final audioLoaded = context.select<AudioPlayerService, bool>((a) => a.isLoaded);
+    final audioLoaded =
+        context.select<AudioPlayerService, bool>((a) => a.isLoaded);
     final hasSleepTimer =
         context.select<AudioPlayerService, bool>((a) => a.hasSleepTimer);
     final isDark = themeProvider.isDarkMode(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          AppIdentity.name,
-          style: AppTextStyles.header(
-            color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        actions: [
-          // Sleep timer button (يظهر فقط لما الصوت محمل)
-          if (audioLoaded)
-            IconButton(
-              icon: Icon(
-                hasSleepTimer ? Icons.bedtime : Icons.bedtime_outlined,
-                color: hasSleepTimer
-                    ? AppColors.accentGold
-                    : (isDark ? AppColors.darkTeal : AppColors.primaryTeal),
-              ),
-              onPressed: () => showSleepTimerSheet(context),
-              tooltip: 'مؤقت الإيقاف',
-            ),
-          // Theme toggle
-          IconButton(
-            icon: Icon(
-              isDark ? Icons.light_mode : Icons.dark_mode,
+    // زر الرجوع في أندرويد: خارج الرئيسية يعود إلى الرئيسية بدل إغلاق التطبيق
+    // (التنقّل بـ context.go يستبدل المكدّس فلا يبقى شيء ليُفتح للخلف).
+    final atHome = GoRouterState.of(context).uri.path == AppRoutes.home;
+    return BackToHomeScope(
+      atHome: atHome,
+      onBackToHome: () => context.go(AppRoutes.home),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            AppIdentity.name,
+            style: AppTextStyles.header(
               color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
             ),
-            onPressed: () => themeProvider.toggleTheme(context),
-            tooltip: isDark ? 'الوضع النهاري' : 'الوضع الليلي',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
-      body: widget.child,
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Mini player يظهر تلقائياً عندما الصوت محمل
-          const MiniPlayer(),
-          Container(
-            decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, -2),
+          actions: [
+            // Sleep timer button (يظهر فقط لما الصوت محمل)
+            if (audioLoaded)
+              IconButton(
+                icon: Icon(
+                  hasSleepTimer ? Icons.timer : Icons.timer_outlined,
+                  color: hasSleepTimer
+                      ? AppColors.accentGold
+                      : (isDark ? AppColors.darkTeal : AppColors.primaryTeal),
                 ),
-              ],
+                onPressed: () => showSleepTimerSheet(context),
+                tooltip: 'مؤقت الإيقاف',
+              ),
+            // Theme toggle
+            IconButton(
+              icon: Icon(
+                isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
+              ),
+              onPressed: () => themeProvider.toggleTheme(context),
+              tooltip: isDark ? 'الوضع النهاري' : 'الوضع الليلي',
             ),
-            child: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: _onNavItemTapped,
-              type: BottomNavigationBarType.fixed,
-              items: const [
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.home_rounded), label: 'الرئيسية'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.auto_stories_rounded), label: 'المصحف'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.headphones_rounded), label: 'رقية التعطيل'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.text_snippet_outlined), label: 'المكتوبة'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.circle_outlined), label: 'الأذكار'),
-              ],
+          ],
+        ),
+        body: widget.child,
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Mini player يظهر تلقائياً عندما الصوت محمل
+            const MiniPlayer(),
+            Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: BottomNavigationBar(
+                currentIndex: _currentIndex,
+                onTap: _onNavItemTapped,
+                type: BottomNavigationBarType.fixed,
+                items: const [
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.home_outlined),
+                      activeIcon: Icon(Icons.home),
+                      label: 'الرئيسية'),
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.auto_stories_outlined),
+                      activeIcon: Icon(Icons.auto_stories),
+                      label: 'المصحف'),
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.headphones_outlined),
+                      activeIcon: Icon(Icons.headphones),
+                      label: 'رقية التعطيل'),
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.text_snippet_outlined),
+                      activeIcon: Icon(Icons.text_snippet),
+                      label: 'المكتوبة'),
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.touch_app_outlined),
+                      activeIcon: Icon(Icons.touch_app),
+                      label: 'الأذكار'),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

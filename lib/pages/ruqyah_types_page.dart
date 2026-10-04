@@ -13,9 +13,9 @@ class RuqyahTypesPage extends StatelessWidget {
   const RuqyahTypesPage({super.key});
 
   static const _icons = {
-    'sihr': Icons.auto_fix_off_rounded,
+    'sihr': Icons.auto_fix_off_outlined,
     'ayn': Icons.visibility_off_outlined,
-    'hamm': Icons.spa_outlined,
+    'hamm': Icons.sentiment_dissatisfied_outlined,
   };
 
   @override
@@ -64,7 +64,7 @@ class RuqyahTypesPage extends StatelessWidget {
                           radius: 26,
                           backgroundColor: teal.withValues(alpha: 0.12),
                           child:
-                              Icon(_icons[t.id] ?? Icons.healing, color: teal),
+                              Icon(_icons[t.id] ?? Icons.healing_outlined, color: teal),
                         ),
                         const SizedBox(width: AppSpacing.md),
                         Expanded(
@@ -91,7 +91,7 @@ class RuqyahTypesPage extends StatelessWidget {
                             ],
                           ),
                         ),
-                        Icon(Icons.chevron_right_rounded, color: teal),
+                        Icon(Icons.chevron_right, color: teal),
                       ],
                     ),
                   ),

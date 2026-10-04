@@ -42,6 +42,9 @@ class KhatmaService extends ChangeNotifier {
   int _dayStart = 1;
   int _dayTarget = 0;
   int _completed = 0;
+
+  /// يوم أُتمّت فيه الختمة كلها (تبقى «ورد اليوم مكتمل» صحيحة بعد إيقافها).
+  String _finishedDay = '';
   Future<void>? _loading;
 
   bool get active => _active;
@@ -58,7 +61,13 @@ class KhatmaService extends ChangeNotifier {
 
   /// صفحات اليوم المقروءة (0..الهدف).
   int get todayRead => (_next - _dayStart).clamp(0, _dayTarget);
-  bool get todayDone => _active && _dayTarget > 0 && _next > todayEndPage;
+  bool get todayDone =>
+      (_finishedDay.isNotEmpty && _finishedDay == _dayKey) ||
+      (_active && _dayTarget > 0 && _next > todayEndPage);
+
+  /// مكتمل «اليوم الفعلي» [now]: لا يعتدّ بورد يوم سابق لم يُجدَّد بعد
+  /// (التطبيق مفتوح عبر منتصف الليل) — دالة نقية بلا إشعار مستمعين.
+  bool todayDoneAt(DateTime now) => khatmaDayKey(now) == _dayKey && todayDone;
 
   double get progress => ((_next - 1) / kMushafPages).clamp(0.0, 1.0);
   int get pagesLeft => (kMushafPages - _next + 1).clamp(0, kMushafPages);
@@ -87,6 +96,8 @@ class KhatmaService extends ChangeNotifier {
       _dayStart = i('khatma_day_start', 1, 1, kMushafPages);
       _dayTarget = i('khatma_day_target', 0, 0, kMushafPages);
       _completed = i('khatma_completed', 0, 0, 10000);
+      final fd = p.get('khatma_finished_day');
+      _finishedDay = fd is String ? fd : '';
       _rollover(DateTime.now());
       notifyListeners();
     } catch (e, st) {
@@ -121,6 +132,7 @@ class KhatmaService extends ChangeNotifier {
     _days = days.clamp(1, 3650);
     _start = DateTime(n.year, n.month, n.day);
     _next = fromPage.clamp(1, kMushafPages);
+    _finishedDay = '';
     _dayKey = '';
     _rollover(n);
     notifyListeners();
@@ -136,16 +148,23 @@ class KhatmaService extends ChangeNotifier {
 
   /// فُتحت صفحة [p] في القارئ: إن كانت هي المتوقعة تقدّمت الختمة.
   /// (التخطّي بالسحب أو القفز لا يُحتسب قراءةً.)
-  Future<void> onPageViewed(int p) async {
+  Future<void> onPageViewed(int p, {DateTime? now}) async {
     await ensureLoaded();
-    if (!_active || p != _next) return;
+    if (!_active) return;
+    // القارئ قد يبقى مفتوحاً عبر منتصف الليل: ثبّت يوم اليوم قبل أن نتقدّم،
+    // وإلا حُسبت صفحات اليوم الجديد على بداية الأمس.
+    _rollover(now ?? DateTime.now());
+    if (p != _next) return;
     _next = p + 1;
-    if (_next > kMushafPages) {
-      _completed++;
-      _active = false;
-    }
+    if (_next > kMushafPages) _finish();
     notifyListeners();
     await _save();
+  }
+
+  void _finish() {
+    _completed++;
+    _active = false;
+    _finishedDay = _dayKey;
   }
 
   /// يعلّم ورد اليوم مكتملاً (قرأته في مصحف ورقي مثلاً).
@@ -155,10 +174,7 @@ class KhatmaService extends ChangeNotifier {
     refresh(now);
     final end = todayEndPage;
     if (_next <= end) _next = end + 1;
-    if (_next > kMushafPages) {
-      _completed++;
-      _active = false;
-    }
+    if (_next > kMushafPages) _finish();
     notifyListeners();
     await _save();
   }
@@ -174,6 +190,7 @@ class KhatmaService extends ChangeNotifier {
       await p.setInt('khatma_day_start', _dayStart);
       await p.setInt('khatma_day_target', _dayTarget);
       await p.setInt('khatma_completed', _completed);
+      await p.setString('khatma_finished_day', _finishedDay);
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'KhatmaService.save');
     }

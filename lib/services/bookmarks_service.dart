@@ -44,7 +44,9 @@ class BookmarksService extends ChangeNotifier {
         final page = int.tryParse(parts[0]);
         final ms = int.tryParse(parts[1]);
         if (page == null || ms == null) continue;
-        if (page < 1 || page > MushafLayout.pageCount || !seen.add(page)) continue;
+        if (page < 1 || page > MushafLayout.pageCount || !seen.add(page)) {
+          continue;
+        }
         parsed.add(Bookmark(page, DateTime.fromMillisecondsSinceEpoch(ms)));
       }
       parsed.sort((a, b) => b.added.compareTo(a.added));

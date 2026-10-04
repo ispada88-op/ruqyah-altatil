@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/data/general_ruqyah_data.dart';
 import 'package:roqia_altatil/services/share_service.dart';
 import 'package:roqia_altatil/theme.dart';
+import 'package:roqia_altatil/utils/arabic_format.dart';
 import 'package:roqia_altatil/widgets/quran_text.dart';
 
 /// صفحة «الرقية المستقلة» — رقية مستقلة عن رقية التعطيل.
@@ -124,7 +125,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
             child: Row(
               children: [
                 Icon(
-                  Icons.text_fields,
+                  Icons.text_fields_outlined,
                   color:
                       isDark ? AppColors.accentGold : AppColors.accentGoldDark,
                 ),
@@ -157,7 +158,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                   ),
                 ),
                 Text(
-                  '${_fontSize.round()}',
+                  arDigits(_fontSize.round()),
                   style: TextStyle(
                     color: isDark ? AppColors.textOnDark : const Color(0xFF6F4E37),
                     fontWeight: FontWeight.bold,
@@ -228,7 +229,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline,
+          Icon(Icons.info_outlined,
               size: 20,
               color: isDark ? AppColors.darkTeal : AppColors.primaryTeal),
           const SizedBox(width: 8),
@@ -381,7 +382,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                 ),
                 child: Center(
                   child: Text(
-                    '$order',
+                    arDigits(order),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -528,7 +529,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            done ? 'اكتمل ✓' : '$count / ${item.repeat}',
+                            done ? 'اكتمل ✓' : '${arDigits(count)} / ${arDigits(item.repeat)}',
                             style: TextStyle(
                               fontSize: _fontSize - 3,
                               fontWeight: FontWeight.bold,
@@ -558,7 +559,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                     ),
                   );
                 },
-                icon: Icon(Icons.copy_rounded, size: 20, color: gold),
+                icon: Icon(Icons.content_copy_outlined, size: 20, color: gold),
                 tooltip: 'نسخ',
               ),
               IconButton(
@@ -570,7 +571,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                     subject: item.title,
                   );
                 },
-                icon: Icon(Icons.share_rounded, size: 20, color: gold),
+                icon: Icon(Icons.share_outlined, size: 20, color: gold),
                 tooltip: 'مشاركة',
               ),
             ],

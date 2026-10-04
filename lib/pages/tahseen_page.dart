@@ -184,12 +184,12 @@ class _TahseenCard extends StatelessWidget {
             children: [
               IconButton(
                 onPressed: () => _copy(context),
-                icon: Icon(Icons.copy_rounded, size: 20, color: teal),
+                icon: Icon(Icons.content_copy_outlined, size: 20, color: teal),
                 tooltip: 'نسخ',
               ),
               IconButton(
                 onPressed: () => _share(context),
-                icon: Icon(Icons.share_rounded, size: 20, color: teal),
+                icon: Icon(Icons.share_outlined, size: 20, color: teal),
                 tooltip: 'مشاركة',
               ),
             ],

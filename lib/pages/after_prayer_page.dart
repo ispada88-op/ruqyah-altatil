@@ -11,7 +11,8 @@ class AfterPrayerPage extends StatelessWidget {
   Widget build(BuildContext context) => GeneralRuqyahPage(
         items: afterPrayerItems(),
         title: 'أذكار بعد الصلاة',
-        subtitle: 'تُقرأ بعد السلام من كل صلاة مفروضة بالترتيب وبعدد التكرار المبيَّن',
+        subtitle:
+            'أذكار تُقال بعد السلام من الصلاة المفروضة، بعدد التكرار المبيَّن لكل ذكر',
         emblem: 'أذكار',
         footer: 'المصدر: حصن المسلم — سعيد بن علي بن وهف القحطاني',
       );

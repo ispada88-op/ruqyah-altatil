@@ -46,10 +46,15 @@ class _KhatmaPageState extends State<KhatmaPage> {
         textDirection: TextDirection.rtl,
         child: AlertDialog(
           title: const Text('إنهاء الختمة؟'),
-          content: const Text('سيتوقف الورد اليومي، ويمكنك بدء ختمة جديدة بعدها.'),
+          content:
+              const Text('سيتوقف الورد اليومي، ويمكنك بدء ختمة جديدة بعدها.'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('إنهاء')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('إنهاء')),
           ],
         ),
       ),
@@ -64,7 +69,8 @@ class _KhatmaPageState extends State<KhatmaPage> {
       backgroundColor: c.bg,
       body: Column(
         children: [
-          const SectionBackBar(title: 'ختمة القرآن', fallbackRoute: AppRoutes.home),
+          const SectionBackBar(
+              title: 'ختمة القرآن', fallbackRoute: AppRoutes.home),
           Expanded(
             child: ListenableBuilder(
               listenable: _svc,
@@ -89,7 +95,8 @@ class _KhatmaPageState extends State<KhatmaPage> {
               Icon(Icons.emoji_events_outlined, color: c.gold),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: Text('أتممت ${arDigits(_svc.completedCount)} ختمة — تقبّل الله منك',
+                child: Text(
+                    'أتممت ${arDigits(_svc.completedCount)} ختمة — تقبّل الله منك',
                     style: AppTextStyles.body(color: c.ink)),
               ),
             ]),
@@ -97,7 +104,8 @@ class _KhatmaPageState extends State<KhatmaPage> {
         ),
       Text('اختر مدة الختمة', style: AppTextStyles.subheader(color: c.ink)),
       const SizedBox(height: AppSpacing.xs),
-      Text('يُقسَّم المصحف (٦٠٤ صفحات) على أيام المدة، وتتقدّم الختمة بقراءتك في المصحف.',
+      Text(
+          'يُقسَّم المصحف (٦٠٤ صفحات) على أيام المدة، وتتقدّم الختمة بقراءتك في المصحف.',
           style: AppTextStyles.caption(color: c.sub)),
       const SizedBox(height: AppSpacing.md),
       RadioGroup<int>(
@@ -111,7 +119,8 @@ class _KhatmaPageState extends State<KhatmaPage> {
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: AppCard(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                   onTap: () {
                     Haptic.select();
                     setState(() => _choice = d);
@@ -121,10 +130,11 @@ class _KhatmaPageState extends State<KhatmaPage> {
                     child: Row(children: [
                       Radio<int>(value: d, activeColor: c.teal),
                       Expanded(
-                        child: Text(_daysLabel(d), style: AppTextStyles.body(color: c.ink)),
+                        child: Text(_daysLabel(d),
+                            style: AppTextStyles.body(color: c.ink)),
                       ),
                       Text(
-                        '${arDigits(khatmaDailyTarget(nextPage: 1, daysLeft: d))} صفحة يومياً',
+                        '${pagesLabel(khatmaDailyTarget(nextPage: 1, daysLeft: d))} يومياً',
                         style: AppTextStyles.caption(color: c.sub),
                       ),
                       const SizedBox(width: AppSpacing.sm),
@@ -160,31 +170,31 @@ class _KhatmaPageState extends State<KhatmaPage> {
             width: 128,
             height: 128,
             child: Semantics(
-              label: 'تقدّم الختمة ${arDigits(pct)} بالمئة',
-              excludeSemantics: true,
-              child: Stack(alignment: Alignment.center, children: [
-              SizedBox.expand(
-                child: CircularProgressIndicator(
-                  value: s.progress,
-                  strokeWidth: 10,
-                  color: c.teal,
-                  backgroundColor: c.teal.withValues(alpha: 0.15),
-                ),
-              ),
-              Text('${arDigits(pct)}٪',
-                  style: AppTextStyles.header(color: c.ink)
-                      .copyWith(fontSize: 30, fontWeight: FontWeight.w800)),
-            ])),
+                label: 'تقدّم الختمة ${arDigits(pct)} بالمئة',
+                excludeSemantics: true,
+                child: Stack(alignment: Alignment.center, children: [
+                  SizedBox.expand(
+                    child: CircularProgressIndicator(
+                      value: s.progress,
+                      strokeWidth: 10,
+                      color: c.teal,
+                      backgroundColor: c.teal.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  Text('${arDigits(pct)}٪',
+                      style: AppTextStyles.header(color: c.ink)
+                          .copyWith(fontSize: 30, fontWeight: FontWeight.w800)),
+                ])),
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'قرأت ${arDigits(s.nextPage - 1)} من ${arDigits(kMushafPages)} صفحة',
+            'قرأت ${arDigits(s.nextPage - 1)} من ${pagesLabel(kMushafPages)}',
             style: AppTextStyles.body(color: c.ink),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             left >= 0
-                ? 'بقي ${arDigits(s.pagesLeft)} صفحة في ${arDigits(left + 1)} يوماً (بما فيها اليوم)'
+                ? 'بقي ${pagesLabel(s.pagesLeft)} في ${daysLabel(left + 1)} (بما فيها اليوم)'
                 : 'تجاوزت المدة المحددة — أكمل بما تيسّر',
             style: AppTextStyles.caption(color: c.sub),
             textAlign: TextAlign.center,
@@ -196,7 +206,7 @@ class _KhatmaPageState extends State<KhatmaPage> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Icon(s.todayDone ? Icons.check_circle : Icons.auto_stories_outlined,
-                color: s.todayDone ? AppColors.success : c.gold),
+                color: s.todayDone ? c.success : c.gold),
             const SizedBox(width: AppSpacing.sm),
             Text('وردك اليوم', style: AppTextStyles.subheader(color: c.ink)),
           ]),
@@ -204,7 +214,7 @@ class _KhatmaPageState extends State<KhatmaPage> {
           Text(
             s.todayTarget == 0
                 ? '—'
-                : 'من صفحة ${arDigits(s.todayStartPage)} إلى صفحة ${arDigits(s.todayEndPage)} (${arDigits(s.todayTarget)} صفحة)',
+                : 'من صفحة ${arDigits(s.todayStartPage)} إلى صفحة ${arDigits(s.todayEndPage)} (${pagesLabel(s.todayTarget)})',
             style: AppTextStyles.body(color: c.ink),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -212,7 +222,7 @@ class _KhatmaPageState extends State<KhatmaPage> {
             value: s.todayTarget == 0 ? 0 : s.todayRead / s.todayTarget,
             minHeight: 8,
             borderRadius: BorderRadius.circular(4),
-            color: s.todayDone ? AppColors.success : c.teal,
+            color: s.todayDone ? c.success : c.teal,
             backgroundColor: c.teal.withValues(alpha: 0.15),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -227,7 +237,7 @@ class _KhatmaPageState extends State<KhatmaPage> {
       const SizedBox(height: AppSpacing.md),
       FilledButton.icon(
         style: c.filled,
-        icon: const Icon(Icons.menu_book_rounded),
+        icon: const Icon(Icons.auto_stories_outlined),
         label: Text('تابع القراءة من صفحة ${arDigits(s.nextPage)}'),
         onPressed: () {
           Haptic.light();
@@ -237,7 +247,7 @@ class _KhatmaPageState extends State<KhatmaPage> {
       const SizedBox(height: AppSpacing.sm),
       if (!s.todayDone)
         OutlinedButton.icon(
-          icon: const Icon(Icons.done_all_rounded),
+          icon: const Icon(Icons.done_all),
           label: const Text('قرأت وردي من مصحف آخر'),
           onPressed: () {
             Haptic.medium();
@@ -246,7 +256,7 @@ class _KhatmaPageState extends State<KhatmaPage> {
         ),
       TextButton(
         onPressed: _confirmStop,
-        child: Text('إنهاء الختمة', style: TextStyle(color: AppColors.error)),
+        child: Text('إنهاء الختمة', style: TextStyle(color: c.error)),
       ),
       const SizedBox(height: AppSpacing.sm),
       Text(

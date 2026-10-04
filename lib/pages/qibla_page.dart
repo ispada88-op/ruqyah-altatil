@@ -9,6 +9,7 @@ import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
+import 'package:roqia_altatil/widgets/app_card.dart';
 import 'package:roqia_altatil/widgets/section_back_bar.dart';
 
 /// فرق الزاويتين بين −١٨٠ و١٨٠ (للمحاذاة مع القبلة).
@@ -30,14 +31,19 @@ class QiblaPage extends StatefulWidget {
 class _QiblaPageState extends State<QiblaPage> {
   bool _wasAligned = false;
 
+  /// القبلة مقرّبة إلى ٠..٣٥٩ (المقرّب قد يعطي ٣٦٠).
+  static int _deg(double q) => q.round() % 360;
+
   @override
   Widget build(BuildContext context) {
+    final c = PageColors(context);
     final svc = PrayerTimesService.instance;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final qibla = svc.qibla;
     return Column(
       children: [
-        const SectionBackBar(title: 'اتجاه القبلة', fallbackRoute: AppRoutes.prayerTimes),
+        const SectionBackBar(
+            title: 'اتجاه القبلة', fallbackRoute: AppRoutes.prayerTimes),
         Expanded(
           child: Scaffold(
             body: qibla == null
@@ -49,7 +55,7 @@ class _QiblaPageState extends State<QiblaPage> {
                         children: [
                           Text('حدّد موقعك أولاً لحساب اتجاه القبلة.',
                               textAlign: TextAlign.center,
-                              style: AppTextStyles.body(color: null)),
+                              style: AppTextStyles.body(color: c.ink)),
                           const SizedBox(height: AppSpacing.md),
                           FilledButton(
                             onPressed: () => context.go(AppRoutes.prayerTimes),
@@ -68,14 +74,17 @@ class _QiblaPageState extends State<QiblaPage> {
 
   Widget _body(BuildContext context, double qibla, bool isDark) {
     final stream = FlutterCompass.events;
-    final sub = isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary;
+    final sub =
+        isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary;
     return StreamBuilder<CompassEvent>(
       stream: stream,
       builder: (context, snap) {
         final heading = snap.data?.heading; // null = لا بوصلة أو لم تصل قراءة
         final hasCompass = heading != null;
         final delta = hasCompass ? angleDelta(qibla, heading) : null;
-        final aligned = delta != null && delta.abs() <= 3;
+        // تثبيت (hysteresis): ندخل المحاذاة عند ±٣° ونخرج عند ±٥° فلا يومض الحال
+        // مع اهتزاز قراءة البوصلة حول الحد.
+        final aligned = delta != null && delta.abs() <= (_wasAligned ? 5 : 3);
         if (aligned && !_wasAligned) HapticFeedback.mediumImpact();
         _wasAligned = aligned;
 
@@ -83,39 +92,48 @@ class _QiblaPageState extends State<QiblaPage> {
           padding: const EdgeInsets.all(20),
           children: [
             Text(
-              'القبلة ${arDigits(qibla.round())}° من الشمال (مع عقارب الساعة)',
+              'القبلة ${arDigits(_deg(qibla))}° من الشمال (مع عقارب الساعة)',
               textAlign: TextAlign.center,
               style: AppTextStyles.subheader(
                   color: isDark ? AppColors.textOnDark : AppColors.primaryTeal),
             ),
             const SizedBox(height: AppSpacing.md),
             Center(
-              child: _Dial(
-                heading: heading ?? 0,
-                qibla: qibla,
-                aligned: aligned,
-                hasCompass: hasCompass,
+              child: Semantics(
+                label: 'بوصلة اتجاه القبلة',
+                excludeSemantics: true,
+                child: _Dial(
+                  heading: heading ?? 0,
+                  qibla: qibla,
+                  aligned: aligned,
+                  hasCompass: hasCompass,
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(
-              !hasCompass
-                  ? (snap.connectionState == ConnectionState.waiting
-                      ? 'جارٍ قراءة البوصلة…'
-                      : 'لا تتوفر بوصلة في هذا الجهاز. وجّه نفسك نحو ${arDigits(qibla.round())}° من الشمال.')
-                  : aligned
-                      ? 'أنت باتجاه القبلة ✓'
-                      : 'أدر الجهاز حتى يطابق السهم الذهبي أعلى الدائرة',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.body(
-                  color: aligned ? AppColors.success : sub)
-                  .copyWith(fontWeight: aligned ? FontWeight.w800 : FontWeight.w500),
-            ),
+            Semantics(
+                liveRegion: true,
+                child: Text(
+                  !hasCompass
+                      ? (snap.connectionState == ConnectionState.waiting
+                          ? 'جارٍ قراءة البوصلة…'
+                          : 'لا تتوفر بوصلة في هذا الجهاز. وجّه نفسك نحو ${arDigits(_deg(qibla))}° من الشمال.')
+                      : aligned
+                          ? 'أنت باتجاه القبلة ✓'
+                          : 'أدر الجهاز حتى يطابق السهم الذهبي أعلى الدائرة',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.body(
+                          color: aligned ? PageColors(context).success : sub)
+                      .copyWith(
+                          fontWeight:
+                              aligned ? FontWeight.w800 : FontWeight.w500),
+                )),
             const SizedBox(height: AppSpacing.md),
             Text(
               'ضع الجهاز أفقياً مسطّحاً وابتعد عن المعادن والمغناطيس. '
               'إن بدت القراءة غير دقيقة فحرّك الجهاز بشكل رقم ٨ لمعايرة البوصلة. '
-              'البوصلة وسيلة مساعدة؛ وإن توفّر لك اتجاه المحراب في المسجد فهو المعتمد.',
+              'البوصلة تقرأ الشمال المغناطيسي وقد يزيد الفرق عن الحقيقي بضع درجات '
+              'في بعض المدن. هي وسيلة مساعدة؛ وإن توفّر لك اتجاه المحراب في المسجد فهو المعتمد.',
               textAlign: TextAlign.center,
               style: AppTextStyles.caption(color: sub),
             ),
@@ -181,7 +199,8 @@ class _Dial extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.only(top: 10),
                         child: Text('ش',
-                            style: AppTextStyles.subheader(color: AppColors.error)),
+                            style: AppTextStyles.subheader(
+                                color: PageColors(context).error)),
                       ),
                     ),
                     // الكعبة عند زاوية القبلة
@@ -200,11 +219,16 @@ class _Dial extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: Colors.black87,
                                   borderRadius: BorderRadius.circular(5),
-                                  border: Border.all(color: AppColors.accentGold, width: 2),
+                                  border: Border.all(
+                                      color: AppColors.accentGold, width: 2),
                                 ),
-                                child: const Icon(Icons.mosque, size: 20, color: AppColors.accentGold),
+                                child: const Icon(Icons.mosque,
+                                    size: 20, color: AppColors.accentGold),
                               ),
-                              Container(width: 2, height: size / 2 - 90, color: ring.withValues(alpha: 0.4)),
+                              Container(
+                                  width: 2,
+                                  height: math.max(0.0, size / 2 - 90),
+                                  color: ring.withValues(alpha: 0.4)),
                             ],
                           ),
                         ),
@@ -213,7 +237,8 @@ class _Dial extends StatelessWidget {
                     Container(
                       width: 10,
                       height: 10,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: ring),
+                      decoration:
+                          BoxDecoration(shape: BoxShape.circle, color: ring),
                     ),
                   ],
                 ),
@@ -223,7 +248,8 @@ class _Dial extends StatelessWidget {
           // سهم اتجاه الجهاز (ثابت)
           const Positioned(
             top: 0,
-            child: Icon(Icons.arrow_drop_down, size: 44, color: AppColors.accentGold),
+            child: Icon(Icons.arrow_drop_down,
+                size: 44, color: AppColors.accentGold),
           ),
         ],
       ),

@@ -24,9 +24,9 @@ class _SleepTimerSheet extends StatelessWidget {
   const _SleepTimerSheet();
 
   static const _options = [
-    (5, '5 دقائق'),
-    (15, '15 دقيقة'),
-    (30, '30 دقيقة'),
+    (5, '٥ دقائق'),
+    (15, '١٥ دقيقة'),
+    (30, '٣٠ دقيقة'),
     (60, 'ساعة'),
     (90, 'ساعة ونصف'),
   ];
@@ -58,7 +58,7 @@ class _SleepTimerSheet extends StatelessWidget {
           ),
           Center(
             child: Icon(
-              Icons.bedtime,
+              Icons.timer_outlined,
               size: 32,
               color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
             ),

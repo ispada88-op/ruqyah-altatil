@@ -57,7 +57,7 @@ class _RemindersPageState extends State<RemindersPage> {
         SnackBar(
           content:
               const Text('إذن الإشعارات مرفوض — لن يظهر التذكير حتى تسمح به'),
-          backgroundColor: AppColors.warning,
+          backgroundColor: AppColors.warningStrong,
           duration: const Duration(seconds: 6),
           action: SnackBarAction(
             label: 'فتح الإعدادات',
@@ -119,7 +119,7 @@ class _RemindersPageState extends State<RemindersPage> {
                       Haptic.light();
                       _edit();
                     },
-                    icon: const Icon(Icons.alarm_add),
+                    icon: const Icon(Icons.alarm_add_outlined),
                     label: const Text('إضافة تذكير'),
                   ),
             body: _loading
@@ -155,7 +155,7 @@ class _RemindersPageState extends State<RemindersPage> {
                             onTap: () => _edit(r),
                             leading: CircleAvatar(
                               backgroundColor: teal.withValues(alpha: 0.12),
-                              child: Icon(Icons.alarm, color: teal),
+                              child: Icon(Icons.alarm_outlined, color: teal),
                             ),
                             title: Text(r.text,
                                 maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -178,7 +178,7 @@ class _RemindersPageState extends State<RemindersPage> {
                                 ),
                                 IconButton(
                                   tooltip: 'حذف',
-                                  icon: const Icon(Icons.delete_outline),
+                                  icon: const Icon(Icons.delete_outlined),
                                   onPressed: () {
                                     Haptic.medium();
                                     _commit(_items
@@ -292,7 +292,7 @@ class _ReminderEditorState extends State<_ReminderEditor> {
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: _pickTime,
-            icon: const Icon(Icons.schedule),
+            icon: const Icon(Icons.schedule_outlined),
             label: Text('الوقت: ${formatTimeAr(_time.hour, _time.minute)}'),
           ),
           const SizedBox(height: 12),

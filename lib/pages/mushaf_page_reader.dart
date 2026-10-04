@@ -17,7 +17,7 @@ import 'package:roqia_altatil/widgets/section_back_bar.dart';
 /// آخر صفحة قُرئت (١..٦٠٤).
 const kLastPageKey = 'mushaf_last_page';
 
-/// قارئ مصحف المدينة بالصفحات: ٦٠٤ صفحة، السحب لليسار للصفحة التالية.
+/// قارئ مصحف المدينة بالصفحات: ٦٠٤ صفحات، السحب لليسار للصفحة التالية.
 class MushafPageReaderPage extends StatefulWidget {
   const MushafPageReaderPage({super.key, required this.page});
 
@@ -142,8 +142,8 @@ class _MushafPageReaderPageState extends State<MushafPageReaderPage> {
                         return IconButton(
                           tooltip: marked ? 'إزالة العلامة' : 'حفظ علامة في هذه الصفحة',
                           isSelected: marked,
-                          icon: Icon(Icons.bookmark_border_rounded, color: teal),
-                          selectedIcon: Icon(Icons.bookmark_rounded, color: gold),
+                          icon: Icon(Icons.bookmark_border, color: teal),
+                          selectedIcon: Icon(Icons.bookmark, color: gold),
                           onPressed: () {
                             Haptic.select();
                             BookmarksService.instance.toggle(_current);
@@ -158,7 +158,7 @@ class _MushafPageReaderPageState extends State<MushafPageReaderPage> {
                     ),
                     IconButton(
                       tooltip: 'نص السورة متصلاً (خط قابل للتكبير)',
-                      icon: Icon(Icons.text_fields_rounded, color: teal),
+                      icon: Icon(Icons.format_size_outlined, color: teal),
                       onPressed: page == null
                           ? null
                           : () {
@@ -168,7 +168,7 @@ class _MushafPageReaderPageState extends State<MushafPageReaderPage> {
                     ),
                     IconButton(
                       tooltip: 'الفهرس',
-                      icon: Icon(Icons.list_rounded, color: teal),
+                      icon: Icon(Icons.toc_outlined, color: teal),
                       onPressed: () => context.go(AppRoutes.mushaf),
                     ),
                   ],

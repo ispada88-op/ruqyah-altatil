@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -62,8 +63,8 @@ class NotificationService {
   String? initialPayload;
 
   static const List<(String, String)> _ruqyahReminders = [
-    ('تذكير بالرقية 🕊', 'لا تنسَ قراءة رقية التعطيل اليوم — جعلها الله شفاءً وعافيةً لك.'),
-    ('وقت الرقية 📖', 'خصّص دقائق الآن لقراءة الرقية الشرعية أو الاستماع لها.'),
+    ('تذكير بالرقية 🕊', 'لا تنسَ وردك من الرقية الشرعية اليوم — جعلها الله شفاءً وعافيةً لك.'),
+    ('وقت الرقية 📖', 'خصّص دقائق الآن لقراءة الرقية الشرعية من القرآن والسنة.'),
     ('لا تنسَ رقيتك اليوم', 'المداومة على الرقية سبب للشفاء بإذن الله — اقرأها الآن.'),
   ];
 
@@ -114,7 +115,7 @@ class NotificationService {
     try {
       await _initTimeZone();
 
-      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidInit = AndroidInitializationSettings('@drawable/ic_stat_notify');
       const iosInit = DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
@@ -184,8 +185,8 @@ class NotificationService {
       final androidImpl = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       if (androidImpl != null) {
-        // ملاحظة: لا نطلب exact alarms — الجدولة inexact والـ manifest
-        // لا يتضمن SCHEDULE_EXACT_ALARM.
+        // التنبيهات الدقيقة (دخول الوقت) إذن منفصل: يُعرض للمستخدم في بطاقة
+        // تنبيهات الصلاة، ولا يُطلب هنا حتى لا نُثقل أول تشغيل.
         final granted = await androidImpl.requestNotificationsPermission();
         // null = أندرويد أقدم من 13 حيث لا يوجد إذن تشغيلي → مسموح.
         return granted ?? true;
@@ -209,11 +210,92 @@ class NotificationService {
 
   /// جدولة الإشعارات بناءً على الـ interval المحفوظ: أذكار لأيام قادمة ضمن
   /// ميزانية [maxPending] + تذكير رقية يومي متكرر لا ينتهي.
-  Future<void> _scheduleAll() async {
+  ///
+  /// تُنفَّذ الطلبات بالتتابع (طابور): فتح التطبيق وتغيير إعداد في الوقت نفسه
+  /// كانا يتداخلان — `cancelAll` من طلب يمحو ما جدوله الآخر.
+  Future<void> _queue = Future<void>.value();
+  Future<void> _scheduleAll() {
+    final next = _queue.then((_) => _scheduleAllImpl());
+    _queue = next.catchError((Object _) {});
+    return next;
+  }
+
+  /// جدولة إشعار واحد؛ فشل واحد لا يُسقط الباقي. يرجع نجاح العملية.
+  Future<bool> _zone(
+    int id,
+    String title,
+    String body,
+    tz.TZDateTime when,
+    NotificationDetails details, {
+    AndroidScheduleMode mode = AndroidScheduleMode.inexactAllowWhileIdle,
+    String? payload,
+    DateTimeComponents? match,
+  }) async {
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        when,
+        details,
+        androidScheduleMode: mode,
+        matchDateTimeComponents: match,
+        payload: payload,
+        // ignore: deprecated_member_use
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      return true;
+    } catch (e, st) {
+      if (mode == AndroidScheduleMode.exactAllowWhileIdle &&
+          e is PlatformException &&
+          e.code == 'exact_alarms_not_permitted') {
+        // الإذن سُحب بين الفحص والجدولة: نُعيد المحاولة غير الدقيقة. (لا نُعيدها
+        // لأي خطأ آخر: الإضافة قد تكون وضعت المنبّه فعلاً، والإعادة تستبدله بنافذة.)
+        return _zone(id, title, body, when, details, payload: payload, match: match);
+      }
+      ErrorReporter.report(e, st, context: 'NotificationService.schedule#$id');
+      return false;
+    }
+  }
+
+  /// هل يسمح النظام بتنبيهات دقيقة؟ (أندرويد ١٤+ يمنعها افتراضياً حتى يوافق
+  /// المستخدم في «التنبيهات والتذكيرات»). iOS: لا ينطبق ⇒ true.
+  Future<bool> exactAlarmsAllowed() async {
+    try {
+      if (!_initialized) await initialize();
+      final a = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (a == null) return true;
+      return await a.canScheduleExactNotifications() ?? false;
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'exactAlarmsAllowed');
+      return false;
+    }
+  }
+
+  /// يفتح صفحة إذن التنبيهات الدقيقة ثم يُعيد الجدولة بما صار مسموحاً.
+  Future<bool> requestExactAlarms() async {
+    try {
+      if (!_initialized) await initialize();
+      final a = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (a == null) return true;
+      await a.requestExactAlarmsPermission();
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'requestExactAlarms');
+    }
+    final ok = await exactAlarmsAllowed();
+    await _scheduleAll();
+    return ok;
+  }
+
+  Future<void> _scheduleAllImpl() async {
     if (!_initialized) await initialize();
 
     try {
       await cancelAll();
+      var failed = 0;
 
       const androidDetails = AndroidNotificationDetails(
         _channelId,
@@ -240,18 +322,16 @@ class NotificationService {
           .toList();
       for (var i = 0; i < custom.length; i++) {
         final r = custom[i];
-        await _plugin.zonedSchedule(
+        if (!await _zone(
           _customIdBase + i,
           'تذكير 🕊',
           r.text,
           NotificationPlan.nextAt(now, r.hour, minute: r.minute),
           details,
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          matchDateTimeComponents: DateTimeComponents.time,
-          // ignore: deprecated_member_use
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-        );
+          match: DateTimeComponents.time,
+        )) {
+          failed++;
+        }
       }
 
       // ─── تذكير أذكار الصباح والمساء (مستقل عن المفتاح العام، يتكرر يومياً) ───
@@ -280,20 +360,19 @@ class NotificationService {
         // «حسب الصلاة» (مع موقع محدد) ⇒ يُجدوَل ضمن خطة المواقيت لا هنا.
         if (cfg.byPrayer && prayerSvc.hasLocation) continue;
         final (aTitle, aBody) = AdhkarRemindersStore.message(slot);
-        await _plugin.zonedSchedule(
+        if (await _zone(
           _adhkarIdBase + slot.index,
           aTitle,
           aBody,
           NotificationPlan.nextAt(now, cfg.hour, minute: cfg.minute),
           adhkarDetails,
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          matchDateTimeComponents: DateTimeComponents.time,
+          match: DateTimeComponents.time,
           payload: AdhkarRemindersStore.payload(slot),
-          // ignore: deprecated_member_use
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-        );
-        adhkarCount++;
+        )) {
+          adhkarCount++;
+        } else {
+          failed++;
+        }
       }
 
       // ─── التنبيهات المرتبطة بالصلاة: صباح بعد الفجر، مساء بعد العصر، أذان،
@@ -301,47 +380,83 @@ class NotificationService {
       final periodicOn = await isEnabled;
       final isIos = defaultTargetPlatform == TargetPlatform.iOS;
       var prayerCount = 0;
-      if (prayerSvc.hasLocation) {
-        final prayerCfg = await PrayerRemindersStore.load();
-        final reserve = periodicOn ? minDhikrWhenEnabled : 0;
-        final budget = isIos
-            ? maxPending - 1 - custom.length - adhkarCount - reserve
-            : androidPrayerBudget;
-        final planned = planPrayerNotifications(
-          now: now,
-          dayFor: (d) => prayerSvc.dayFor(d)!,
-          cfg: prayerCfg,
-          morning: adhkarCfg[AdhkarSlot.morning]!,
-          evening: adhkarCfg[AdhkarSlot.evening]!,
-          budget: budget,
-        );
-        const prayerDetails = NotificationDetails(
-          android: AndroidNotificationDetails(
-            _prayerChannelId,
-            _prayerChannelName,
-            channelDescription: 'تنبيهات أوقات الصلاة وأذكار الصباح والمساء وما بعد الصلاة',
-            importance: Importance.high,
-            priority: Priority.high,
-            playSound: true,
-            styleInformation: BigTextStyleInformation(''),
-          ),
-          iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
-        );
-        for (final n in planned) {
-          await _plugin.zonedSchedule(
-            n.id,
-            n.title,
-            n.body,
-            n.when,
-            prayerDetails,
-            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-            payload: n.payload,
-            // ignore: deprecated_member_use
-            uiLocalNotificationDateInterpretation:
-                UILocalNotificationDateInterpretation.absoluteTime,
-          );
+
+      // تذكير الرقية اليومي (٨م) أهم تذكير في التطبيق: يُجدوَل قبل حلقة الصلاة
+      // الطويلة حتى لا يضيع لو تعثّر أي شيء بعدها.
+      Future<void> scheduleDailyRuqyah() async {
+        final (title, body) = _ruqyahReminders[now.day % _ruqyahReminders.length];
+        if (!await _zone(
+          _ruqyahIdBase,
+          title,
+          body,
+          NotificationPlan.nextAt(now, _ruqyahReminderHour),
+          details,
+          match: DateTimeComponents.time,
+        )) {
+          failed++;
         }
-        prayerCount = planned.length;
+      }
+
+      if (periodicOn) await scheduleDailyRuqyah();
+
+      if (prayerSvc.hasLocation) {
+        try {
+          final prayerCfg = await PrayerRemindersStore.load();
+          final reserve = periodicOn ? minDhikrWhenEnabled : 0;
+          final budget = isIos
+              ? maxPending - 1 - custom.length - adhkarCount - reserve
+              : androidPrayerBudget;
+          // +٣٠ث: لا نجدول موعداً بعد ثوانٍ قد يمضي قبل وصول الطلب للنظام.
+          final planned = planPrayerNotifications(
+            now: now.add(const Duration(seconds: 30)),
+            dayFor: (d) => prayerSvc.dayFor(d)!,
+            cfg: prayerCfg,
+            morning: adhkarCfg[AdhkarSlot.morning]!,
+            evening: adhkarCfg[AdhkarSlot.evening]!,
+            budget: budget,
+          );
+          const prayerDetails = NotificationDetails(
+            android: AndroidNotificationDetails(
+              _prayerChannelId,
+              _prayerChannelName,
+              channelDescription:
+                  'تنبيهات أوقات الصلاة وأذكار الصباح والمساء وما بعد الصلاة',
+              importance: Importance.high,
+              priority: Priority.high,
+              playSound: true,
+              styleInformation: BigTextStyleInformation(''),
+            ),
+            iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
+          );
+          // تنبيه دخول الوقت وحده يحتاج دقة الدقيقة؛ الباقي (أذكار) يحتمل نافذة.
+          final exact = !isIos && await exactAlarmsAllowed();
+          for (final n in planned) {
+            final ok = await _zone(
+              n.id,
+              n.title,
+              n.body,
+              n.when,
+              prayerDetails,
+              mode: exact && n.kind == PlannedKind.prayerAlert
+                  ? AndroidScheduleMode.exactAllowWhileIdle
+                  : AndroidScheduleMode.inexactAllowWhileIdle,
+              payload: n.payload,
+            );
+            if (ok) {
+              prayerCount++;
+            } else {
+              failed++;
+            }
+          }
+        } catch (e, st) {
+          ErrorReporter.report(e, st, context: 'NotificationService.prayerPlan');
+        }
+      }
+
+      if (failed > 0) {
+        ErrorReporter.report(StateError('$failed notifications failed to schedule'),
+            StackTrace.current,
+            context: 'NotificationService._scheduleAll');
       }
 
       if (!periodicOn) {
@@ -381,37 +496,10 @@ class NotificationService {
         lastIdx = idx;
 
         final dhikr = hisnAlmuslimDhikr[idx];
-        await _plugin.zonedSchedule(
-          notificationId++,
-          dhikr.title,
-          dhikr.body,
-          scheduledDate,
-          details,
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          // ignore: deprecated_member_use
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-        );
+        await _zone(notificationId++, dhikr.title, dhikr.body, scheduledDate, details);
       }
       await prefs.setInt(_kLastIdxKey, lastIdx);
 
-      // ─── التذكير اليومي بالرقية (8م) ───
-      // إصلاح 2026-09-28: كان 7 إشعارات منفردة تنتهي بعد أسبوع إن لم يُفتح
-      // التطبيق. الآن إشعار واحد متكرر يومياً (matchDateTimeComponents.time)
-      // فلا ينقطع أبداً — أهم تذكير في التطبيق.
-      final (title, body) = _ruqyahReminders[now.day % _ruqyahReminders.length];
-      await _plugin.zonedSchedule(
-        _ruqyahIdBase,
-        title,
-        body,
-        NotificationPlan.nextAt(now, _ruqyahReminderHour),
-        details,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        matchDateTimeComponents: DateTimeComponents.time,
-        // ignore: deprecated_member_use
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-      );
       const ruqyahCount = 1;
 
       if (kDebugMode) {

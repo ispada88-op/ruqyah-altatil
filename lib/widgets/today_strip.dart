@@ -66,7 +66,7 @@ class _TodayStripState extends State<TodayStrip> {
           children: [
             _tile(
               c,
-              icon: Icons.access_time_rounded,
+              icon: Icons.mosque_outlined,
               title: next == null
                   ? 'حدّد موقعك لمواقيت الصلاة'
                   : 'الصلاة القادمة: ${prayerLabelOn(next.kind, next.time)}',
@@ -79,9 +79,12 @@ class _TodayStripState extends State<TodayStrip> {
             if (k.active)
               _tile(
                 c,
-                icon: k.todayDone ? Icons.check_circle : Icons.auto_stories_outlined,
-                iconColor: k.todayDone ? AppColors.success : null,
-                title: k.todayDone ? 'أتممت وردك اليوم' : 'وردك اليوم من القرآن',
+                icon: k.todayDone
+                    ? Icons.check_circle
+                    : Icons.auto_stories_outlined,
+                iconColor: k.todayDone ? c.success : null,
+                title:
+                    k.todayDone ? 'أتممت وردك اليوم' : 'وردك اليوم من القرآن',
                 sub: k.todayDone
                     ? 'تقبّل الله منك — صفحة ${arDigits(k.nextPage)} غداً بإذن الله'
                     : 'صفحة ${arDigits(k.todayStartPage)} إلى ${arDigits(k.todayEndPage)}، قرأت ${arDigits(k.todayRead)} من ${arDigits(k.todayTarget)}',
@@ -119,7 +122,7 @@ class _TodayStripState extends State<TodayStrip> {
         constraints: const BoxConstraints(minHeight: 64),
         child: Row(
           children: [
-            Icon(icon, color: iconColor ?? c.gold),
+            AppIconBadge(icon, color: iconColor),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -133,7 +136,8 @@ class _TodayStripState extends State<TodayStrip> {
                 ],
               ),
             ),
-            Icon(Icons.arrow_back_ios_new, size: 16, color: c.teal.withValues(alpha: 0.7)),
+            Icon(Icons.chevron_right,
+                size: 24, color: c.teal.withValues(alpha: 0.8)),
           ],
         ),
       ),

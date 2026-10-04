@@ -11,12 +11,12 @@ class RuqyahRulesPage extends StatelessWidget {
   const RuqyahRulesPage({super.key});
 
   static IconData _icon(String k) => switch (k) {
-        'rule' => Icons.rule_rounded,
+        'rule' => Icons.rule_outlined,
         'book' => Icons.menu_book_outlined,
         'health' => Icons.health_and_safety_outlined,
-        'warning' => Icons.warning_amber_rounded,
+        'warning' => Icons.warning_amber_outlined,
         'people' => Icons.groups_2_outlined,
-        _ => Icons.info_outline,
+        _ => Icons.info_outlined,
       };
 
   @override
@@ -26,12 +26,14 @@ class RuqyahRulesPage extends StatelessWidget {
       backgroundColor: c.bg,
       body: Column(
         children: [
-          const SectionBackBar(title: 'ضوابط الرقية الشرعية', fallbackRoute: AppRoutes.home),
+          const SectionBackBar(
+              title: 'ضوابط الرقية الشرعية', fallbackRoute: AppRoutes.home),
           Expanded(
             child: ListView(
               padding: AppSpacing.paddingMd,
               children: [
-                Text(kRuqyahRulesIntro, style: AppTextStyles.body(color: c.sub)),
+                Text(kRuqyahRulesIntro,
+                    style: AppTextStyles.body(color: c.sub)),
                 const SizedBox(height: AppSpacing.md),
                 for (final sec in kRuqyahRules) ...[
                   AppCard(
@@ -40,7 +42,9 @@ class RuqyahRulesPage extends StatelessWidget {
                       children: [
                         Row(children: [
                           Icon(_icon(sec.icon),
-                              color: sec.icon == 'warning' ? AppColors.warning : c.gold),
+                              color: sec.icon == 'warning'
+                                  ? AppColors.warning
+                                  : c.gold),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(sec.title,
@@ -55,7 +59,8 @@ class RuqyahRulesPage extends StatelessWidget {
                   const SizedBox(height: AppSpacing.md),
                 ],
                 Text(kRuqyahRulesDisclaimer,
-                    style: AppTextStyles.caption(color: c.sub), textAlign: TextAlign.center),
+                    style: AppTextStyles.caption(color: c.sub),
+                    textAlign: TextAlign.center),
                 const SizedBox(height: AppSpacing.lg),
               ],
             ),
@@ -72,7 +77,8 @@ class RuqyahRulesPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(p.text, style: AppTextStyles.body(color: c.ink).copyWith(height: 1.7)),
+            Text(p.text,
+                style: AppTextStyles.body(color: c.ink).copyWith(height: 1.7)),
             if (p.hadith != null)
               Container(
                 margin: const EdgeInsets.only(top: AppSpacing.sm),
@@ -80,7 +86,8 @@ class RuqyahRulesPage extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: c.gold.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: BorderDirectional(start: BorderSide(color: c.gold, width: 3)),
+                  border: BorderDirectional(
+                      start: BorderSide(color: c.gold, width: 3)),
                 ),
                 child: Text('«${p.hadith}»',
                     style: AppTextStyles.dhikr(color: c.ink, fontSize: 18)
@@ -89,7 +96,8 @@ class RuqyahRulesPage extends StatelessWidget {
             if (p.source != null)
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.xs),
-                child: Text(p.source!, style: AppTextStyles.caption(color: c.sub)),
+                child:
+                    Text(p.source!, style: AppTextStyles.caption(color: c.sub)),
               ),
           ],
         ),

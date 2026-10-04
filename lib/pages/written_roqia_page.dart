@@ -65,7 +65,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
             child: Row(
               children: [
                 Icon(
-                  Icons.text_fields,
+                  Icons.text_fields_outlined,
                   color: isDark ? AppColors.accentGold : AppColors.accentGoldDark,
                 ),
                 const SizedBox(width: 12),
@@ -90,9 +90,12 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                   ),
                 ),
                 Text(
-                  '${_fontSize.round()}',
-                  style: const TextStyle(
-                    color: Color(0xFF6F4E37),
+                  arDigits(_fontSize.round()),
+                  style: TextStyle(
+                    // بنّي ثابت كان يكاد يختفي على الخلفية الداكنة.
+                    color: isDark
+                        ? AppColors.accentGold
+                        : const Color(0xFF6F4E37),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -120,9 +123,6 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                         s.basmala,
                         s.verses,
                         subtitle: s.subtitle,
-                        warning: s.name.contains('الزلزلة')
-                            ? '⚠️ الحامل لا تقرأ هذه السورة'
-                            : null,
                       ),
                       const SizedBox(height: 12),
                     ]),
@@ -215,7 +215,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.eco,
+                  Icons.eco_outlined,
                   color: isDark ? AppColors.accentGold : const Color(0xFF388E3C),
                   size: 24,
                 ),
@@ -223,7 +223,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  '🌿 طريقة تطبيق الرقية',
+                  'طريقة تطبيق الرقية',
                   style: TextStyle(
                     fontSize: _fontSize + 2,
                     fontWeight: FontWeight.bold,
@@ -346,7 +346,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.volunteer_activism,
+                  Icons.volunteer_activism_outlined,
                   color: AppColors.accentGold,
                   size: 24,
                 ),
@@ -354,7 +354,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  '🤲 أدعية إزالة التعطيل',
+                  '🤲 أدعية رقية التعطيل — لفضيلة الشيخ فهد القرني',
                   style: TextStyle(
                     fontSize: _fontSize + 2,
                     fontWeight: FontWeight.bold,
@@ -434,7 +434,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.copy, size: 20),
+                icon: const Icon(Icons.content_copy_outlined, size: 20),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: text));
                   HapticFeedback.lightImpact();
@@ -518,7 +518,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: const Color(0xFF6F4E37), size: 20),
+                Icon(Icons.info_outlined, color: const Color(0xFF6F4E37), size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -545,7 +545,6 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
     String? basmala,
     List<String> verses, {
     String? subtitle,
-    String? warning,
     bool showMore = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -646,34 +645,6 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                 ),
               ),
             ),
-          if (warning != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      warning,
-                      style: TextStyle(
-                        fontSize: _fontSize - 2,
-                        color: Colors.red.shade700,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textDirection: TextDirection.rtl,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );

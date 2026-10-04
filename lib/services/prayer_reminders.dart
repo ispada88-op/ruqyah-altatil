@@ -24,7 +24,8 @@ class PrayerReminderConfig {
     this.sleep = false,
   });
 
-  bool get anyEnabled => alerts.isNotEmpty || afterPrayer || kahfFriday || sleep;
+  bool get anyEnabled =>
+      alerts.isNotEmpty || afterPrayer || kahfFriday || sleep;
 
   PrayerReminderConfig copyWith({
     Set<PrayerKind>? alerts,
@@ -73,8 +74,10 @@ class PrayerRemindersStore {
 
   static Future<void> save(PrayerReminderConfig c) async {
     final p = await SharedPreferences.getInstance();
-    await p.setStringList(
-        _kAlerts, [for (final k in c.alerts) if (_valid(k)) k.name]);
+    await p.setStringList(_kAlerts, [
+      for (final k in c.alerts)
+        if (_valid(k)) k.name
+    ]);
     await p.setBool(_kAfter, c.afterPrayer);
     await p.setBool(_kKahf, c.kahfFriday);
     await p.setBool(_kSleep, c.sleep);

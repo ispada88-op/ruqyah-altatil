@@ -22,7 +22,8 @@ void main() {
     expect(isProgramDayComplete(rest, wirdFromKhatma: true), isTrue);
   });
 
-  test('checking everything records the day in the ruqyah log; unchecking keeps it',
+  test(
+      'checking everything records the day in the ruqyah log; unchecking keeps it',
       () async {
     final log = RuqyahLogService.test();
     final p = ProgramService.test(log: log, khatma: KhatmaService.test());
@@ -49,13 +50,21 @@ void main() {
 
   test('old days are pruned and corrupt entries ignored', () async {
     SharedPreferences.setMockInitialValues({
-      'program_done': ['2026-10-03:morning', 'bad', '2026-10-03:nope', 'x:y:z', '2026-01-01:evening'],
+      'program_done': [
+        '2026-10-03:morning',
+        'bad',
+        '2026-10-03:nope',
+        'x:y:z',
+        '2026-01-01:evening'
+      ],
     });
-    final p = ProgramService.test(log: RuqyahLogService.test(), khatma: KhatmaService.test());
+    final p = ProgramService.test(
+        log: RuqyahLogService.test(), khatma: KhatmaService.test());
     await p.ensureLoaded();
     expect(p.doneOn(day), {ProgramItem.morning});
     await p.toggle(ProgramItem.ruqyah, now: day);
-    final raw = (await SharedPreferences.getInstance()).getStringList('program_done')!;
+    final raw =
+        (await SharedPreferences.getInstance()).getStringList('program_done')!;
     expect(raw.any((e) => e.startsWith('2026-01-01')), isFalse);
   });
 }

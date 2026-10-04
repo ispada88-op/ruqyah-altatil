@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:adhan/adhan.dart' as adhan;
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
@@ -25,17 +28,22 @@ enum PrayerKind {
 
 /// طرق حساب المواقيت. المعرّف [id] هو ما يُحفظ في الجهاز — لا يتغير أبداً.
 enum PrayerMethod {
-  ummAlQura('umm_al_qura', 'أم القرى (السعودية)', adhan.CalculationMethod.umm_al_qura),
+  ummAlQura('umm_al_qura', 'أم القرى (السعودية)',
+      adhan.CalculationMethod.umm_al_qura),
   muslimWorldLeague('muslim_world_league', 'رابطة العالم الإسلامي',
       adhan.CalculationMethod.muslim_world_league),
-  egyptian('egyptian', 'الهيئة المصرية العامة للمساحة', adhan.CalculationMethod.egyptian),
-  karachi('karachi', 'جامعة العلوم الإسلامية — كراتشي', adhan.CalculationMethod.karachi),
+  egyptian('egyptian', 'الهيئة المصرية العامة للمساحة',
+      adhan.CalculationMethod.egyptian),
+  karachi('karachi', 'جامعة العلوم الإسلامية — كراتشي',
+      adhan.CalculationMethod.karachi),
   dubai('dubai', 'الإمارات', adhan.CalculationMethod.dubai),
   qatar('qatar', 'قطر', adhan.CalculationMethod.qatar),
   kuwait('kuwait', 'الكويت', adhan.CalculationMethod.kuwait),
-  singapore('singapore', 'سنغافورة وجنوب شرق آسيا', adhan.CalculationMethod.singapore),
+  singapore('singapore', 'سنغافورة وجنوب شرق آسيا',
+      adhan.CalculationMethod.singapore),
   turkey('turkey', 'تركيا', adhan.CalculationMethod.turkey),
-  northAmerica('north_america', 'أمريكا الشمالية (ISNA)', adhan.CalculationMethod.north_america);
+  northAmerica('north_america', 'أمريكا الشمالية (ISNA)',
+      adhan.CalculationMethod.north_america);
 
   final String id;
   final String label;
@@ -50,10 +58,10 @@ enum PrayerMethod {
   }
 }
 
-/// المذهب في وقت العصر: الجمهور (ظل المثل) أو الحنفية (ظل المثلين).
+/// المذهب في وقت العصر: الجمهور (ظل الشيء مثله) أو الحنفية (مثليه).
 enum PrayerMadhab {
-  shafi('shafi', 'الجمهور — العصر عند ظل المثل'),
-  hanafi('hanafi', 'الحنفية — العصر عند ظل المثلين');
+  shafi('shafi', 'الجمهور — العصر حين يصير ظل الشيء مثله (سوى ظل الزوال)'),
+  hanafi('hanafi', 'الحنفية — العصر حين يصير ظل الشيء مثليه (سوى ظل الزوال)');
 
   final String id;
   final String label;
@@ -110,9 +118,33 @@ PrayerDay computePrayerDay({
 double qiblaBearing(double lat, double lon) =>
     adhan.Qibla(adhan.Coordinates(lat, lon)).direction;
 
-/// الطريقة الافتراضية لموقع GPS: أم القرى داخل السعودية، وإلا رابطة العالم
-/// الإسلامي. المستخدم يغيّرها من الإعدادات. (المدن الجاهزة لها طريقتها.)
+/// المسافة التقريبية بالكيلومتر بين نقطتين (haversine).
+double _distanceKm(double lat1, double lon1, double lat2, double lon2) {
+  const r = 6371.0;
+  double rad(double d) => d * math.pi / 180;
+  final dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+  final a = math.pow(math.sin(dLat / 2), 2) +
+      math.cos(rad(lat1)) *
+          math.cos(rad(lat2)) *
+          math.pow(math.sin(dLon / 2), 2);
+  return 2 * r * math.asin(math.min(1.0, math.sqrt(a)));
+}
+
+/// الطريقة الافتراضية لموقع GPS: طريقة أقرب مدينة جاهزة في نطاق ٣٠٠ كم (الكويت،
+/// قطر، الإمارات، مصر، تركيا…)، وإلا أم القرى داخل السعودية، وإلا رابطة العالم
+/// الإسلامي. المستخدم يغيّرها من الإعدادات.
 PrayerMethod defaultMethodFor(double lat, double lon) {
+  PrayerCity? nearest;
+  var best = 300.0;
+  for (final c in kPrayerCities) {
+    final d = _distanceKm(lat, lon, c.lat, c.lon);
+    if (d <= best) {
+      best = d;
+      nearest = c;
+    }
+  }
+  final byCity = nearest == null ? null : PrayerMethod.byId(nearest.method);
+  if (byCity != null) return byCity;
   final inSaudi = lat >= 16 && lat <= 32.2 && lon >= 34.5 && lon <= 50.8;
   return inSaudi ? PrayerMethod.ummAlQura : PrayerMethod.muslimWorldLeague;
 }
@@ -165,7 +197,8 @@ class PrayerTimesService extends ChangeNotifier {
         'city' => PrayerLocationSource.city,
         _ => null,
       };
-      _method = PrayerMethod.byId(p.getString(_kMethod)) ?? PrayerMethod.ummAlQura;
+      _method =
+          PrayerMethod.byId(p.getString(_kMethod)) ?? PrayerMethod.ummAlQura;
       _methodManual = p.getBool(_kMethodManual) ?? false;
       _madhab = PrayerMadhab.byId(p.getString(_kMadhab));
     } catch (e, st) {
@@ -179,13 +212,21 @@ class PrayerTimesService extends ChangeNotifier {
   PrayerDay? dayFor(DateTime date) {
     if (!hasLocation) return null;
     final key = '${date.year}-${date.month}-${date.day}';
-    return _cache[key] ??= computePrayerDay(
-      lat: _lat!,
-      lon: _lon!,
-      date: date,
-      method: _method,
-      madhab: _madhab,
-    );
+    final hit = _cache[key];
+    if (hit != null) return hit;
+    try {
+      return _cache[key] = computePrayerDay(
+        lat: _lat!,
+        lon: _lon!,
+        date: date,
+        method: _method,
+        madhab: _madhab,
+      );
+    } catch (e, st) {
+      // مكتبة الحساب قد ترفض إحداثيات متطرفة؛ الواجهة تتعامل مع null.
+      ErrorReporter.report(e, st, context: 'PrayerTimesService.dayFor');
+      return null;
+    }
   }
 
   PrayerDay? get today => dayFor(DateTime.now());
@@ -194,7 +235,8 @@ class PrayerTimesService extends ChangeNotifier {
   ({PrayerKind kind, DateTime time})? nextPrayer(DateTime now) {
     if (!hasLocation) return null;
     for (var offset = 0; offset <= 1; offset++) {
-      final day = dayFor(DateTime(now.year, now.month, now.day + offset))!;
+      final day = dayFor(DateTime(now.year, now.month, now.day + offset));
+      if (day == null) continue;
       for (final k in PrayerKind.values) {
         if (!k.isPrayer) continue;
         if (day[k].isAfter(now)) return (kind: k, time: day[k]);
@@ -219,19 +261,30 @@ class PrayerTimesService extends ChangeNotifier {
   /// (~١ كم) قبل الحفظ. لا يغادر الجهاز.
   Future<GpsOutcome> useGps() async {
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) return GpsOutcome.serviceOff;
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        return GpsOutcome.serviceOff;
+      }
       var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
       }
-      if (perm == LocationPermission.deniedForever) return GpsOutcome.deniedForever;
+      if (perm == LocationPermission.deniedForever) {
+        return GpsOutcome.deniedForever;
+      }
       if (perm == LocationPermission.denied) return GpsOutcome.denied;
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.low,
-          timeLimit: Duration(seconds: 20),
-        ),
-      );
+      Position? pos;
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.low,
+            timeLimit: Duration(seconds: 20),
+          ),
+        );
+      } on TimeoutException {
+        // GPS بطيء (داخل مبنى مثلاً): آخر موقع معروف يكفي لحساب المواقيت.
+        pos = await Geolocator.getLastKnownPosition();
+      }
+      if (pos == null) return GpsOutcome.failed;
       _lat = (pos.latitude * 100).round() / 100;
       _lon = (pos.longitude * 100).round() / 100;
       _label = 'موقعك الحالي';
@@ -239,6 +292,8 @@ class PrayerTimesService extends ChangeNotifier {
       if (!_methodManual) _method = defaultMethodFor(_lat!, _lon!);
       await _persist();
       return GpsOutcome.ok;
+    } on TimeoutException {
+      return GpsOutcome.failed;
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'PrayerTimesService.useGps');
       return GpsOutcome.failed;

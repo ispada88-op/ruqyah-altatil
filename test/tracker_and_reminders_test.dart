@@ -123,6 +123,14 @@ void main() {
       expect(daysLabel(2), 'يومان');
       expect(daysLabel(7), '٧ أيام');
       expect(daysLabel(21), '٢١ يوماً');
+      expect(daysLabel(103), '١٠٣ أيام');
+      expect(daysLabel(111), '١١١ يوماً');
+      expect(pagesLabel(1), 'صفحة واحدة');
+      expect(pagesLabel(2), 'صفحتان');
+      expect(pagesLabel(5), '٥ صفحات');
+      expect(pagesLabel(12), '١٢ صفحة');
+      expect(pagesLabel(604), '٦٠٤ صفحات');
+      expect(pagesLabel(100), '١٠٠ صفحة');
     });
   });
 

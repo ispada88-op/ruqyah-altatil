@@ -29,7 +29,8 @@ void main() {
       final d = day(DateTime(2026, 10, 3));
       final t = [for (final k in PrayerKind.values) d[k]];
       for (var i = 1; i < t.length; i++) {
-        expect(t[i].isAfter(t[i - 1]), isTrue, reason: '${PrayerKind.values[i]}');
+        expect(t[i].isAfter(t[i - 1]), isTrue,
+            reason: '${PrayerKind.values[i]}');
       }
       final noonUtc = d[PrayerKind.dhuhr].toUtc();
       final minutes = noonUtc.hour * 60 + noonUtc.minute;
@@ -39,16 +40,21 @@ void main() {
 
     test('Umm al-Qura: Isha = Maghrib + 90 min, +120 in Ramadan', () {
       final normal = day(DateTime(2026, 10, 3));
-      final gap = normal[PrayerKind.isha].difference(normal[PrayerKind.maghrib]).inMinutes;
+      final gap = normal[PrayerKind.isha]
+          .difference(normal[PrayerKind.maghrib])
+          .inMinutes;
       expect(gap, inInclusiveRange(89, 91));
       final ramadan = day(DateTime(2026, 2, 25));
-      final gapR = ramadan[PrayerKind.isha].difference(ramadan[PrayerKind.maghrib]).inMinutes;
+      final gapR = ramadan[PrayerKind.isha]
+          .difference(ramadan[PrayerKind.maghrib])
+          .inMinutes;
       expect(gapR, inInclusiveRange(119, 121));
     });
 
     test('other methods do not get the Ramadan bonus', () {
       final d = day(DateTime(2026, 2, 25), m: PrayerMethod.muslimWorldLeague);
-      final gap = d[PrayerKind.isha].difference(d[PrayerKind.maghrib]).inMinutes;
+      final gap =
+          d[PrayerKind.isha].difference(d[PrayerKind.maghrib]).inMinutes;
       expect(gap, lessThan(110));
     });
 
@@ -77,6 +83,12 @@ void main() {
   test('default method: Umm al-Qura inside Saudi, MWL elsewhere', () {
     expect(defaultMethodFor(24.7, 46.7), PrayerMethod.ummAlQura);
     expect(defaultMethodFor(51.5, -0.1), PrayerMethod.muslimWorldLeague);
+    // الأقرب مدينة ذات طريقة خاصة: الكويت وقطر والإمارات ومصر لا أم القرى/الرابطة.
+    expect(defaultMethodFor(29.4, 47.9), PrayerMethod.kuwait);
+    expect(defaultMethodFor(25.3, 51.5), PrayerMethod.qatar);
+    expect(defaultMethodFor(30.05, 31.25), PrayerMethod.egyptian);
+    // بعيد (> ٣٠٠ كم عن أي مدينة جاهزة) خارج السعودية: رابطة العالم الإسلامي.
+    expect(defaultMethodFor(-33.9, 151.2), PrayerMethod.muslimWorldLeague);
   });
 
   test('city list is sane: valid ids and unique', () {
@@ -112,14 +124,17 @@ void main() {
   });
 
   test('formatCountdown / Friday label', () {
-    expect(formatCountdown(const Duration(hours: 2, minutes: 5, seconds: 3)), '٢:٠٥:٠٣');
+    expect(formatCountdown(const Duration(hours: 2, minutes: 5, seconds: 3)),
+        '٢:٠٥:٠٣');
     expect(formatCountdown(const Duration(seconds: -5)), '٠:٠٠:٠٠');
-    expect(prayerLabelOn(PrayerKind.dhuhr, DateTime(2026, 10, 2)), 'الجمعة'); // جمعة
+    expect(prayerLabelOn(PrayerKind.dhuhr, DateTime(2026, 10, 2)),
+        'الجمعة'); // جمعة
     expect(prayerLabelOn(PrayerKind.dhuhr, DateTime(2026, 10, 3)), 'الظهر');
     expect(prayerLabelOn(PrayerKind.fajr, DateTime(2026, 10, 2)), 'الفجر');
   });
 
-  testWidgets('prayer page shows the six times for a saved location', (t) async {
+  testWidgets('prayer page shows the six times for a saved location',
+      (t) async {
     PrayerTimesService.instance
         .debugSet(lat: 24.7136, lon: 46.6753, label: 'الرياض');
     await t.pumpWidget(const MaterialApp(

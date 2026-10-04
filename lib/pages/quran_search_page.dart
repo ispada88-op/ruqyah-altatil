@@ -38,7 +38,9 @@ class _QuranSearchPageState extends State<QuranSearchPage> {
   void initState() {
     super.initState();
     // ابنِ الفهرس مبكراً حتى لا ينتظر أول بحث.
-    QuranSearchService.instance.index().then<void>((_) {}, onError: (Object _) {});
+    QuranSearchService.instance
+        .index()
+        .then<void>((_) {}, onError: (Object _) {});
     QuranRepository.instance.preload();
   }
 
@@ -74,8 +76,10 @@ class _QuranSearchPageState extends State<QuranSearchPage> {
       final cache = <int, List<String>>{};
       final texts = <String>[];
       for (final v in r.shown) {
-        final s = cache[v.surah] ??= await QuranRepository.instance.surah(v.surah);
-        texts.add(v.ayah <= s.length ? withAyahNumber(s[v.ayah - 1], v.ayah) : '');
+        final s =
+            cache[v.surah] ??= await QuranRepository.instance.surah(v.surah);
+        texts.add(
+            v.ayah <= s.length ? withAyahNumber(s[v.ayah - 1], v.ayah) : '');
       }
       if (!mounted || my != _seq) return;
       setState(() {
@@ -112,7 +116,8 @@ class _QuranSearchPageState extends State<QuranSearchPage> {
       backgroundColor: c.bg,
       body: Column(
         children: [
-          const SectionBackBar(title: 'البحث في القرآن', fallbackRoute: AppRoutes.mushaf),
+          const SectionBackBar(
+              title: 'البحث في القرآن', fallbackRoute: AppRoutes.mushaf),
           Padding(
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.sm),
@@ -123,12 +128,12 @@ class _QuranSearchPageState extends State<QuranSearchPage> {
               onSubmitted: _run,
               decoration: InputDecoration(
                 hintText: 'اكتب كلمة أو أكثر من الآية',
-                prefixIcon: const Icon(Icons.search_rounded),
+                prefixIcon: const Icon(Icons.search_outlined),
                 suffixIcon: _controller.text.isEmpty
                     ? null
                     : IconButton(
                         tooltip: 'مسح',
-                        icon: const Icon(Icons.close_rounded),
+                        icon: const Icon(Icons.close),
                         onPressed: () {
                           _controller.clear();
                           _run('');
@@ -150,8 +155,8 @@ class _QuranSearchPageState extends State<QuranSearchPage> {
                 alignment: AlignmentDirectional.centerStart,
                 child: Text(
                   r.total > r.shown.length
-                      ? '${arDigits(r.total)} آية — أول ${arDigits(r.shown.length)}، ضيّق البحث بكلمة إضافية'
-                      : '${arDigits(r.total)} آية',
+                      ? '${ayatLabel(r.total)}، أول ${arDigits(r.shown.length)} منها. ضيّق البحث بكلمة إضافية.'
+                      : ayatLabel(r.total),
                   style: AppTextStyles.caption(color: c.sub),
                 ),
               ),
@@ -173,20 +178,40 @@ class _QuranSearchPageState extends State<QuranSearchPage> {
   Widget _body(PageColors c, SearchResults? r) {
     if (_failed) {
       return Center(
-          child: Text('تعذّر البحث، أعد المحاولة', style: AppTextStyles.body(color: c.ink)));
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('تعذّر البحث', style: AppTextStyles.body(color: c.ink)),
+            const SizedBox(height: AppSpacing.sm),
+            FilledButton.icon(
+              style: c.filled,
+              icon: const Icon(Icons.refresh),
+              label: const Text('أعد المحاولة'),
+              onPressed: () => _run(_controller.text),
+            ),
+          ],
+        ),
+      );
     }
-    if (_loading && r == null) return const Center(child: CircularProgressIndicator());
+    if (_loading && r == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
     if (r == null) {
       return Center(
         child: Padding(
           padding: AppSpacing.paddingLg,
-          child: Text('يتجاهل البحث التشكيل، ويقبل «الصلاة» و«الصلاه»، و«الله» و«اللّه».',
-              style: AppTextStyles.caption(color: c.sub), textAlign: TextAlign.center),
+          child: Text(
+              'اكتب كلمة أو أكثر من الآية، مثل «آية الكرسي» أو «الصبر». لا يشترط التشكيل ولا همزات الألف.',
+              style: AppTextStyles.caption(color: c.sub),
+              textAlign: TextAlign.center),
         ),
       );
     }
     if (r.total == 0) {
-      return Center(child: Text('لا نتائج', style: AppTextStyles.body(color: c.sub)));
+      return Center(
+          child: Text('لا نتائج. جرّب كلمة أقصر أو إملاءً آخر.',
+              style: AppTextStyles.body(color: c.sub),
+              textAlign: TextAlign.center));
     }
     return ListView.separated(
       padding: AppSpacing.paddingMd,
@@ -202,8 +227,8 @@ class _QuranSearchPageState extends State<QuranSearchPage> {
               Row(children: [
                 Expanded(
                   child: Text(
-                    'سورة ${kSurahs[v.surah - 1].name} · الآية ${arDigits(v.ayah)}',
-                    style: AppTextStyles.caption(color: c.gold),
+                    'سورة ${kSurahs[v.surah - 1].name}، الآية ${arDigits(v.ayah)}',
+                    style: AppTextStyles.caption(color: c.goldText),
                   ),
                 ),
                 IconButton(
@@ -220,7 +245,8 @@ class _QuranSearchPageState extends State<QuranSearchPage> {
                 textDirection: TextDirection.rtl,
                 child: Text(
                   _texts[i],
-                  style: AppTextStyles.mushaf(color: c.ink, fontSize: 22, height: 2.0),
+                  style: AppTextStyles.mushaf(
+                      color: c.ink, fontSize: 22, height: 2.0),
                 ),
               ),
             ],

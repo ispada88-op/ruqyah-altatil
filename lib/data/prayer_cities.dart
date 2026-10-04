@@ -57,7 +57,8 @@ const List<PrayerCity> kPrayerCities = [
   PrayerCity('تونس', 'تونس', 36.8065, 10.1815, 'muslim_world_league'),
   PrayerCity('الجزائر', 'الجزائر', 36.7538, 3.0588, 'muslim_world_league'),
   PrayerCity('الرباط', 'المغرب', 34.0209, -6.8416, 'muslim_world_league'),
-  PrayerCity('الدار البيضاء', 'المغرب', 33.5731, -7.5898, 'muslim_world_league'),
+  PrayerCity(
+      'الدار البيضاء', 'المغرب', 33.5731, -7.5898, 'muslim_world_league'),
   PrayerCity('نواكشوط', 'موريتانيا', 18.0735, -15.9582, 'muslim_world_league'),
   // آسيا وأوروبا وأمريكا
   PrayerCity('إسطنبول', 'تركيا', 41.0082, 28.9784, 'turkey'),

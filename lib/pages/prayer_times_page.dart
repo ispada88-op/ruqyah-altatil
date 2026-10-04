@@ -11,6 +11,8 @@ import 'package:roqia_altatil/services/notification_service.dart';
 import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
+import 'package:roqia_altatil/utils/arabic_search.dart';
+import 'package:roqia_altatil/widgets/app_card.dart';
 import 'package:roqia_altatil/widgets/prayer_reminders_card.dart';
 import 'package:roqia_altatil/widgets/section_back_bar.dart';
 
@@ -24,7 +26,9 @@ String formatCountdown(Duration d) {
 
 /// اسم الوقت مع مراعاة الجمعة (الظهر يوم الجمعة = «الجمعة»).
 String prayerLabelOn(PrayerKind k, DateTime day) =>
-    k == PrayerKind.dhuhr && day.weekday == DateTime.friday ? 'الجمعة' : k.label;
+    k == PrayerKind.dhuhr && day.weekday == DateTime.friday
+        ? 'الجمعة'
+        : k.label;
 
 /// مواقيت الصلاة: حساب فلكي داخل الجهاز (بدون إنترنت) + القبلة + تنبيهات.
 class PrayerTimesPage extends StatefulWidget {
@@ -73,22 +77,23 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
     if (_gpsBusy) return;
     setState(() => _gpsBusy = true);
     final outcome = await _svc.useGps();
+    // أعد الجدولة حتى لو غادر المستخدم الصفحة أثناء انتظار الـGPS.
+    if (outcome == GpsOutcome.ok) await _afterChange();
     if (!mounted) return;
     setState(() => _gpsBusy = false);
-    if (outcome == GpsOutcome.ok) {
-      await _afterChange();
-      return;
-    }
+    if (outcome == GpsOutcome.ok) return;
     final msg = switch (outcome) {
-      GpsOutcome.serviceOff => 'خدمة الموقع مغلقة في جهازك. فعّلها أو اختر مدينتك.',
-      GpsOutcome.denied => 'لم يُمنح إذن الموقع. يمكنك اختيار مدينتك بدلاً منه.',
+      GpsOutcome.serviceOff =>
+        'خدمة الموقع مغلقة في جهازك. فعّلها أو اختر مدينتك.',
+      GpsOutcome.denied =>
+        'لم يُمنح إذن الموقع. يمكنك اختيار مدينتك بدلاً منه.',
       GpsOutcome.deniedForever =>
         'إذن الموقع مرفوض من إعدادات النظام. فعّله من هناك أو اختر مدينتك.',
       _ => 'تعذّر تحديد موقعك الآن. اختر مدينتك أو أعد المحاولة.',
     };
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: AppColors.warning,
+      backgroundColor: AppColors.warningStrong,
       duration: const Duration(seconds: 6),
     ));
   }
@@ -124,7 +129,8 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
-        const SectionBackBar(title: 'مواقيت الصلاة', fallbackRoute: AppRoutes.home),
+        const SectionBackBar(
+            title: 'مواقيت الصلاة', fallbackRoute: AppRoutes.home),
         Expanded(
           child: Scaffold(
             body: !_svc.isLoaded
@@ -156,11 +162,20 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: _openSettings,
-                                icon: const Icon(Icons.tune),
+                                icon: const Icon(Icons.tune_outlined),
                                 label: const Text('الموقع والطريقة'),
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Haptic.light();
+                            context.push(AppRoutes.afterPrayer);
+                          },
+                          icon: const Icon(Icons.menu_book_outlined),
+                          label: const Text('أذكار بعد الصلاة'),
                         ),
                         const SizedBox(height: AppSpacing.md),
                         const PrayerRemindersCard(),
@@ -186,7 +201,8 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
 }
 
 class _SetupCard extends StatelessWidget {
-  const _SetupCard({required this.busy, required this.onGps, required this.onCity});
+  const _SetupCard(
+      {required this.busy, required this.onGps, required this.onCity});
   final bool busy;
   final VoidCallback onGps;
   final VoidCallback onCity;
@@ -215,7 +231,8 @@ class _SetupCard extends StatelessWidget {
           Text('حدّد موقعك لحساب المواقيت',
               textAlign: TextAlign.center,
               style: AppTextStyles.subheader(
-                  color: isDark ? AppColors.textOnDark : AppColors.textPrimary)),
+                  color:
+                      isDark ? AppColors.textOnDark : AppColors.textPrimary)),
           const SizedBox(height: AppSpacing.xs),
           Text(
             'يُحسب الوقت داخل جهازك فقط ولا يُرسل موقعك لأحد. '
@@ -229,22 +246,20 @@ class _SetupCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           FilledButton.icon(
             onPressed: busy ? null : onGps,
-            style: FilledButton.styleFrom(
-                backgroundColor: teal,
-                foregroundColor:
-                    isDark ? const Color(0xFF0B1F1F) : Colors.white),
+            style: PageColors(context).filled,
             icon: busy
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.my_location),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: PageColors(context).onTeal))
+                : const Icon(Icons.my_location_outlined),
             label: const Text('استخدم موقعي'),
           ),
           const SizedBox(height: AppSpacing.sm),
           OutlinedButton.icon(
             onPressed: onCity,
-            icon: const Icon(Icons.location_city),
+            icon: const Icon(Icons.location_city_outlined),
             label: const Text('اختر مدينتي'),
           ),
         ],
@@ -264,39 +279,51 @@ class _NextPrayerHero extends StatelessWidget {
     if (next == null) return const SizedBox.shrink();
     final left = next.time.difference(now);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        gradient: const LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [AppColors.primaryTeal, AppColors.primaryTealDark], // تباين الذهبي والأبيض ≥ ٤٫٥ على كامل التدرج
-        ),
-      ),
-      child: Column(
-        children: [
-          Text('الصلاة القادمة',
-              style: AppTextStyles.caption(color: Colors.white70)),
-          const SizedBox(height: 2),
-          Text(prayerLabelOn(next.kind, next.time),
-              style: AppTextStyles.header(color: Colors.white)
-                  .copyWith(fontSize: 34, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 2),
-          Text(formatTimeAr(next.time.hour, next.time.minute),
-              style: AppTextStyles.subheader(color: AppColors.accentGoldLight)),
-          const SizedBox(height: AppSpacing.sm),
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: Text(formatCountdown(left),
-                style: AppTextStyles.header(color: Colors.white)
-                    .copyWith(fontSize: 26, letterSpacing: 2)),
+        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          gradient: const LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              AppColors.primaryTeal,
+              AppColors.primaryTealDark
+            ], // تباين الذهبي والأبيض ≥ ٤٫٥ على كامل التدرج
           ),
-          const SizedBox(height: 2),
-          Text('متبقٍ على الأذان',
-              style: AppTextStyles.caption(color: Colors.white70)),
-        ],
-      ),
-    );
+        ),
+        // العدّاد يتغيّر كل ثانية: قارئ الشاشة يقرأ الصلاة ووقتها فقط.
+        child: Semantics(
+          container: true,
+          excludeSemantics: true,
+          label:
+              'الصلاة القادمة ${prayerLabelOn(next.kind, next.time)} الساعة ${formatTimeAr(next.time.hour, next.time.minute)}',
+          child: Column(
+            children: [
+              Text('الصلاة القادمة',
+                  style: AppTextStyles.caption(
+                      color: Colors.white.withValues(alpha: 0.92))),
+              const SizedBox(height: 2),
+              Text(prayerLabelOn(next.kind, next.time),
+                  style: AppTextStyles.header(color: Colors.white)
+                      .copyWith(fontSize: 34, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(formatTimeAr(next.time.hour, next.time.minute),
+                  style: AppTextStyles.subheader(
+                      color: AppColors.accentGoldLight)),
+              const SizedBox(height: AppSpacing.sm),
+              Directionality(
+                textDirection: TextDirection.ltr,
+                child: Text(formatCountdown(left),
+                    style: AppTextStyles.header(color: Colors.white)
+                        .copyWith(fontSize: 26, letterSpacing: 2)),
+              ),
+              const SizedBox(height: 2),
+              Text('متبقٍ على دخول الوقت',
+                  style: AppTextStyles.caption(
+                      color: Colors.white.withValues(alpha: 0.92))),
+            ],
+          ),
+        ));
   }
 }
 
@@ -353,9 +380,8 @@ class _TimesCard extends StatelessWidget {
             _TimeRow(
               label: prayerLabelOn(k, now),
               time: day[k],
-              isNext: next != null &&
-                  next.kind == k &&
-                  next.time.day == day[k].day,
+              isNext:
+                  next != null && next.kind == k && next.time.day == day[k].day,
               passed: day[k].isBefore(now),
               dim: !k.isPrayer,
             ),
@@ -411,8 +437,8 @@ class _TimeRow extends StatelessWidget {
                         : (dim ? FontWeight.w400 : FontWeight.w500))),
           ),
           Text(formatTimeAr(time.hour, time.minute),
-              style: AppTextStyles.subheader(color: color)
-                  .copyWith(fontWeight: isNext ? FontWeight.w800 : FontWeight.w600)),
+              style: AppTextStyles.subheader(color: color).copyWith(
+                  fontWeight: isNext ? FontWeight.w800 : FontWeight.w600)),
         ],
       ),
     );
@@ -421,7 +447,9 @@ class _TimeRow extends StatelessWidget {
 
 class _SettingsSheet extends StatefulWidget {
   const _SettingsSheet(
-      {required this.onUseGps, required this.onPickCity, required this.onChanged});
+      {required this.onUseGps,
+      required this.onPickCity,
+      required this.onChanged});
   final Future<void> Function() onUseGps;
   final Future<void> Function() onPickCity;
   final Future<void> Function() onChanged;
@@ -445,7 +473,8 @@ class _SettingsSheetState extends State<_SettingsSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('الموقع', style: AppTextStyles.subheader(color: null)),
+            Text('الموقع',
+                style: AppTextStyles.subheader(color: PageColors(context).ink)),
             const SizedBox(height: 4),
             Text(
               _svc.hasLocation
@@ -462,7 +491,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                       await widget.onUseGps();
                       if (mounted) setState(() {});
                     },
-                    icon: const Icon(Icons.my_location),
+                    icon: const Icon(Icons.my_location_outlined),
                     label: const Text('موقعي'),
                   ),
                 ),
@@ -473,14 +502,15 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                       await widget.onPickCity();
                       if (mounted) setState(() {});
                     },
-                    icon: const Icon(Icons.location_city),
+                    icon: const Icon(Icons.location_city_outlined),
                     label: const Text('مدينة'),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            Text('طريقة الحساب', style: AppTextStyles.subheader(color: null)),
+            Text('طريقة الحساب',
+                style: AppTextStyles.subheader(color: PageColors(context).ink)),
             const SizedBox(height: 4),
             DropdownButtonFormField<PrayerMethod>(
               initialValue: _svc.method,
@@ -497,7 +527,8 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               },
             ),
             const SizedBox(height: AppSpacing.md),
-            Text('وقت العصر', style: AppTextStyles.subheader(color: null)),
+            Text('وقت العصر',
+                style: AppTextStyles.subheader(color: PageColors(context).ink)),
             const SizedBox(height: 4),
             RadioGroup<PrayerMadhab>(
               groupValue: _svc.madhab,
@@ -513,7 +544,9 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                     RadioListTile<PrayerMadhab>(
                       value: m,
                       contentPadding: EdgeInsets.zero,
-                      title: Text(m.label, style: AppTextStyles.body(color: null)),
+                      title: Text(m.label,
+                          style: AppTextStyles.body(
+                              color: PageColors(context).ink)),
                     ),
                 ],
               ),
@@ -537,13 +570,18 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final q = normalizeArabic(_q);
     final cities = [
       for (final c in kPrayerCities)
-        if (_q.isEmpty || c.name.contains(_q) || c.country.contains(_q)) c,
+        if (q.isEmpty ||
+            normalizeArabic(c.name).contains(q) ||
+            normalizeArabic(c.country).contains(q))
+          c,
     ];
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.7,
           child: Column(
@@ -553,7 +591,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
                 child: TextField(
                   autofocus: false,
                   decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: Icon(Icons.search_outlined),
                     hintText: 'ابحث عن مدينة أو دولة',
                     border: OutlineInputBorder(),
                     isDense: true,

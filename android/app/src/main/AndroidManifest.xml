@@ -12,6 +12,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- تنبيه دخول وقت الصلاة في دقيقته (يمنحه المستخدم من إعدادات النظام؛ بدونه تُجدوَل التنبيهات بنافذة تقريبية) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 
     <!-- موقع تقريبي فقط لحساب مواقيت الصلاة واتجاه القبلة (يُحسب داخل الجهاز ولا يُرسل) -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>

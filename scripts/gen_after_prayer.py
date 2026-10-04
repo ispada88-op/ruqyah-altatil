@@ -57,8 +57,7 @@ def dhikr(title, repeat, text, source, note=None):
 body = ''
 body += dhikr('الاستغفار', 3, istighfar, 'رواه مسلم')
 body += dhikr('اللهم أنت السلام', 1, salam, 'رواه مسلم')
-body += dhikr('لا مانع لما أعطيت', 1, clean(items[2]), 'متفق عليه',
-              note='تُقال الجملة الأولى (لا إله إلا الله وحده… قدير) ثلاثاً ثم يُكمل الدعاء')
+body += dhikr('لا مانع لما أعطيت', 1, clean(items[2]), 'متفق عليه')
 body += dhikr('لا حول ولا قوة إلا بالله', 1, clean(items[3]), 'رواه مسلم')
 body += dhikr('التسبيح', 33, tasbih[0], 'رواه مسلم')
 body += dhikr('التحميد', 33, tasbih[1], 'رواه مسلم')
@@ -83,7 +82,7 @@ body += """    GeneralRuqyahItem(
       repeat: 1,
       isQuran: true,
       source: 'رواه أبو داود والنسائي والترمذي',
-      note: 'تُقرأ بعد كل صلاة؛ وتُكرَّر ثلاثاً بعد الفجر والمغرب',
+      note: 'تُقرأ مرة بعد كل صلاة مفروضة، وتُقرأ ثلاثاً ضمن أذكار الصباح والمساء',
       blocks: muawwidhatBlocks,
     ),
 """

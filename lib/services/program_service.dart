@@ -18,7 +18,8 @@ enum ProgramItem {
 }
 
 /// اليوم مكتمل حين تُنجز كل البنود (بند الورد يُحتسب تلقائياً إن أتممت ورد الختمة).
-bool isProgramDayComplete(Set<ProgramItem> done, {bool wirdFromKhatma = false}) {
+bool isProgramDayComplete(Set<ProgramItem> done,
+    {bool wirdFromKhatma = false}) {
   final all = {...done, if (wirdFromKhatma) ProgramItem.wird};
   return ProgramItem.values.every(all.contains);
 }
@@ -76,12 +77,14 @@ class ProgramService extends ChangeNotifier {
     };
   }
 
-  bool wirdFromKhatma() => _khatmaSvc.todayDone;
+  bool wirdFromKhatma([DateTime? now]) =>
+      _khatmaSvc.todayDoneAt(now ?? DateTime.now());
 
   /// بنود اليوم المنجزة فعلياً (يدوياً أو بورد الختمة).
   Set<ProgramItem> effectiveDone(DateTime day) => {
         ...doneOn(day),
-        if (wirdFromKhatma() && dayKey(day) == dayKey(DateTime.now())) ProgramItem.wird,
+        if (wirdFromKhatma() && dayKey(day) == dayKey(DateTime.now()))
+          ProgramItem.wird,
       };
 
   bool isComplete(DateTime day) => isProgramDayComplete(effectiveDone(day));
@@ -106,7 +109,8 @@ class ProgramService extends ChangeNotifier {
   }
 
   void _prune(DateTime today) {
-    final cutoff = dayKey(DateTime(today.year, today.month, today.day - keepDays));
+    final cutoff =
+        dayKey(DateTime(today.year, today.month, today.day - keepDays));
     _entries.removeWhere((e) => e.substring(0, 10).compareTo(cutoff) < 0);
   }
 

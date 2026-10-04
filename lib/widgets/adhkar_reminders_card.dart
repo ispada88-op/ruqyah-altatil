@@ -47,7 +47,7 @@ class _AdhkarRemindersCardState extends State<AdhkarRemindersCard> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('إذن الإشعارات مرفوض من النظام'),
-              backgroundColor: AppColors.warning,
+              backgroundColor: AppColors.warningStrong,
               duration: const Duration(seconds: 6),
               action: SnackBarAction(
                 label: 'فتح الإعدادات',
@@ -121,7 +121,7 @@ class _AdhkarRemindersCardState extends State<AdhkarRemindersCard> {
         children: [
           Row(
             children: [
-              Icon(Icons.wb_twilight_rounded, color: accent, size: 28),
+              Icon(Icons.wb_twilight_outlined, color: accent, size: 28),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
@@ -152,9 +152,7 @@ class _AdhkarRemindersCardState extends State<AdhkarRemindersCard> {
   Widget _row(AdhkarSlot slot, Color accent, Color textColor, Color subColor) {
     final cfg = _cfg[slot]!;
     final morning = slot == AdhkarSlot.morning;
-    final time = MaterialLocalizations.of(context).formatTimeOfDay(
-      TimeOfDay(hour: cfg.hour, minute: cfg.minute),
-    );
+    final time = formatTimeAr(cfg.hour, cfg.minute);
     final hasLoc = PrayerTimesService.instance.hasLocation;
     final byPrayer = cfg.byPrayer && hasLoc;
     final anchor = morning ? 'الفجر' : 'العصر';
@@ -176,10 +174,14 @@ class _AdhkarRemindersCardState extends State<AdhkarRemindersCard> {
             style: TextButton.styleFrom(foregroundColor: accent),
             child: Text(time),
           ),
-        Switch.adaptive(
-          value: cfg.enabled,
-          onChanged: _busy ? null : (v) => _toggle(slot, v),
-          activeThumbColor: accent,
+        Semantics(
+          container: true,
+          label: morning ? 'تفعيل تذكير أذكار الصباح' : 'تفعيل تذكير أذكار المساء',
+          child: Switch.adaptive(
+            value: cfg.enabled,
+            onChanged: _busy ? null : (v) => _toggle(slot, v),
+            activeThumbColor: accent,
+          ),
         ),
       ],
     );
@@ -201,12 +203,16 @@ class _AdhkarRemindersCardState extends State<AdhkarRemindersCard> {
                 child: Text('حسب الصلاة (بعد $anchor)',
                     style: AppTextStyles.caption(color: subColor)),
               ),
-              Switch.adaptive(
-                value: byPrayer,
-                onChanged: (_busy || !cfg.enabled)
-                    ? null
-                    : (v) => _setByPrayer(slot, v),
-                activeThumbColor: accent,
+              Semantics(
+                container: true,
+                label: 'حسب الصلاة (بعد $anchor)',
+                child: Switch.adaptive(
+                  value: byPrayer,
+                  onChanged: (_busy || !cfg.enabled)
+                      ? null
+                      : (v) => _setByPrayer(slot, v),
+                  activeThumbColor: accent,
+                ),
               ),
             ],
           ),

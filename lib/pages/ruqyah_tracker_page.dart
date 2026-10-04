@@ -68,7 +68,10 @@ class _RuqyahTrackerPageState extends State<RuqyahTrackerPage> {
             height: 64,
             child: FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: doneToday ? AppColors.success : teal,
+                backgroundColor: doneToday
+                    ? (isDark ? const Color(0xFF66BB6A) : AppColors.success)
+                    : teal,
+                foregroundColor: isDark ? const Color(0xFF0B1F1F) : Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppRadius.lg)),
               ),
@@ -77,7 +80,7 @@ class _RuqyahTrackerPageState extends State<RuqyahTrackerPage> {
                 _log.toggle(today);
               },
               icon: Icon(
-                  doneToday ? Icons.check_circle : Icons.menu_book_rounded,
+                  doneToday ? Icons.check_circle : Icons.menu_book_outlined,
                   size: 28),
               label: Text(
                 doneToday ? 'تم تسجيل قراءة اليوم ✓' : 'قرأت الرقية اليوم',
@@ -181,7 +184,8 @@ class _RuqyahTrackerPageState extends State<RuqyahTrackerPage> {
               ListTile(
                 dense: true,
                 leading:
-                    const Icon(Icons.check_circle, color: AppColors.success),
+                    Icon(Icons.check_circle,
+                    color: isDark ? const Color(0xFF66BB6A) : AppColors.success),
                 title: Text(formatDateAr(DateTime.parse(key))),
               ),
           ],

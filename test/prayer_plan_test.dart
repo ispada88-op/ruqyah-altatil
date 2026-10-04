@@ -22,17 +22,13 @@ void main() {
       madhab: PrayerMadhab.shafi);
 
   const off = AdhkarReminderConfig(enabled: false, minutes: 360);
-  const all = PrayerReminderConfig(
-      alerts: {
-        PrayerKind.fajr,
-        PrayerKind.dhuhr,
-        PrayerKind.asr,
-        PrayerKind.maghrib,
-        PrayerKind.isha
-      },
-      afterPrayer: true,
-      kahfFriday: true,
-      sleep: true);
+  const all = PrayerReminderConfig(alerts: {
+    PrayerKind.fajr,
+    PrayerKind.dhuhr,
+    PrayerKind.asr,
+    PrayerKind.maghrib,
+    PrayerKind.isha
+  }, afterPrayer: true, kahfFriday: true, sleep: true);
 
   List<PlannedNotification> plan(
           {required tz.TZDateTime now,
@@ -71,7 +67,8 @@ void main() {
     }
     expect(p.every((n) => n.when.isAfter(friday)), isTrue);
     expect(p.map((n) => n.id).toSet().length, p.length);
-    expect(p.every((n) => n.id >= kPrayerIdBase && n.id < kPrayerIdBase + 7 * 16),
+    expect(
+        p.every((n) => n.id >= kPrayerIdBase && n.id < kPrayerIdBase + 7 * 16),
         isTrue);
   });
 
@@ -79,10 +76,13 @@ void main() {
     final noon = dayFor(DateTime(2026, 10, 2))[PrayerKind.dhuhr];
     final now = tz.TZDateTime.fromMillisecondsSinceEpoch(
         riyadh, noon.add(const Duration(minutes: 1)).millisecondsSinceEpoch);
-    final p = plan(now: now, cfg: const PrayerReminderConfig(
-        alerts: {PrayerKind.fajr, PrayerKind.dhuhr}));
+    final p = plan(
+        now: now,
+        cfg: const PrayerReminderConfig(
+            alerts: {PrayerKind.fajr, PrayerKind.dhuhr}));
     expect(p.first.when.isAfter(now), isTrue);
-    expect(p.where((n) => n.when.day == 2 && n.title.contains('الفجر')), isEmpty);
+    expect(
+        p.where((n) => n.when.day == 2 && n.title.contains('الفجر')), isEmpty);
   });
 
   test('Friday: Dhuhr alert is named الجمعة; Kahf only on Fridays', () {
@@ -92,19 +92,20 @@ void main() {
     expect(kahf.when.weekday, DateTime.friday);
     expect(kahf.payload, 'kahf');
     final fri = p.firstWhere((n) =>
-        n.kind == PlannedKind.prayerAlert && n.when.weekday == DateTime.friday &&
+        n.kind == PlannedKind.prayerAlert &&
+        n.when.weekday == DateTime.friday &&
         n.title.contains('الجمعة'));
     expect(fri.title, 'حان وقت صلاة الجمعة');
     final sat = p.firstWhere((n) =>
-        n.kind == PlannedKind.prayerAlert && n.when.weekday == DateTime.saturday &&
+        n.kind == PlannedKind.prayerAlert &&
+        n.when.weekday == DateTime.saturday &&
         n.title.contains('الظهر'));
     expect(sat.title, 'حان وقت صلاة الظهر');
   });
 
   test('after-prayer fires 30 min after each of the five prayers', () {
-    final p = plan(
-        now: friday,
-        cfg: const PrayerReminderConfig(afterPrayer: true));
+    final p =
+        plan(now: friday, cfg: const PrayerReminderConfig(afterPrayer: true));
     final d = dayFor(DateTime(2026, 10, 2));
     final firstDay = p.where((n) => n.when.day == 2).toList();
     expect(firstDay.length, 5);
@@ -116,7 +117,8 @@ void main() {
             .millisecondsSinceEpoch);
   });
 
-  test('by-prayer adhkar: after Fajr / Asr, clamped before Sunrise / Maghrib', () {
+  test('by-prayer adhkar: after Fajr / Asr, clamped before Sunrise / Maghrib',
+      () {
     final d = dayFor(DateTime(2026, 10, 3));
     const huge = AdhkarReminderConfig(
         enabled: true, minutes: 360, byPrayer: true, offsetMin: 180);
@@ -129,10 +131,16 @@ void main() {
         (n) => n.kind == PlannedKind.morningAdhkar && n.when.day == 3);
     final e = p.firstWhere(
         (n) => n.kind == PlannedKind.eveningAdhkar && n.when.day == 3);
-    expect(m.when.millisecondsSinceEpoch,
-        d[PrayerKind.sunrise].subtract(const Duration(minutes: 5)).millisecondsSinceEpoch);
-    expect(e.when.millisecondsSinceEpoch,
-        d[PrayerKind.maghrib].subtract(const Duration(minutes: 5)).millisecondsSinceEpoch);
+    expect(
+        m.when.millisecondsSinceEpoch,
+        d[PrayerKind.sunrise]
+            .subtract(const Duration(minutes: 5))
+            .millisecondsSinceEpoch);
+    expect(
+        e.when.millisecondsSinceEpoch,
+        d[PrayerKind.maghrib]
+            .subtract(const Duration(minutes: 5))
+            .millisecondsSinceEpoch);
     expect(m.payload, 'adhkar:morning');
     expect(e.payload, 'adhkar:evening');
   });
@@ -190,10 +198,13 @@ void main() {
     });
   });
 
-  test('dhikrBudget subtracts prayer notifications and never goes negative', () {
-    expect(NotificationPlan.dhikrBudget(customCount: 0), NotificationService.maxPending - 1);
+  test('dhikrBudget subtracts prayer notifications and never goes negative',
+      () {
+    expect(NotificationPlan.dhikrBudget(customCount: 0),
+        NotificationService.maxPending - 1);
     expect(
-        NotificationPlan.dhikrBudget(customCount: 2, adhkarCount: 14, prayerCount: 20),
+        NotificationPlan.dhikrBudget(
+            customCount: 2, adhkarCount: 14, prayerCount: 20),
         NotificationService.maxPending - 1 - 2 - 14 - 20);
     expect(NotificationPlan.dhikrBudget(customCount: 0, prayerCount: 500), 0);
   });

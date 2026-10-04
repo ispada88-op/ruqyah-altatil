@@ -21,7 +21,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// وعرض ضيّق ٣٢٠ — يلتقط تجاوز الحدود وقيم semantics غير الصالحة.
 Future<void> _font(String family, String path) async {
   final bytes = File(path).readAsBytesSync();
-  final loader = FontLoader(family)..addFont(Future.value(ByteData.view(bytes.buffer)));
+  final loader = FontLoader(family)
+    ..addFont(Future.value(ByteData.view(bytes.buffer)));
   await loader.load();
 }
 
@@ -41,7 +42,11 @@ void main() {
       await _font('MaterialIcons',
           '$flutterRoot/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
     }
-    for (final (v, f) in [('regular', 'Regular'), ('500', 'Medium'), ('700', 'Bold')]) {
+    for (final (v, f) in [
+      ('regular', 'Regular'),
+      ('500', 'Medium'),
+      ('700', 'Bold')
+    ]) {
       await _font('Tajawal_$v', 'assets/google_fonts/Tajawal-$f.ttf');
     }
     await _font('Tajawal_600', 'assets/google_fonts/Tajawal-Bold.ttf');
@@ -52,18 +57,31 @@ void main() {
     await _font('Roboto', 'assets/google_fonts/Tajawal-Regular.ttf');
   }
 
+  // الخدمات المفردة تحفظ future التحميل بين الاختبارات. إن أنشأته صفحة داخل
+  // المنطقة الوهمية (initState) بقي أي await عليه داخل runAsync معلّقاً للأبد
+  // (اختبار «الختمة» بعد «البرنامج» مثلاً)، فننشئه هنا أولاً في المنطقة الحقيقية.
+  Future<void> primeServices(WidgetTester t) async {
+    SharedPreferences.setMockInitialValues({});
+    await t.runAsync(() async {
+      await KhatmaService.instance.ensureLoaded();
+      await BookmarksService.instance.ensureLoaded();
+    });
+  }
+
   // semantics مفعّلة طوال الاختبار ويُنهى مقبضها قبل التحقق الختامي.
   void smoke(String name, Future<void> Function(WidgetTester) body) =>
       testWidgets(name, (t) async {
         final handle = t.ensureSemantics();
         try {
+          await primeServices(t);
           await body(t);
         } finally {
           handle.dispose();
         }
       });
 
-  Future<void> pumpPage(WidgetTester tester, Widget page, {bool dark = false}) async {
+  Future<void> pumpPage(WidgetTester tester, Widget page,
+      {bool dark = false}) async {
     await loadFonts();
     tester.view.physicalSize = const Size(360, 740);
     tester.view.devicePixelRatio = 1;
@@ -71,7 +89,8 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       theme: ThemeData(brightness: dark ? Brightness.dark : Brightness.light),
       builder: (c, child) => MediaQuery(
-        data: MediaQuery.of(c).copyWith(textScaler: const TextScaler.linear(1.3)),
+        data:
+            MediaQuery.of(c).copyWith(textScaler: const TextScaler.linear(1.3)),
         child: Directionality(textDirection: TextDirection.rtl, child: child!),
       ),
       home: page,

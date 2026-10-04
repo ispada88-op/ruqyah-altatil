@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
@@ -5,6 +6,7 @@ import 'package:roqia_altatil/services/notification_service.dart';
 import 'package:roqia_altatil/services/prayer_reminders.dart';
 import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/theme.dart';
+import 'package:roqia_altatil/widgets/app_card.dart';
 
 /// تنبيهات مرتبطة بأوقات الصلاة: تنبيه الأذان، أذكار بعد الصلاة، الكهف يوم
 /// الجمعة، أذكار النوم. كلها معطّلة افتراضياً وتحتاج موقعاً محفوظاً.
@@ -15,9 +17,14 @@ class PrayerRemindersCard extends StatefulWidget {
   State<PrayerRemindersCard> createState() => _PrayerRemindersCardState();
 }
 
-class _PrayerRemindersCardState extends State<PrayerRemindersCard> {
+class _PrayerRemindersCardState extends State<PrayerRemindersCard>
+    with WidgetsBindingObserver {
   PrayerReminderConfig _cfg = const PrayerReminderConfig();
   bool _busy = false;
+
+  /// أندرويد ١٤+: التنبيه الدقيق يحتاج إذناً من المستخدم؛ بدونه قد يتأخر
+  /// تنبيه دخول الوقت حتى ساعة. true افتراضياً (iOS/أقدم) حتى يثبت العكس.
+  bool _exactOk = true;
 
   static const _prayers = [
     PrayerKind.fajr,
@@ -30,7 +37,33 @@ class _PrayerRemindersCardState extends State<PrayerRemindersCard> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+    _checkExact();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // عودة من صفحة إعدادات النظام بعد منح/سحب الإذن.
+    if (state == AppLifecycleState.resumed) _checkExact();
+  }
+
+  Future<void> _checkExact() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    final ok = await NotificationService.instance.exactAlarmsAllowed();
+    if (mounted && ok != _exactOk) {
+      setState(() => _exactOk = ok);
+      // صار الإذن ممنوحاً: أعد الجدولة لتصير التنبيهات دقيقة فوراً.
+      if (ok && _cfg.alerts.isNotEmpty) {
+        NotificationService.instance.reschedule();
+      }
+    }
   }
 
   Future<void> _load() async {
@@ -50,7 +83,7 @@ class _PrayerRemindersCardState extends State<PrayerRemindersCard> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('إذن الإشعارات مرفوض من النظام'),
-              backgroundColor: AppColors.warning,
+              backgroundColor: AppColors.warningStrong,
               duration: const Duration(seconds: 6),
               action: SnackBarAction(
                 label: 'فتح الإعدادات',
@@ -106,18 +139,19 @@ class _PrayerRemindersCardState extends State<PrayerRemindersCard> {
         children: [
           Row(
             children: [
-              Icon(Icons.notifications_active_outlined, color: accent, size: 28),
+              AppIconBadge(Icons.notifications_active_outlined,
+                  color: accent, size: 48),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('تنبيهات الصلاة',
+                    Text('تذكيرات الصلاة',
                         style: AppTextStyles.subheader(color: textColor)),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'تُجدَّد التنبيهات كلما فتحت التطبيق (أسبوع قادم) — افتحه مرة '
-                      'كل بضعة أيام ليستمر وصولها.',
+                      'تُجدَّد التذكيرات كلما فتحت التطبيق (أسبوعاً قادماً)، '
+                      'فافتحه مرة كل بضعة أيام ليستمر وصولها.',
                       style: AppTextStyles.caption(color: subColor),
                     ),
                   ],
@@ -129,13 +163,15 @@ class _PrayerRemindersCardState extends State<PrayerRemindersCard> {
           const Divider(height: 1),
           for (final k in _prayers)
             _row(
-              icon: Icons.volume_up_outlined,
-              title: 'أذان ${k.label}',
+              icon: Icons.notifications_none_outlined,
+              title: 'تنبيه دخول وقت ${k.label}',
               value: _cfg.alerts.contains(k),
               onChanged: (v) => _toggleAlert(k, v),
               accent: accent,
               textColor: textColor,
             ),
+          if (!_exactOk && _cfg.alerts.isNotEmpty)
+            _exactHint(accent, textColor, subColor),
           const Divider(height: 1),
           _row(
             icon: Icons.menu_book_outlined,
@@ -172,6 +208,33 @@ class _PrayerRemindersCardState extends State<PrayerRemindersCard> {
     );
   }
 
+  Widget _exactHint(Color accent, Color textColor, Color subColor) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'لتصل التنبيهات في دقيقة دخول الوقت، اسمح للتطبيق بـ«التنبيهات '
+            'والتذكيرات» في إعدادات النظام. بدونه قد يتأخر التنبيه حتى ساعة.',
+            style: AppTextStyles.caption(color: subColor),
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: () =>
+                  NotificationService.instance.requestExactAlarms().then((ok) {
+                if (mounted) setState(() => _exactOk = ok);
+              }),
+              icon: const Icon(Icons.alarm_on_outlined),
+              label: const Text('السماح بالتنبيه في الدقيقة'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _row({
     required IconData icon,
     required String title,
@@ -182,35 +245,42 @@ class _PrayerRemindersCardState extends State<PrayerRemindersCard> {
     required Color textColor,
     Color? subColor,
   }) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 48),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: accent),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return MergeSemantics(
+        child: InkWell(
+            // الصف كله يبدّل المفتاح، لا المفتاح وحده فقط (هدف لمس أكبر).
+            excludeFromSemantics: true,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            onTap: _busy ? null : () => onChanged(!value),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: Row(
                 children: [
-                  Text(title,
-                      style: AppTextStyles.body(color: textColor)
-                          .copyWith(fontWeight: FontWeight.w500)),
-                  if (subtitle != null)
-                    Text(subtitle,
-                        style: AppTextStyles.caption(color: subColor)),
+                  Icon(icon, size: 20, color: accent),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title,
+                              style: AppTextStyles.body(color: textColor)
+                                  .copyWith(fontWeight: FontWeight.w500)),
+                          if (subtitle != null)
+                            Text(subtitle,
+                                style: AppTextStyles.caption(color: subColor)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Switch.adaptive(
+                    value: value,
+                    onChanged: _busy ? null : onChanged,
+                    activeThumbColor: accent,
+                  ),
                 ],
               ),
-            ),
-          ),
-          Switch.adaptive(
-            value: value,
-            onChanged: _busy ? null : onChanged,
-            activeThumbColor: accent,
-          ),
-        ],
-      ),
-    );
+            )));
   }
 }

@@ -96,7 +96,7 @@ $message
               'لم نجد تطبيق بريد على جهازك — نسخنا رسالتك، '
               'الصقها في أي بريد وأرسلها إلى ${AppLinks.feedbackEmail}',
             ),
-            backgroundColor: AppColors.warning,
+            backgroundColor: AppColors.warningStrong,
             duration: const Duration(seconds: 8),
           ),
         );
@@ -161,7 +161,7 @@ $message
                       ],
                     ),
                     child: const Icon(
-                      Icons.mail_outline,
+                      Icons.mail_outlined,
                       size: 56,
                       color: Colors.white,
                     ),
@@ -211,7 +211,7 @@ $message
                           color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
                         ),
                         prefixIcon: Icon(
-                          Icons.person_outline,
+                          Icons.person_outlined,
                           color: isDark ? AppColors.accentGold : AppColors.primaryTeal,
                         ),
                         border: OutlineInputBorder(
@@ -362,7 +362,7 @@ $message
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.send, size: 24),
+                                const Icon(Icons.send_outlined, size: 24),
                                 const SizedBox(width: 12),
                                 Text(
                                   'إرسال',

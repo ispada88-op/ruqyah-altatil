@@ -13,16 +13,22 @@ class ReleaseEntry {
   /// زر اختياري يأخذ المستخدم للميزة الجديدة.
   final String? ctaLabel;
   final String? ctaRoute;
+  final IconData ctaIcon;
 
-  const ReleaseEntry({required this.highlights, this.ctaLabel, this.ctaRoute});
+  const ReleaseEntry({
+    required this.highlights,
+    this.ctaLabel,
+    this.ctaRoute,
+    this.ctaIcon = Icons.auto_stories_outlined,
+  });
 }
 
 const Map<String, ReleaseEntry> kReleaseNotes = {
   '1.1.0': ReleaseEntry(
     highlights: [
       (
-        Icons.access_time_rounded,
-        'مواقيت الصلاة واتجاه القبلة بحساب داخل جهازك بلا إنترنت، مع تنبيهات اختيارية للأذان'
+        Icons.mosque_outlined,
+        'مواقيت الصلاة واتجاه القبلة بحساب داخل جهازك بلا إنترنت، مع تنبيه اختياري عند دخول كل وقت'
       ),
       (
         Icons.menu_book_outlined,
@@ -33,65 +39,67 @@ const Map<String, ReleaseEntry> kReleaseNotes = {
         'ختمة القرآن بورد يومي يتقدّم بقراءتك، وعلامات مرجعية في المصحف'
       ),
       (
-        Icons.manage_search_rounded,
-        'البحث في آيات القرآن، وبطاقة آية جميلة تشاركها كصورة'
+        Icons.manage_search_outlined,
+        'البحث في آيات القرآن، وبطاقة آية تشاركها كصورة'
       ),
       (
-        Icons.checklist_rounded,
+        Icons.checklist_outlined,
         'برنامج المداومة: مهام يومية قصيرة نحو ٧ أو ٢١ أو ٤٠ يوماً متتالية'
       ),
       (
-        Icons.rule_rounded,
+        Icons.rule_outlined,
         'صفحة «ضوابط الرقية الشرعية»: الشروط والأدلة وما يُحذَّر منه'
       ),
     ],
     ctaLabel: 'افتح مواقيت الصلاة',
     ctaRoute: AppRoutes.prayerTimes,
+    ctaIcon: Icons.mosque_outlined,
   ),
   '1.0.6': ReleaseEntry(
     highlights: [
       (
-        Icons.wb_twilight_rounded,
+        Icons.wb_twilight_outlined,
         'أذكار الصباح والمساء كاملة من حصن المسلم، بعدّاد لكل ذكر'
       ),
       (
-        Icons.auto_stories_rounded,
-        'المصحف الشريف كاملاً كما في مصحف المدينة: ٦٠٤ صفحة بخط ورسم مجمع الملك فهد نفسه، مع فهرس السور والأجزاء ومتابعة آخر قراءة'
+        Icons.auto_stories_outlined,
+        'المصحف الشريف كاملاً كما في مصحف المدينة: ٦٠٤ صفحات بخط ورسم مجمع الملك فهد نفسه، مع فهرس السور والأجزاء ومتابعة آخر قراءة'
       ),
       (
         Icons.alarm_add_outlined,
         'تذكير أذكار الصباح والمساء بوقتك المحلي (يفتح الأذكار بالضغط عليه)، وتذكيراتك الخاصة'
       ),
       (
-        Icons.event_available_rounded,
+        Icons.calendar_month_outlined,
         'متابعة أيام الرقية: سجّل قراءتك اليومية وتابع استمرارك'
       ),
       (
-        Icons.healing_rounded,
+        Icons.healing_outlined,
         'رقى حسب الحالة: السحر، العين والحسد، الهم والحزن'
       ),
       (
-        Icons.label_outline_rounded,
+        Icons.label_outlined,
         'اسم التطبيق صار «الرقية الشاملة» بأيقونة جديدة وقائمة أبسط تبدأ بالمصحف. ورقية التعطيل فيه للشيخ فهد القرني'
       ),
     ],
     ctaLabel: 'افتح أذكار الصباح والمساء',
     ctaRoute: AppRoutes.adhkar,
+    ctaIcon: Icons.wb_twilight_outlined,
   ),
   '1.0.5': ReleaseEntry(highlights: [
     (
-      Icons.schedule_rounded,
+      Icons.schedule_outlined,
       'التذكيرات الآن بتوقيت بلدك أينما كنت، وتذكير الرقية اليومي لا ينقطع حتى لو لم تفتح التطبيق'
     ),
     (
-      Icons.mail_outline_rounded,
+      Icons.mail_outlined,
       'صفحة الاقتراحات: إن لم يوجد تطبيق بريد نحفظ رسالتك وننسخها بدل أن تضيع'
     ),
     (
-      Icons.text_fields_rounded,
+      Icons.text_fields_outlined,
       'خطوط المصحف والتطبيق مضمّنة — تظهر بشكلها الصحيح حتى بدون إنترنت'
     ),
-    (Icons.battery_charging_full_rounded, 'تشغيل صوتي أخف على البطارية'),
+    (Icons.battery_charging_full_outlined, 'تشغيل صوتي أخف على البطارية'),
   ]),
   '1.0.4': ReleaseEntry(
     highlights: [
@@ -100,7 +108,7 @@ const Map<String, ReleaseEntry> kReleaseNotes = {
         'قسم جديد: الرقية المستقلة — الفاتحة والمعوذات وآيات وأدعية الشفاء، بعدّاد تكرار لكل فقرة'
       ),
       (
-        Icons.share_rounded,
+        Icons.share_outlined,
         'إصلاح المشاركة — تعمل الآن بثبات على كل الأجهزة بما فيها iPad'
       ),
       (

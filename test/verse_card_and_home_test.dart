@@ -72,7 +72,8 @@ void main() {
     ));
     await tester.pump();
     final bytes = await tester.runAsync(() async {
-      final box = key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final box =
+          key.currentContext!.findRenderObject() as RenderRepaintBoundary;
       final img = await box.toImage(pixelRatio: 2);
       final data = await img.toByteData(format: ui.ImageByteFormat.png);
       return data!.buffer.asUint8List();
@@ -81,7 +82,8 @@ void main() {
     expect(bytes.length, greaterThan(500));
   });
 
-  testWidgets('invalid surah/ayah shows a message instead of crashing', (tester) async {
+  testWidgets('invalid surah/ayah shows a message instead of crashing',
+      (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Directionality(
           textDirection: TextDirection.rtl,
@@ -89,5 +91,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(find.text('تعذّر تحميل الآية'), findsOneWidget);
+    // مخرج واضح بدل شاشة ميتة.
+    expect(find.text('افتح المصحف'), findsOneWidget);
   });
 }

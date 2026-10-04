@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- الإضافة تشير إلى الأيقونة باسمها نصاً فيحذفها shrinkResources إن لم تُحفظ. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_notify" />

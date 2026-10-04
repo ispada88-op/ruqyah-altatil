@@ -272,7 +272,7 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                       : Icon(
                           svc.isPlaying
                               ? Icons.music_note
-                              : Icons.play_circle_outline,
+                              : Icons.play_circle_outlined,
                           size: 80,
                           color: Colors.white,
                         ),
@@ -327,7 +327,7 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: AppColors.error),
+                      const Icon(Icons.error_outlined, color: AppColors.error),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(

@@ -59,6 +59,8 @@ Future<void> main() async {
         androidNotificationChannelName: 'تشغيل الرقية',
         androidNotificationOngoing: true,
         androidShowNotificationBadge: true,
+        // أيقونة أحادية اللون: أيقونة التطبيق الملوّنة تظهر دائرة فارغة في الإشعار.
+        androidNotificationIcon: 'drawable/ic_stat_notify',
       );
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'JustAudioBackground.init');
@@ -245,7 +247,7 @@ class _RuqyahAppState extends State<RuqyahApp> with WidgetsBindingObserver {
                 color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.spa, size: 50, color: Colors.white),
+              child: const Icon(Icons.auto_stories_outlined, size: 50, color: Colors.white),
             ),
             const SizedBox(height: 24),
             Text(

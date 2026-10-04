@@ -173,6 +173,27 @@ CI/CD:
 `ruqyah://open/<route>` (اختصارات أندرويد). كل مسار قديم/مجهول يمر على
 `AppRoutes.normalize` — المجهول يذهب للرئيسية بدل صفحة خطأ.
 
+## دروس أندرويد/اختبارات (1.1.0) — لا تُكسَر
+
+- **زر الرجوع**: `BackToHomeScope` (في `MainShell`) يرجع للرئيسية بدل إغلاق التطبيق. الـ Navigator الداخلي يرسل
+  `NavigationNotification(canHandlePop:false)` فيُلغي `PopScope` الخارجي، لذا يُعاد إرسال `true`. مغطّى بـ
+  `test/back_to_home_test.dart` — لا تُبسّطه.
+- **R8/Gson**: نسخة release (`minifyEnabled`) تحتاج قواعد `TypeToken` و`flutter_local_notifications.models` في
+  `proguard-rules.pro`، وإلا يرمي `zonedSchedule` «Missing type parameter» بعد ضبط المنبّه (فتنكسر التنبيهات وإعادة
+  الجدولة بعد الإقلاع). **بعد أي تغيير في الإضافات أو proguard: جرّب APK release على جهاز/محاكٍ لا الـ debug.**
+- **تنبيه الصلاة الدقيق**: `SCHEDULE_EXACT_ALARM` في المانيفست؛ أندرويد ١٤+ يمنعه افتراضياً فيتأخر التنبيه حتى ساعة
+  (الصفحة تعرض زر السماح). اختبره بـ `adb shell cmd appops set com.ruqyah.altatil SCHEDULE_EXACT_ALARM allow|deny`
+  و`dumpsys alarm` (الدقيق `window=0`).
+- **أيقونة الإشعار الصغيرة**: `res/drawable/ic_stat_notify.xml` (ألفا فقط) تُحمَّل بالاسم، فيحميها `res/raw/keep.xml`
+  من تقليص الموارد؛ وتُستعمل أيضاً في إشعار الوسائط (`JustAudioBackground.init`).
+- **أيقونات الواجهة**: عائلة `*_outlined` فقط (لا `*_outline` القديمة)، والممتلئة للحالة النشطة/المكتمل فقط؛ `chevron_right`
+  = «التالي» في RTL؛ الأرقام بـ `arDigits`، والمفرد/الجمع بـ `daysLabel`/`pagesLabel`؛ المربعات الأيقونية `AppIconBadge`.
+- **شريط الحالة**: `AppBarTheme.systemOverlayStyle` صريح في `theme.dart` (خلفية شفافة تجعل فلاتر يخمّن أيقونات بيضاء).
+- **اختبارات الودجت والخدمات المفردة**: future التحميل المخزّن في singleton إن أُنشئ داخل المنطقة الوهمية (من `initState`
+  صفحة) يعلّق أي `await` عليه داخل `tester.runAsync` للأبد. هيّئ الخدمات أولاً في المنطقة الحقيقية
+  (`primeServices` في `test/pages_smoke_test.dart`).
+- المستودع **غير مُنسَّق بـ dart format** (الأسلوب القديم): نسّق الملفات الجديدة فقط، ولا تنسّق القديمة دفعة واحدة.
+
 ## Persona for Claude
 
 أنت مساعد لمطور Flutter سعودي يعمل على تطبيق ديني. ردودك:

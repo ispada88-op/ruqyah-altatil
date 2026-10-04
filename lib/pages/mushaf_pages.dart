@@ -110,7 +110,7 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(backgroundColor: teal),
                 onPressed: () => _openPage((_) => _lastPage!),
-                icon: const Icon(Icons.bookmark_rounded),
+                icon: const Icon(Icons.auto_stories_outlined),
                 label: Text('متابعة القراءة — صفحة ${arDigits(_lastPage!)}'),
               ),
             ),
@@ -121,7 +121,7 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
               runSpacing: 4,
               children: [
                 for (final (icon, label, route) in [
-                  (Icons.manage_search_rounded, 'بحث في الآيات', AppRoutes.quranSearch),
+                  (Icons.manage_search_outlined, 'بحث في الآيات', AppRoutes.quranSearch),
                   (Icons.bookmarks_outlined, 'العلامات', AppRoutes.bookmarks),
                   (Icons.flag_outlined, 'الختمة', AppRoutes.khatma),
                 ])
@@ -147,7 +147,7 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
                     textDirection: TextDirection.rtl,
                     decoration: InputDecoration(
                       hintText: 'ابحث باسم السورة أو رقمها',
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon: const Icon(Icons.search_outlined),
                       isDense: true,
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(AppRadius.md)),
@@ -332,7 +332,7 @@ class _MushafReaderPageState extends State<MushafReaderPage> {
               ),
               ListTile(
                 minTileHeight: 56,
-                leading: const Icon(Icons.copy_rounded),
+                leading: const Icon(Icons.content_copy_outlined),
                 title: const Text('نسخ الآية'),
                 onTap: () => Navigator.pop(ctx, 'copy'),
               ),
@@ -388,7 +388,7 @@ class _MushafReaderPageState extends State<MushafReaderPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              Icon(Icons.text_fields, color: gold, size: 20),
+              Icon(Icons.format_size_outlined, color: gold, size: 20),
               Expanded(
                 child: Slider(
                   value: _fontSize,
