@@ -245,6 +245,20 @@ class PrayerTimesService extends ChangeNotifier {
     return null;
   }
 
+  /// آخر صلاة (أذان) حلّ وقتها حتى [now]: اليوم أو أمس. الشروق لا يُحسب.
+  ({PrayerKind kind, DateTime time})? previousPrayer(DateTime now) {
+    if (!hasLocation) return null;
+    for (var offset = 0; offset >= -1; offset--) {
+      final day = dayFor(DateTime(now.year, now.month, now.day + offset));
+      if (day == null) continue;
+      for (final k in PrayerKind.values.reversed) {
+        if (!k.isPrayer) continue;
+        if (!day[k].isAfter(now)) return (kind: k, time: day[k]);
+      }
+    }
+    return null;
+  }
+
   /// اتجاه القبلة من الموقع المحفوظ، أو null بلا موقع.
   double? get qibla => hasLocation ? qiblaBearing(_lat!, _lon!) : null;
 

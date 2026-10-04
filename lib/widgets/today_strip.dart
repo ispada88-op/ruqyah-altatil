@@ -60,6 +60,7 @@ class _TodayStripState extends State<TodayStrip> {
       builder: (context, _) {
         final now = DateTime.now();
         final next = _prayer.hasLocation ? _prayer.nextPrayer(now) : null;
+        final prev = _prayer.hasLocation ? _prayer.previousPrayer(now) : null;
         final k = _khatma;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -72,7 +73,8 @@ class _TodayStripState extends State<TodayStrip> {
                   : 'الصلاة القادمة: ${prayerLabelOn(next.kind, next.time)}',
               sub: next == null
                   ? 'تُحسب داخل جهازك بلا إنترنت'
-                  : '${formatTimeAr(next.time.hour, next.time.minute)}، بعد ${shortLeftAr(next.time.difference(now))}',
+                  : '${formatTimeAr(next.time.hour, next.time.minute)}، بعد ${shortLeftAr(next.time.difference(now))}'
+                      '${prev == null ? '' : '\nمضى ${shortLeftAr(now.difference(prev.time))} على أذان ${prayerLabelOn(prev.kind, prev.time)}'}',
               onTap: () => context.go(AppRoutes.prayerTimes),
             ),
             const SizedBox(height: AppSpacing.sm),

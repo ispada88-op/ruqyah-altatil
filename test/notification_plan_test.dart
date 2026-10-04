@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:roqia_altatil/data/hisn_almuslim_dhikr.dart';
 import 'package:roqia_altatil/services/notification_service.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -68,5 +69,28 @@ void main() {
     // month rollover
     expect(NotificationPlan.nextAt(tz.TZDateTime(loc, 2026, 9, 30, 21), 20),
         tz.TZDateTime(loc, 2026, 10, 1, 20));
+  });
+  group('dhikrPool', () {
+    test('ayah-only: short ayahs and nothing else, at every hour', () {
+      for (final h in [9, 12, 15, 18, 21]) {
+        final pool = NotificationPlan.dhikrPool(hour: h, ayahOnly: true);
+        expect(pool.length, greaterThanOrEqualTo(25), reason: 'enough variety');
+        for (final i in pool) {
+          expect(hisnAlmuslimDhikr[i].category, 'ayah');
+          expect(hisnAlmuslimDhikr[i].title.startsWith('آية — '), isTrue);
+        }
+      }
+    });
+
+    test('mixed: no sleep adhkar before 20:00, allowed from 20:00; ayahs included', () {
+      final day = NotificationPlan.dhikrPool(hour: 9);
+      final night = NotificationPlan.dhikrPool(hour: 21);
+      bool hasSleep(List<int> p) =>
+          p.any((i) => hisnAlmuslimDhikr[i].title.contains('النوم'));
+      expect(hasSleep(day), isFalse);
+      expect(hasSleep(night), isTrue);
+      expect(day.any((i) => hisnAlmuslimDhikr[i].category == 'ayah'), isTrue);
+      expect(night.length, greaterThan(day.length));
+    });
   });
 }

@@ -31,6 +31,7 @@ class NotificationService {
   static const _kEnabledKey = 'notifications_enabled';
   static const _kIntervalKey = 'notifications_interval_hours'; // 3 or 5
   static const _kLastIdxKey = 'last_dhikr_index';
+  static const _kAyahOnlyKey = 'notifications_ayah_only'; // آيات قصيرة فقط
   static const _channelId = 'ruqyah_dhikr_channel';
   static const _channelName = 'تذكير بالأذكار';
 
@@ -99,6 +100,18 @@ class NotificationService {
     if (![3, 5].contains(hours)) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kIntervalKey, hours);
+    if (await isEnabled) await _scheduleAll();
+  }
+
+  /// «آيات فقط»: التذكير الدوري يرسل آية قصيرة في كل مرة بدل خليط الأذكار.
+  Future<bool> get ayahOnly async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kAyahOnlyKey) ?? false;
+  }
+
+  Future<void> setAyahOnly(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kAyahOnlyKey, value);
     if (await isEnabled) await _scheduleAll();
   }
 
@@ -482,13 +495,12 @@ class NotificationService {
             prayerCount: isIos ? prayerCount : 0),
         isQuietHour: _isQuietHour,
       );
+      final ayahOnly = prefs.getBool(_kAyahOnlyKey) ?? false;
       for (final scheduledDate in times) {
         // اختيار ذكر بدون تكرار مباشر. أذكار النوم لا تُرسل قبل الثامنة مساءً
         // (كان تحصين النوم يصل الساعة ٩ صباحاً).
-        final pool = [
-          for (var i = 0; i < hisnAlmuslimDhikr.length; i++)
-            if (scheduledDate.hour >= 20 || !hisnAlmuslimDhikr[i].title.contains('النوم')) i,
-        ];
+        final pool = NotificationPlan.dhikrPool(
+            hour: scheduledDate.hour, ayahOnly: ayahOnly);
         int idx;
         do {
           idx = pool[rng.nextInt(pool.length)];
@@ -559,7 +571,9 @@ class NotificationService {
         ),
         iOS: DarwinNotificationDetails(),
       );
-      final dhikr = hisnAlmuslimDhikr[Random().nextInt(hisnAlmuslimDhikr.length)];
+      final pool = NotificationPlan.dhikrPool(
+          hour: DateTime.now().hour, ayahOnly: await ayahOnly);
+      final dhikr = hisnAlmuslimDhikr[pool[Random().nextInt(pool.length)]];
       await _plugin.show(9999, dhikr.title, dhikr.body, details);
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'showTest');
@@ -605,6 +619,16 @@ class NotificationPlan {
     }
     return out;
   }
+
+  /// فهارس الأذكار المرشَّحة لإشعار الساعة [hour]. «آيات فقط» ⇒ فئة `ayah` وحدها؛
+  /// وإلا كل الأذكار عدا أذكار النوم قبل الثامنة مساءً.
+  static List<int> dhikrPool({required int hour, bool ayahOnly = false}) => [
+        for (var i = 0; i < hisnAlmuslimDhikr.length; i++)
+          if (ayahOnly
+              ? hisnAlmuslimDhikr[i].category == 'ayah'
+              : (hour >= 20 || !hisnAlmuslimDhikr[i].title.contains('النوم')))
+            i,
+      ];
 
   /// أقرب وقت قادم للساعة [hour]:[minute] (اليوم إن لم يمضِ، وإلا غداً).
   static tz.TZDateTime nextAt(tz.TZDateTime now, int hour, {int minute = 0}) {

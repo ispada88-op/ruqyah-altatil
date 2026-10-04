@@ -18,6 +18,7 @@ class NotificationsSettingsCard extends StatefulWidget {
 class _NotificationsSettingsCardState extends State<NotificationsSettingsCard> {
   bool _enabled = false;
   int _intervalHours = 3;
+  bool _ayahOnly = false;
   bool _loading = true;
 
   @override
@@ -29,10 +30,12 @@ class _NotificationsSettingsCardState extends State<NotificationsSettingsCard> {
   Future<void> _loadStatus() async {
     final enabled = await NotificationService.instance.isEnabled;
     final interval = await NotificationService.instance.intervalHours;
+    final ayahOnly = await NotificationService.instance.ayahOnly;
     if (mounted) {
       setState(() {
         _enabled = enabled;
         _intervalHours = interval;
+        _ayahOnly = ayahOnly;
         _loading = false;
       });
     }
@@ -88,6 +91,13 @@ class _NotificationsSettingsCardState extends State<NotificationsSettingsCard> {
     HapticFeedback.selectionClick();
     setState(() => _intervalHours = hours);
     await NotificationService.instance.setIntervalHours(hours);
+  }
+
+  Future<void> _changeContent(bool ayahOnly) async {
+    if (ayahOnly == _ayahOnly) return;
+    HapticFeedback.selectionClick();
+    setState(() => _ayahOnly = ayahOnly);
+    await NotificationService.instance.setAyahOnly(ayahOnly);
   }
 
   @override
@@ -199,6 +209,37 @@ class _NotificationsSettingsCardState extends State<NotificationsSettingsCard> {
                     ? AppColors.textOnDarkSecondary
                     : AppColors.textTertiary,
               ).copyWith(fontSize: 12),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Icon(
+                  Icons.menu_book_outlined,
+                  size: 18,
+                  color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  'محتوى التذكير:',
+                  style: AppTextStyles.body(
+                    color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
+                  ).copyWith(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: false, label: Text('أذكار وآيات')),
+                ButtonSegment(value: true, label: Text('آية قصيرة فقط')),
+              ],
+              selected: {_ayahOnly},
+              onSelectionChanged: (set) => _changeContent(set.first),
+              style: SegmentedButton.styleFrom(
+                selectedBackgroundColor:
+                    isDark ? AppColors.darkTeal : AppColors.primaryTeal,
+                selectedForegroundColor: Colors.white,
+              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             // زر اختبار

@@ -115,10 +115,42 @@ void main() {
       expect(n.time.isAfter(afterIsha), isTrue);
     });
 
+    test('previousPrayer: last adhan so far; sunrise skipped; before Fajr = yesterday Isha',
+        () {
+      final svc = PrayerTimesService.instance
+        ..debugSet(lat: 21.4225, lon: 39.8262, label: 'مكة');
+      final d = svc.dayFor(DateTime(2026, 10, 3))!;
+      const min = Duration(minutes: 1);
+      // بعد الفجر بدقيقة ⇒ الفجر.
+      final afterFajr = d[PrayerKind.fajr].add(min);
+      expect(svc.previousPrayer(afterFajr)!.kind, PrayerKind.fajr);
+      // بعد الشروق وقبل الظهر ⇒ ما زالت «آخر صلاة» الفجر (الشروق ليس صلاة).
+      final afterSunrise = d[PrayerKind.sunrise].add(min);
+      final p = svc.previousPrayer(afterSunrise)!;
+      expect(p.kind, PrayerKind.fajr);
+      expect(afterSunrise.difference(p.time), greaterThan(Duration.zero));
+      // لحظة الأذان نفسها تُحسب (مضى ٠).
+      expect(svc.previousPrayer(d[PrayerKind.dhuhr])!.kind, PrayerKind.dhuhr);
+      // قبل فجر اليوم ⇒ عشاء الأمس.
+      final beforeFajr = d[PrayerKind.fajr].subtract(min);
+      final y = svc.dayFor(DateTime(2026, 10, 2))!;
+      final prev = svc.previousPrayer(beforeFajr)!;
+      expect(prev.kind, PrayerKind.isha);
+      expect(prev.time, y[PrayerKind.isha]);
+      // بعد العشاء ⇒ العشاء.
+      expect(svc.previousPrayer(d[PrayerKind.isha].add(min))!.kind,
+          PrayerKind.isha);
+      // previous < now < next دائماً.
+      final now = d[PrayerKind.asr].add(const Duration(minutes: 20));
+      expect(svc.previousPrayer(now)!.time.isBefore(now), isTrue);
+      expect(svc.nextPrayer(now)!.time.isAfter(now), isTrue);
+    });
+
     test('no location ⇒ no times', () {
       final svc = PrayerTimesService.instance..debugSet();
       expect(svc.hasLocation, isFalse);
       expect(svc.nextPrayer(DateTime.now()), isNull);
+      expect(svc.previousPrayer(DateTime.now()), isNull);
       expect(svc.qibla, isNull);
     });
   });

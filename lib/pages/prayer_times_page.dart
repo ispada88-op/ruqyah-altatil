@@ -278,6 +278,7 @@ class _NextPrayerHero extends StatelessWidget {
     final next = svc.nextPrayer(now);
     if (next == null) return const SizedBox.shrink();
     final left = next.time.difference(now);
+    final prev = svc.previousPrayer(now);
     return Container(
         padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
         decoration: BoxDecoration(
@@ -321,6 +322,20 @@ class _NextPrayerHero extends StatelessWidget {
               Text('متبقٍ على دخول الوقت',
                   style: AppTextStyles.caption(
                       color: Colors.white.withValues(alpha: 0.92))),
+              if (prev != null) ...[
+                Divider(
+                    height: AppSpacing.lg,
+                    color: Colors.white.withValues(alpha: 0.25)),
+                // «مضى ٠:٢٥:١٢ على أذان الظهر» — يتغيّر كل ثانية مثل العدّاد.
+                Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Text(
+                      'مضى ${formatCountdown(now.difference(prev.time))} على أذان ${prayerLabelOn(prev.kind, prev.time)}',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.caption(
+                          color: Colors.white.withValues(alpha: 0.92))),
+                ),
+              ],
             ],
           ),
         ));
