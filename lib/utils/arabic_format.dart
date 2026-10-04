@@ -73,3 +73,13 @@ String ayatLabel(int n) {
   if (m >= 3 && m <= 10) return '${arDigits(n)} آيات';
   return '${arDigits(n)} آية';
 }
+
+/// مدة مختصرة: «١ س ٢٠ د» أو «١٢ د» (أقل من دقيقة: «أقل من دقيقة»).
+/// تُستعمل للمتبقي على الصلاة القادمة وللمنقضي على آخر أذان.
+String shortLeftAr(Duration d) {
+  final mins = d.inMinutes < 0 ? 0 : d.inMinutes;
+  if (mins < 1) return 'أقل من دقيقة';
+  final h = mins ~/ 60, m = mins % 60;
+  if (h == 0) return '${arDigits(m)} د';
+  return m == 0 ? '${arDigits(h)} س' : '${arDigits(h)} س ${arDigits(m)} د';
+}

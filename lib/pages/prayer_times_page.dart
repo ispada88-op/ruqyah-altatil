@@ -326,15 +326,12 @@ class _NextPrayerHero extends StatelessWidget {
                 Divider(
                     height: AppSpacing.lg,
                     color: Colors.white.withValues(alpha: 0.25)),
-                // «مضى ٠:٢٥:١٢ على أذان الظهر» — يتغيّر كل ثانية مثل العدّاد.
-                Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: Text(
-                      'مضى ${formatCountdown(now.difference(prev.time))} على أذان ${prayerLabelOn(prev.kind, prev.time)}',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.caption(
-                          color: Colors.white.withValues(alpha: 0.92))),
-                ),
+                // «مضى ٣ س ٣٢ د على أذان الفجر» — بالدقيقة لتبقى مقروءة (الأصفار الهندية نقاط).
+                Text(
+                    'مضى ${shortLeftAr(now.difference(prev.time))} على أذان ${prayerLabelOn(prev.kind, prev.time)}',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.caption(
+                        color: Colors.white.withValues(alpha: 0.92))),
               ],
             ],
           ),

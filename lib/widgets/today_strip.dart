@@ -10,16 +10,9 @@ import 'package:roqia_altatil/services/khatma_service.dart';
 import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
-import 'package:roqia_altatil/widgets/app_card.dart';
 
-/// «الوقت المتبقي» مختصراً: «١ س ٢٠ د» أو «١٢ د» (أقل من دقيقة: «أقل من دقيقة»).
-String shortLeftAr(Duration d) {
-  final mins = d.inMinutes < 0 ? 0 : d.inMinutes;
-  if (mins < 1) return 'أقل من دقيقة';
-  final h = mins ~/ 60, m = mins % 60;
-  if (h == 0) return '${arDigits(m)} د';
-  return m == 0 ? '${arDigits(h)} س' : '${arDigits(h)} س ${arDigits(m)} د';
-}
+export 'package:roqia_altatil/utils/arabic_format.dart' show shortLeftAr;
+import 'package:roqia_altatil/widgets/app_card.dart';
 
 /// شريط الرئيسية: الصلاة القادمة + ورد الختمة اليوم.
 class TodayStrip extends StatefulWidget {
