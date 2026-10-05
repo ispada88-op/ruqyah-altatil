@@ -14,6 +14,11 @@ class AppIdentity {
   /// عبارة الصدقة الجارية (الرئيسية ونص مشاركة التطبيق).
   static const String sadaqaLine =
       'شارك التطبيق صدقةً جارية عنّي وعن كل من نشره وشاركه';
+
+  /// بطاقة الرئيسية تحت البسملة: اسم التطبيق ثم نسبة رقية التعطيل للشيخ.
+  static const String homeTitle = 'الرقية الشاملة والمصحف';
+  static const String homeTaTilLine = 'ورقية التعطيل عن الشيخ فهد القرني';
+
   static const String taTil = 'رقية التعطيل';
   static const String taTilOwner = 'لفضيلة الشيخ فهد القرني';
 

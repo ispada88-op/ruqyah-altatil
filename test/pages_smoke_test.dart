@@ -157,6 +157,9 @@ void main() {
     expect(find.text('العلامات'), findsOneWidget);
     expect(find.text('البحث'), findsOneWidget);
     expect(find.text(AppIdentity.sadaqaLine), findsOneWidget);
+    // بطاقة البسملة: اسم التطبيق ثم نسبة رقية التعطيل للشيخ.
+    expect(find.text('الرقية الشاملة والمصحف'), findsOneWidget);
+    expect(find.text('ورقية التعطيل عن الشيخ فهد القرني'), findsOneWidget);
   });
 
   smoke('prayer times page', (t) async {

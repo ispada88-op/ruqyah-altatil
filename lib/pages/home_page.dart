@@ -88,16 +88,16 @@ class HomePage extends StatelessWidget {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      // نسبة رقية التعطيل للشيخ — بخط عريض واضح.
+                      // اسم التطبيق ثم نسبة رقية التعطيل للشيخ — بخط عريض واضح.
                       Text(
-                        AppIdentity.taTil,
+                        AppIdentity.homeTitle,
                         style: AppTextStyles.header(
                           color: isDark ? AppColors.accentGold : AppColors.primaryTeal,
                         ).copyWith(fontWeight: FontWeight.w800, fontSize: 24),
                         textAlign: TextAlign.center,
                       ),
                       Text(
-                        AppIdentity.taTilOwner,
+                        AppIdentity.homeTaTilLine,
                         style: AppTextStyles.subheader(
                           color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
                         ).copyWith(fontWeight: FontWeight.w700),
