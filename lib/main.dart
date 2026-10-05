@@ -12,6 +12,7 @@ import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/services/notification_service.dart';
 import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/services/review_service.dart';
+import 'package:roqia_altatil/services/widget_sync_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/nav.dart';
@@ -90,6 +91,9 @@ Future<void> main() async {
     // ignore: discarded_futures
     ReviewService.instance.markSessionStart();
 
+    // ودجت iOS (الصلاة + وردي اليوم): يدفع لقطة المواقيت والختمة عند كل تغيّر.
+    WidgetSyncService.instance.attach();
+
     runApp(RuqyahApp(themeProvider: themeProvider));
 
     // الضغط على إشعار (أذكار الصباح/المساء) يفتح الصفحة المناسبة مباشرة.
@@ -126,6 +130,17 @@ class _RuqyahAppState extends State<RuqyahApp> with WidgetsBindingObserver {
     _checkOnboarding();
     // مزامنة الـ system UI overlay مع الـ theme الحالي
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncSystemUI());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // عند الدخول والخروج: آخر ورد وآخر مواقيت في الودجت (المقارنة تمنع التكرار).
+    if (state == AppLifecycleState.resumed ||
+        state == AppLifecycleState.paused) {
+      // ignore: discarded_futures
+      WidgetSyncService.instance.sync();
+    }
   }
 
   @override

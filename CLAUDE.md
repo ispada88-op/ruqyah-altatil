@@ -185,6 +185,27 @@ CI/CD:
 `ruqyah://open/<route>` (اختصارات أندرويد). كل مسار قديم/مجهول يمر على
 `AppRoutes.normalize` — المجهول يذهب للرئيسية بدل صفحة خطأ.
 
+## ودجت iOS (1.1.0)
+
+- امتداد WidgetKit في `ios/PrayerWidget` (هدف `PrayerWidget`، معرّف `com.ruqyah.altatil.widget`، iOS ≥ 16):
+  «مواقيت الصلاة» (صغير «الحلقة»، متوسط «قوس اليوم»، شاشة القفل دائري/مستطيل/سطر) و«وردي اليوم».
+  يُضمَّن في Runner بمرحلة «Embed Foundation Extensions» **قبل** «Thin Binary» (وإلا خطأ «Cycle inside Runner»).
+- البيانات: Dart يبني لقطة JSON (`lib/services/widget_sync_service.dart`: أمس + اليوم + ٨ أيام من الأوقات بثوانٍ
+  منذ 1970، اسم المدينة **بلا إحداثيات**، وورد الختمة) ← قناة `com.ruqyah.altatil/widget` في AppDelegate ←
+  Keychain مشترك (`ios/Shared/WidgetStore.swift`، مجموعة `$(AppIdentifierPrefix)com.ruqyah.altatil.shared` في
+  `Runner.entitlements` و`PrayerWidget.entitlements`) ← الودجت يقرأ فقط. اخترنا Keychain Sharing بدل App Groups
+  لأنه لا يحتاج تسجيلاً في حساب المطوّر (ملف التوقيع الافتراضي يغطي `TEAMID.*`)؛ التحويل لـApp Groups لاحقاً = تغيير
+  `WidgetStore` فقط.
+- ترتيب `PrayerKind` عقد مع `PrayerSlot` في Swift، وشكل اللقطة عقد مع `ios/PrayerWidget/Tests/snapshot_sample.json`
+  (اختبار Dart + `Tests/main.swift` يعمل في `ios-compile.yml`). غيّر الاثنين معاً.
+- `ios-compile.yml` (push على `feat/**`): يبني الهدف للمحاكي بلا توقيع ويشغّل فحص العقد بـswiftc في ~٣ دقائق — راجعه
+  قبل أي إصدار يمس `ios/`. ملف `project.pbxproj` عُدّل يدوياً (بلا gem xcodeproj)؛ هدف جديد = نفس الأسلوب أو من Xcode.
+- `ios-release.yml` يجلب ملفي توقيع (التطبيق + الودجت). إن لم يُنشئ `fetch-signing-files` معرّف الودجت تلقائياً:
+  سجّل `com.ruqyah.altatil.widget` يدوياً في developer.apple.com → Identifiers (بلا أي capability).
+- روابط الودجت: `ruqyah://open/prayer-times` و`/mushaf/page/N` و`/khatma` (`CFBundleURLTypes` في Info.plist).
+- ألوان الودجت في `WTheme` نسخة من `AppColors` (التيل #006B6B/#004B4B، الذهبي #D4AF37/#E5C158، الكريمي #F5F5DC)
+  وخط Tajawal منسوخ في `ios/PrayerWidget/Fonts` (رخصة OFL).
+
 ## دروس أندرويد/اختبارات (1.1.0) — لا تُكسَر
 
 - **زر الرجوع**: `BackToHomeScope` (في `MainShell`) يرجع للرئيسية بدل إغلاق التطبيق. الـ Navigator الداخلي يرسل
