@@ -8,6 +8,8 @@ struct WidgetSnapshot: Codable {
     var city: String
     var days: [DayTimes]
     var wird: WirdInfo?
+    /// برنامج المداومة اليومي — غائب في لقطات الإصدارات الأقدم.
+    var program: ProgramInfo?
 }
 
 /// أوقات يوم واحد: الفجر، الشروق، الظهر، العصر، المغرب، العشاء (ثوانٍ منذ 1970).
@@ -28,6 +30,17 @@ struct WirdInfo: Codable {
     var prog: Double
     var left: Int
     var fin: Int
+}
+
+/// بنود المداومة المنجزة اليوم + سلسلة أيام الرقية (lib/services/widget_sync_service.dart).
+struct ProgramInfo: Codable {
+    var day: String
+    /// معرّفات البنود المنجزة اليوم (ProgramSlot.rawValue).
+    var done: [String]
+    var streak: Int
+    var goal: Int
+    /// هل سُجّل اليوم في سجل الرقية (يحدّد بقاء السلسلة بعد منتصف الليل).
+    var logged: Bool
 }
 
 enum SnapshotLoader {
@@ -188,4 +201,67 @@ func daysText(_ n: Int) -> String {
     if n == 2 { return "يومان" }
     if n >= 3 && n <= 10 { return "\(ar(n)) أيام" }
     return "\(ar(n)) يوماً"
+}
+
+// MARK: - المداومة
+
+/// بنود برنامج المداومة — الترتيب والمعرّفات مطابقة لـ ProgramItem في Dart (يثبّته اختبار).
+enum ProgramSlot: String, CaseIterable {
+    case morning, ruqyah, wird, evening, sleep
+
+    var label: String {
+        switch self {
+        case .morning: return "الصباح"
+        case .ruqyah: return "الرقية"
+        case .wird: return "الورد"
+        case .evening: return "المساء"
+        case .sleep: return "النوم"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .morning: return "sun.max.fill"
+        case .ruqyah: return "headphones"
+        case .wird: return "book.fill"
+        case .evening: return "sunset.fill"
+        case .sleep: return "moon.stars.fill"
+        }
+    }
+}
+
+struct ProgramToday {
+    let done: Set<ProgramSlot>
+    let streak: Int
+    let goal: Int
+    /// اللقطة من يوم سابق: لم تُنجز بنود اليوم الجديد بعد (الإنجاز لا يتم إلا داخل التطبيق).
+    let isNewDay: Bool
+
+    var count: Int { return done.count }
+    var total: Int { return ProgramSlot.allCases.count }
+    var fraction: Double { return Double(count) / Double(total) }
+    var isComplete: Bool { return count == total }
+}
+
+enum ProgramState {
+    /// لا لقطة مداومة (التطبيق لم يُفتح بعد بهذا الإصدار).
+    case unknown
+    case today(ProgramToday)
+
+    static func resolve(snapshot: WidgetSnapshot?, at date: Date) -> ProgramState {
+        guard let p = snapshot?.program else { return .unknown }
+        if p.day == dayKey(date) {
+            let done = Set(p.done.compactMap { ProgramSlot(rawValue: $0) })
+            return .today(ProgramToday(done: done, streak: p.streak, goal: p.goal, isNewDay: false))
+        }
+        // يوم جديد: لا بنود منجزة بعد. السلسلة تبقى فقط إن كان أمس مسجّلاً.
+        var streak = 0
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone.current
+        if p.logged, let yesterday = cal.date(byAdding: .day, value: -1, to: date),
+           p.day == dayKey(yesterday) {
+            streak = p.streak
+        }
+        return .today(ProgramToday(done: [], streak: streak, goal: p.goal, isNewDay: true))
+    }
 }

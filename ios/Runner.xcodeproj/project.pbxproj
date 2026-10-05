@@ -21,6 +21,9 @@
 		5E0D0000A1B2C3D4E5F60102 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0D0000A1B2C3D4E5F60003 /* WidgetSnapshot.swift */; };
 		5E0D0000A1B2C3D4E5F60103 /* PrayerWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0D0000A1B2C3D4E5F60004 /* PrayerWidget.swift */; };
 		5E0D0000A1B2C3D4E5F60104 /* WirdWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0D0000A1B2C3D4E5F60005 /* WirdWidget.swift */; };
+		5E0D0000A1B2C3D4E5F60120 /* AdhkarNow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0D0000A1B2C3D4E5F60020 /* AdhkarNow.swift */; };
+		5E0D0000A1B2C3D4E5F60121 /* AdhkarNowWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0D0000A1B2C3D4E5F60021 /* AdhkarNowWidget.swift */; };
+		5E0D0000A1B2C3D4E5F60122 /* ProgramWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0D0000A1B2C3D4E5F60022 /* ProgramWidget.swift */; };
 		5E0D0000A1B2C3D4E5F60105 /* WidgetTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0D0000A1B2C3D4E5F60006 /* WidgetTheme.swift */; };
 		5E0D0000A1B2C3D4E5F60106 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0D0000A1B2C3D4E5F60007 /* WidgetStore.swift */; };
 		5E0D0000A1B2C3D4E5F60107 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0D0000A1B2C3D4E5F60007 /* WidgetStore.swift */; };
@@ -104,6 +107,9 @@
 		5E0D0000A1B2C3D4E5F60003 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		5E0D0000A1B2C3D4E5F60004 /* PrayerWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrayerWidget.swift; sourceTree = "<group>"; };
 		5E0D0000A1B2C3D4E5F60005 /* WirdWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WirdWidget.swift; sourceTree = "<group>"; };
+		5E0D0000A1B2C3D4E5F60020 /* AdhkarNow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdhkarNow.swift; sourceTree = "<group>"; };
+		5E0D0000A1B2C3D4E5F60021 /* AdhkarNowWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdhkarNowWidget.swift; sourceTree = "<group>"; };
+		5E0D0000A1B2C3D4E5F60022 /* ProgramWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramWidget.swift; sourceTree = "<group>"; };
 		5E0D0000A1B2C3D4E5F60006 /* WidgetTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetTheme.swift; sourceTree = "<group>"; };
 		5E0D0000A1B2C3D4E5F60007 /* WidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
 		5E0D0000A1B2C3D4E5F60008 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -239,6 +245,9 @@
 				5E0D0000A1B2C3D4E5F60003 /* WidgetSnapshot.swift */,
 				5E0D0000A1B2C3D4E5F60004 /* PrayerWidget.swift */,
 				5E0D0000A1B2C3D4E5F60005 /* WirdWidget.swift */,
+				5E0D0000A1B2C3D4E5F60020 /* AdhkarNow.swift */,
+				5E0D0000A1B2C3D4E5F60021 /* AdhkarNowWidget.swift */,
+				5E0D0000A1B2C3D4E5F60022 /* ProgramWidget.swift */,
 				5E0D0000A1B2C3D4E5F60006 /* WidgetTheme.swift */,
 				5E0D0000A1B2C3D4E5F6000C /* Tajawal-Regular.ttf */,
 				5E0D0000A1B2C3D4E5F6000D /* Tajawal-Medium.ttf */,
@@ -520,6 +529,9 @@
 				5E0D0000A1B2C3D4E5F60102 /* WidgetSnapshot.swift in Sources */,
 				5E0D0000A1B2C3D4E5F60103 /* PrayerWidget.swift in Sources */,
 				5E0D0000A1B2C3D4E5F60104 /* WirdWidget.swift in Sources */,
+				5E0D0000A1B2C3D4E5F60120 /* AdhkarNow.swift in Sources */,
+				5E0D0000A1B2C3D4E5F60121 /* AdhkarNowWidget.swift in Sources */,
+				5E0D0000A1B2C3D4E5F60122 /* ProgramWidget.swift in Sources */,
 				5E0D0000A1B2C3D4E5F60105 /* WidgetTheme.swift in Sources */,
 				5E0D0000A1B2C3D4E5F60106 /* WidgetStore.swift in Sources */,
 			);

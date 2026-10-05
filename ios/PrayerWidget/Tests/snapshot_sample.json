@@ -49,5 +49,15 @@
   "prog": 0.2,
   "left": 24,
   "fin": 0
+ },
+ "program": {
+  "day": "2026-10-05",
+  "done": [
+   "morning",
+   "wird"
+  ],
+  "streak": 6,
+  "goal": 21,
+  "logged": false
  }
 }

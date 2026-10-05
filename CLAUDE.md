@@ -188,8 +188,11 @@ CI/CD:
 ## ودجت iOS (1.1.0)
 
 - امتداد WidgetKit في `ios/PrayerWidget` (هدف `PrayerWidget`، معرّف `com.ruqyah.altatil.widget`، iOS ≥ 16):
-  «مواقيت الصلاة» (صغير «الحلقة»، متوسط «قوس اليوم»، شاشة القفل دائري/مستطيل/سطر) و«وردي اليوم».
-  يُضمَّن في Runner بمرحلة «Embed Foundation Extensions» **قبل** «Thin Binary» (وإلا خطأ «Cycle inside Runner»).
+  أربعة ودجتات في `RuqyahWidgets`: «مواقيت الصلاة» (صغير «الحلقة»، متوسط «قوس اليوم»، شاشة القفل دائري/مستطيل/سطر)،
+  «أذكار الآن» (`AdhkarNow.swift` منطق نقي من أوقات الصلاة: بعد الصلاة ٤٥ د، الصباح/المساء/النوم، الكهف الجمعة)،
+  «وردي اليوم»، «المداومة» (`ProgramWidget.swift`: بنود اليوم + السلسلة من كتلة `program` في اللقطة).
+  كل ملف Swift جديد يلزم تسجيله في `project.pbxproj` (هدف `PrayerWidget` — Sources) وفي أمر swiftc في `ios-compile.yml` إن كان
+  منطقاً نقياً. يُضمَّن في Runner بمرحلة «Embed Foundation Extensions» **قبل** «Thin Binary» (وإلا خطأ «Cycle inside Runner»).
 - البيانات: Dart يبني لقطة JSON (`lib/services/widget_sync_service.dart`: أمس + اليوم + ٨ أيام من الأوقات بثوانٍ
   منذ 1970، اسم المدينة **بلا إحداثيات**، وورد الختمة) ← قناة `com.ruqyah.altatil/widget` في AppDelegate ←
   Keychain مشترك (`ios/Shared/WidgetStore.swift`، مجموعة `$(AppIdentifierPrefix)com.ruqyah.altatil.shared` في
@@ -202,7 +205,12 @@ CI/CD:
   قبل أي إصدار يمس `ios/`. ملف `project.pbxproj` عُدّل يدوياً (بلا gem xcodeproj)؛ هدف جديد = نفس الأسلوب أو من Xcode.
 - `ios-release.yml` يجلب ملفي توقيع (التطبيق + الودجت). إن لم يُنشئ `fetch-signing-files` معرّف الودجت تلقائياً:
   سجّل `com.ruqyah.altatil.widget` يدوياً في developer.apple.com → Identifiers (بلا أي capability).
-- روابط الودجت: `ruqyah://open/prayer-times` و`/mushaf/page/N` و`/khatma` (`CFBundleURLTypes` في Info.plist).
+- كتلة `program` في اللقطة (إضافية، الإصدار ما زال 1): `day, done[ids], streak, goal, logged`؛ معرّفات البنود = `ProgramItem.id`
+  = `ProgramSlot.rawValue` في Swift (ترتيبها يثبّته `test/widget_sync_test.dart`). الودجت لا يحسب إنجازاً جديداً بعد منتصف
+  الليل: اليوم الجديد فارغ، والسلسلة تبقى فقط إن كان أمس مسجّلاً (`logged`).
+- روابط الودجت: `ruqyah://open/prayer-times` و`/mushaf/page/N` و`/khatma` و`/program` و`/after-prayer` و`/adhkar?time=…` و`/tahseen`
+  و`/dhikr` (`CFBundleURLTypes` في Info.plist) — يتحقق الاختبار أن كل مسار في `AdhkarNow.swift` مسار حقيقي في `AppRoutes`.
+- نصوص الودجت الشرعية (عناوين أذكار الآن وأوصافها في `AdhkarNow.swift`) يراجعها خالد مع كل إصدار كباقي المحتوى الشرعي.
 - ألوان الودجت في `WTheme` نسخة من `AppColors` (التيل #006B6B/#004B4B، الذهبي #D4AF37/#E5C158، الكريمي #F5F5DC)
   وخط Tajawal منسوخ في `ios/PrayerWidget/Fonts` (رخصة OFL).
 

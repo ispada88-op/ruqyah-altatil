@@ -2,8 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/khatma_service.dart';
+import 'package:roqia_altatil/services/prayer_notification_plan.dart';
 import 'package:roqia_altatil/services/prayer_times_service.dart';
+import 'package:roqia_altatil/services/program_service.dart';
+import 'package:roqia_altatil/services/ruqyah_log_service.dart';
 import 'package:roqia_altatil/services/widget_sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -29,6 +33,39 @@ void main() {
         File('ios/PrayerWidget/WidgetSnapshot.swift').readAsStringSync();
     expect(
         swift, contains('case fajr = 0, sunrise, dhuhr, asr, maghrib, isha'));
+  });
+
+  test('program slots are the contract with the Swift widget', () {
+    // ios/PrayerWidget/WidgetSnapshot.swift: enum ProgramSlot (الترتيب والمعرّفات).
+    final names = ProgramItem.values.map((i) => i.name).toList();
+    expect(ProgramItem.values.map((i) => i.id).toList(), names);
+    final swift =
+        File('ios/PrayerWidget/WidgetSnapshot.swift').readAsStringSync();
+    expect(swift, contains('case ${names.join(', ')}'));
+  });
+
+  test('adhkar-now links are real routes and Swift mirrors the Dart offsets',
+      () {
+    final swift = File('ios/PrayerWidget/AdhkarNow.swift').readAsStringSync();
+    for (final route in [
+      AppRoutes.afterPrayer,
+      '${AppRoutes.adhkar}?time=morning',
+      '${AppRoutes.adhkar}?time=evening',
+      AppRoutes.tahseen,
+      AppRoutes.dhikr,
+      AppRoutes.mushafPage(AppRoutes.kKahfPage),
+    ]) {
+      expect(swift, contains('route: "$route"'), reason: route);
+      expect(AppRoutes.normalize(Uri.parse(route).path), isNull,
+          reason: '$route must be canonical');
+    }
+    expect(swift, contains('sleepOffsetMinutes = $kSleepOffsetMin.0'));
+    final program =
+        File('ios/PrayerWidget/ProgramWidget.swift').readAsStringSync();
+    expect(program, contains('ruqyah://open${AppRoutes.program}'));
+    final adhkarNow =
+        File('ios/PrayerWidget/AdhkarNowWidget.swift').readAsStringSync();
+    expect(adhkarNow, contains('ruqyah://open${AppRoutes.prayerTimes}'));
   });
 
   test('payload: yesterday + today + 8 days, six increasing epoch times each',
@@ -70,11 +107,16 @@ void main() {
             .readAsStringSync()) as Map<String, dynamic>;
     final k = KhatmaService.test();
     await k.start(30, now: now);
+    final log = RuqyahLogService.test();
+    final program = ProgramService.test(log: log, khatma: k);
+    await program.toggle(ProgramItem.morning, now: now);
     final built = jsonDecode(jsonEncode(buildWidgetPayload(
         now: now,
         city: 'أبها',
         dayFor: _abha,
-        khatma: k))) as Map<String, dynamic>;
+        khatma: k,
+        program: program,
+        log: log))) as Map<String, dynamic>;
 
     String shape(Object? v) => switch (v) {
           Map<String, dynamic> m =>
@@ -149,13 +191,61 @@ void main() {
     expect(w['left'], 28);
   });
 
+  test('program payload follows the day and the khatma', () async {
+    final k = KhatmaService.test();
+    final log = RuqyahLogService.test();
+    final program = ProgramService.test(log: log, khatma: k);
+    Map<String, dynamic> payload() =>
+        programPayload(program: program, log: log, khatma: k, now: now);
+
+    expect(payload(), {
+      'day': '2026-10-05',
+      'done': <String>[],
+      'streak': 0,
+      'goal': 7,
+      'logged': false,
+    });
+
+    // البنود بترتيب ProgramItem لا ترتيب الإنجاز.
+    await program.toggle(ProgramItem.sleep, now: now);
+    await program.toggle(ProgramItem.morning, now: now);
+    expect(payload()['done'], ['morning', 'sleep']);
+
+    // إتمام ورد الختمة يُحتسب «الورد» من تلقاء نفسه.
+    await k.start(30, now: now);
+    await k.completeToday(now: now);
+    expect(payload()['done'], ['morning', 'wird', 'sleep']);
+
+    // اكتمال البنود الخمسة يسجّل اليوم في سجل الرقية فتبدأ السلسلة.
+    await program.toggle(ProgramItem.wird, now: now);
+    await program.toggle(ProgramItem.ruqyah, now: now);
+    await program.toggle(ProgramItem.evening, now: now);
+    final p = payload();
+    expect(p['done'], ['morning', 'ruqyah', 'wird', 'evening', 'sleep']);
+    expect(p['logged'], true);
+    expect(p['streak'], 1);
+
+    // اليوم التالي: لا بنود منجزة، والسلسلة تبقى لأن أمس مسجّل.
+    final tomorrow = now.add(const Duration(days: 1));
+    final next =
+        programPayload(program: program, log: log, khatma: k, now: tomorrow);
+    expect(next['day'], '2026-10-06');
+    expect(next['done'], isNot(contains('morning')));
+    expect(next['logged'], false);
+    expect(next['streak'], 1);
+  });
+
   group('WidgetSyncService', () {
     late List<String> sent;
     late KhatmaService k;
+    late RuqyahLogService log;
+    late ProgramService program;
 
     setUp(() {
       sent = [];
       k = KhatmaService.test();
+      log = RuqyahLogService.test();
+      program = ProgramService.test(log: log, khatma: k);
       PrayerTimesService.instance
           .debugSet(lat: 18.22, lon: 42.5, label: 'أبها');
     });
@@ -169,6 +259,8 @@ void main() {
           },
           enabled: enabled,
           khatma: k,
+          program: program,
+          log: log,
         );
 
     test('sends once, then only when something changed', () async {
@@ -189,12 +281,18 @@ void main() {
       expect(sent.length, 2);
       expect((jsonDecode(sent.last) as Map)['wird']['on'], true);
 
+      // إنجاز بند في المداومة → إرسال جديد يحمل البند.
+      await program.toggle(ProgramItem.morning, now: now);
+      await s.sync(now: now);
+      expect(sent.length, 3);
+      expect((jsonDecode(sent.last) as Map)['program']['done'], ['morning']);
+
       // اليوم التالي → أيام مختلفة → إرسال.
       await s.sync(now: now.add(const Duration(days: 1)));
-      expect(sent.length, 3);
+      expect(sent.length, 4);
 
       await s.sync(now: now.add(const Duration(days: 1)), force: true);
-      expect(sent.length, 4);
+      expect(sent.length, 5);
     });
 
     test('disabled platforms never send', () async {
@@ -212,6 +310,8 @@ void main() {
           return true;
         },
         khatma: k,
+        program: program,
+        log: log,
       );
       await s.sync(now: now); // لا يرمي
       expect(sent, isEmpty);
@@ -228,6 +328,8 @@ void main() {
           return ok;
         },
         khatma: k,
+        program: program,
+        log: log,
       );
       await s.sync(now: now);
       ok = true;

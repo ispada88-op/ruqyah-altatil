@@ -6,6 +6,8 @@ import WidgetKit
 struct RuqyahWidgets: WidgetBundle {
     var body: some Widget {
         PrayerWidget()
+        AdhkarNowWidget()
         WirdWidget()
+        ProgramWidget()
     }
 }

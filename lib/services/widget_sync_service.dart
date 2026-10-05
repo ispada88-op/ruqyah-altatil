@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'error_reporter.dart';
 import 'khatma_service.dart';
 import 'prayer_times_service.dart';
+import 'program_service.dart';
+import 'ruqyah_log_service.dart';
 
 /// نسخة صيغة اللقطة — يقرؤها الودجت (ios/PrayerWidget/WidgetSnapshot.swift).
 const int kWidgetSnapshotVersion = 1;
@@ -34,7 +36,31 @@ Map<String, dynamic> wirdPayload(KhatmaService k, DateTime now) => {
       'fin': k.completedCount,
     };
 
-/// لقطة الودجت: أوقات الصلاة لعدة أيام (ثوانٍ منذ 1970) + ورد الختمة.
+/// بنود المداومة المنجزة اليوم (بما فيها الورد المحسوب من الختمة) + سلسلة الرقية.
+/// معرّفات البنود = [ProgramItem.id] — يقابلها enum ProgramSlot في Swift (يثبّته اختبار).
+Map<String, dynamic> programPayload({
+  required ProgramService program,
+  required RuqyahLogService log,
+  required KhatmaService khatma,
+  required DateTime now,
+}) {
+  final done = {
+    ...program.doneOn(now),
+    if (khatma.todayDoneAt(now)) ProgramItem.wird,
+  };
+  return {
+    'day': khatmaDayKey(now),
+    'done': [
+      for (final i in ProgramItem.values)
+        if (done.contains(i)) i.id,
+    ],
+    'streak': log.streak(now),
+    'goal': log.goal,
+    'logged': log.isDone(now),
+  };
+}
+
+/// لقطة الودجت: أوقات الصلاة لعدة أيام (ثوانٍ منذ 1970) + ورد الختمة + المداومة.
 ///
 /// ترتيب الأوقات الستة في كل يوم = ترتيب [PrayerKind]: الفجر، الشروق، الظهر،
 /// العصر، المغرب، العشاء (يثبّته اختبار — Swift يعتمد عليه). لا إحداثيات هنا
@@ -44,6 +70,8 @@ Map<String, dynamic> buildWidgetPayload({
   required String city,
   required PrayerDay? Function(DateTime date) dayFor,
   required KhatmaService khatma,
+  ProgramService? program,
+  RuqyahLogService? log,
 }) {
   final days = <Map<String, dynamic>>[];
   for (var off = -kWidgetDaysBefore; off <= kWidgetDaysAhead; off++) {
@@ -61,6 +89,9 @@ Map<String, dynamic> buildWidgetPayload({
     'city': city,
     'days': days,
     'wird': wirdPayload(khatma, now),
+    if (program != null && log != null)
+      'program':
+          programPayload(program: program, log: log, khatma: khatma, now: now),
   };
 }
 
@@ -71,6 +102,8 @@ class WidgetSyncService {
       : _send = _channelSend,
         _enabled = _onIos,
         _khatma = KhatmaService.instance,
+        _program = ProgramService.instance,
+        _log = RuqyahLogService.instance,
         _debounce = const Duration(seconds: 2);
 
   static final WidgetSyncService instance = WidgetSyncService._();
@@ -80,10 +113,14 @@ class WidgetSyncService {
     required Future<bool> Function(String json) send,
     bool enabled = true,
     KhatmaService? khatma,
+    ProgramService? program,
+    RuqyahLogService? log,
     Duration debounce = Duration.zero,
   })  : _send = send,
         _enabled = (() => enabled),
         _khatma = khatma ?? KhatmaService.instance,
+        _program = program ?? ProgramService.instance,
+        _log = log ?? RuqyahLogService.instance,
         _debounce = debounce;
 
   static const MethodChannel _channel =
@@ -98,6 +135,8 @@ class WidgetSyncService {
   final Future<bool> Function(String json) _send;
   final bool Function() _enabled;
   final KhatmaService _khatma;
+  final ProgramService _program;
+  final RuqyahLogService _log;
   final Duration _debounce;
 
   Timer? _timer;
@@ -111,6 +150,8 @@ class WidgetSyncService {
     _attached = true;
     PrayerTimesService.instance.addListener(_schedule);
     _khatma.addListener(_schedule);
+    _program.addListener(_schedule);
+    _log.addListener(_schedule);
     _schedule();
   }
 
@@ -121,6 +162,8 @@ class WidgetSyncService {
     _attached = false;
     PrayerTimesService.instance.removeListener(_schedule);
     _khatma.removeListener(_schedule);
+    _program.removeListener(_schedule);
+    _log.removeListener(_schedule);
     _timer?.cancel();
   }
 
@@ -146,12 +189,16 @@ class WidgetSyncService {
     try {
       await _khatma.ensureLoaded();
       _khatma.refresh(now);
+      await _program.ensureLoaded();
+      if (!_log.isLoaded) await _log.load();
       final prayers = PrayerTimesService.instance;
       final payload = buildWidgetPayload(
         now: now,
         city: prayers.label,
         dayFor: prayers.dayFor,
         khatma: _khatma,
+        program: _program,
+        log: _log,
       );
       // «gen» يتغيّر كل مرة: لا يدخل في المقارنة.
       final key = jsonEncode(Map<String, dynamic>.of(payload)..remove('gen'));

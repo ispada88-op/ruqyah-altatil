@@ -60,6 +60,7 @@ jobs:
         run: |
           swiftc ios/Shared/WidgetStore.swift \
                  ios/PrayerWidget/WidgetSnapshot.swift \
+                 ios/PrayerWidget/AdhkarNow.swift \
                  ios/PrayerWidget/Tests/main.swift \
                  -o "$RUNNER_TEMP/contract"
           TZ=Asia/Riyadh "$RUNNER_TEMP/contract" ios/PrayerWidget/Tests/snapshot_sample.json
