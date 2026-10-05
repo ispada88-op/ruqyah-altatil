@@ -27,7 +27,7 @@ class RuqyahRulesPage extends StatelessWidget {
       body: Column(
         children: [
           const SectionBackBar(
-              title: 'ضوابط الرقية الشرعية', fallbackRoute: AppRoutes.home),
+              title: 'ضوابط الرقية الشرعية', fallbackRoute: AppRoutes.ruqyahHub),
           Expanded(
             child: ListView(
               padding: AppSpacing.paddingMd,

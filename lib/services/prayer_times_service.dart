@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/prayer_cities.dart';
+import '../data/saudi_places.dart';
 import '../utils/hijri.dart';
 import 'error_reporter.dart';
 
@@ -149,6 +150,34 @@ PrayerMethod defaultMethodFor(double lat, double lon) {
   return inSaudi ? PrayerMethod.ummAlQura : PrayerMethod.muslimWorldLeague;
 }
 
+/// نص الموقع حين لا تُعرف مدينة قريبة.
+const String kUnknownPlaceLabel = 'موقعك الحالي';
+
+/// أقرب مدينة تُعدّ «مدينتك» (كم)، وبعدها حتى [_kNearKm] يُكتب «قرب …».
+const double _kInCityKm = 40;
+const double _kNearKm = 90;
+
+final List<PrayerCity> _kAllPlaces = [...kPrayerCities, ...kSaudiPlaces];
+
+/// اسم المدينة لإحداثيات GPS: أقرب مدينة معروفة ضمن ٤٠ كم، وإلا «قرب X» ضمن
+/// ٩٠ كم، وإلا «موقعك الحالي». المطابقة محلية على الجهاز (لا خدمة ترجمة عناوين
+/// خارجية) حتى لا يغادر الموقع الجهاز أبداً، كما في سياسة الخصوصية.
+String placeLabelFor(double lat, double lon) {
+  PrayerCity? best;
+  var bestKm = double.infinity;
+  for (final c in _kAllPlaces) {
+    final d = _distanceKm(lat, lon, c.lat, c.lon);
+    if (d < bestKm) {
+      bestKm = d;
+      best = c;
+    }
+  }
+  if (best == null || bestKm > _kNearKm) return kUnknownPlaceLabel;
+  final name =
+      best.country == 'السعودية' ? best.name : '${best.name}، ${best.country}';
+  return bestKm <= _kInCityKm ? name : 'قرب $name';
+}
+
 enum GpsOutcome { ok, serviceOff, denied, deniedForever, failed }
 
 /// إعدادات المواقيت المحفوظة على الجهاز فقط — لا شيء يُرسل لأي خادم.
@@ -197,6 +226,11 @@ class PrayerTimesService extends ChangeNotifier {
         'city' => PrayerLocationSource.city,
         _ => null,
       };
+      // من حُفظ موقعه قبل ظهور اسم المدينة ما زال عنده «موقعك الحالي»: نحسبه
+      // من الإحداثيات المحفوظة (محلياً) دون طلب GPS جديد.
+      if (_source == PrayerLocationSource.gps && hasLocation) {
+        _label = placeLabelFor(_lat!, _lon!);
+      }
       _method =
           PrayerMethod.byId(p.getString(_kMethod)) ?? PrayerMethod.ummAlQura;
       _methodManual = p.getBool(_kMethodManual) ?? false;
@@ -301,7 +335,7 @@ class PrayerTimesService extends ChangeNotifier {
       if (pos == null) return GpsOutcome.failed;
       _lat = (pos.latitude * 100).round() / 100;
       _lon = (pos.longitude * 100).round() / 100;
-      _label = 'موقعك الحالي';
+      _label = placeLabelFor(_lat!, _lon!);
       _source = PrayerLocationSource.gps;
       if (!_methodManual) _method = defaultMethodFor(_lat!, _lon!);
       await _persist();

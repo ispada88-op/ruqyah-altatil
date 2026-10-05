@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/data/prayer_cities.dart';
+import 'package:roqia_altatil/data/saudi_places.dart';
 import 'package:roqia_altatil/pages/prayer_times_page.dart';
 import 'package:roqia_altatil/pages/qibla_page.dart';
 import 'package:roqia_altatil/services/prayer_times_service.dart';
@@ -100,6 +102,47 @@ void main() {
     }
   });
 
+  group('placeLabelFor (اسم المدينة من GPS، محلياً)', () {
+    test('Saudi cities by coordinates', () {
+      expect(placeLabelFor(18.22, 42.51), 'أبها');
+      expect(placeLabelFor(24.71, 46.68), 'الرياض');
+      expect(placeLabelFor(21.49, 39.19), 'جدة');
+      expect(placeLabelFor(26.57, 50.00), 'القطيف'); // لا الدمام
+      expect(placeLabelFor(19.13, 41.08), 'القنفذة');
+      expect(placeLabelFor(28.43, 45.97), 'حفر الباطن');
+    });
+
+    test('outside Saudi shows the country; far away falls back', () {
+      expect(placeLabelFor(25.20, 55.27), 'دبي، الإمارات');
+      expect(placeLabelFor(-33.9, 151.2), kUnknownPlaceLabel);
+    });
+
+    test('between cities says «قرب» the nearest one', () {
+      // ~٦٠ كم شمال حائل، ولا مدينة أقرب.
+      expect(placeLabelFor(28.06, 41.72), 'قرب حائل');
+    });
+
+    test('every known place resolves to itself (no shadowed duplicates)', () {
+      for (final c in [...kPrayerCities, ...kSaudiPlaces]) {
+        final want =
+            c.country == 'السعودية' ? c.name : '${c.name}، ${c.country}';
+        expect(placeLabelFor(c.lat, c.lon), want, reason: c.id);
+      }
+    });
+
+    test('extra Saudi places are sane and not repeated from the picker list',
+        () {
+      final ids = {for (final c in kPrayerCities) c.id};
+      for (final c in kSaudiPlaces) {
+        expect(PrayerMethod.byId(c.method), isNotNull, reason: c.name);
+        expect(c.country, 'السعودية', reason: c.name);
+        expect(c.lat >= 16 && c.lat <= 32.2, isTrue, reason: c.name);
+        expect(c.lon >= 34.5 && c.lon <= 55.7, isTrue, reason: c.name);
+        expect(ids.add(c.id), isTrue, reason: 'duplicate ${c.id}');
+      }
+    });
+  });
+
   group('service', () {
     test('nextPrayer skips sunrise and rolls to tomorrow after Isha', () {
       final svc = PrayerTimesService.instance
@@ -144,6 +187,28 @@ void main() {
       final now = d[PrayerKind.asr].add(const Duration(minutes: 20));
       expect(svc.previousPrayer(now)!.time.isBefore(now), isTrue);
       expect(svc.nextPrayer(now)!.time.isAfter(now), isTrue);
+    });
+
+    test('load(): old «موقعك الحالي» label is replaced by the city name',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        'prayer_lat': 18.22,
+        'prayer_lon': 42.51,
+        'prayer_label': kUnknownPlaceLabel,
+        'prayer_source': 'gps',
+      });
+      final svc = PrayerTimesService.instance;
+      await svc.load();
+      expect(svc.label, 'أبها');
+      // المدينة المختارة يدوياً لا يمسّها الحساب.
+      SharedPreferences.setMockInitialValues({
+        'prayer_lat': 18.22,
+        'prayer_lon': 42.51,
+        'prayer_label': 'مكة المكرمة',
+        'prayer_source': 'city',
+      });
+      await svc.load();
+      expect(svc.label, 'مكة المكرمة');
     });
 
     test('no location ⇒ no times', () {

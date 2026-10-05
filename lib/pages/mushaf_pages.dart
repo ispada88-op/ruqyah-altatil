@@ -114,26 +114,38 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
                 label: Text('متابعة القراءة — صفحة ${arDigits(_lastPage!)}'),
               ),
             ),
+          // ما يخصّ المصحف: ثلاث بلاطات متساوية (الختمة، العلامات، البحث).
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 4,
+            child: Row(
               children: [
-                for (final (icon, label, route) in [
-                  (Icons.manage_search_outlined, 'بحث في الآيات', AppRoutes.quranSearch),
-                  (Icons.bookmarks_outlined, 'العلامات', AppRoutes.bookmarks),
+                for (final (i, (icon, label, route)) in [
                   (Icons.flag_outlined, 'الختمة', AppRoutes.khatma),
-                ])
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(foregroundColor: teal),
-                    onPressed: () {
-                      Haptic.light();
-                      context.push(route);
-                    },
-                    icon: Icon(icon, size: 20),
-                    label: Text(label),
+                  (Icons.bookmarks_outlined, 'العلامات', AppRoutes.bookmarks),
+                  (Icons.manage_search_outlined, 'البحث', AppRoutes.quranSearch),
+                ].indexed) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: teal,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                      onPressed: () {
+                        Haptic.light();
+                        context.push(route);
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, size: 22),
+                          const SizedBox(height: 4),
+                          Text(label, maxLines: 1),
+                        ],
+                      ),
+                    ),
                   ),
+                ],
               ],
             ),
           ),

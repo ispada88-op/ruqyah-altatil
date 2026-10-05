@@ -95,7 +95,7 @@ class _ProgramPageState extends State<ProgramPage> {
       body: Column(
         children: [
           const SectionBackBar(
-              title: 'برنامج المداومة', fallbackRoute: AppRoutes.home),
+              title: 'برنامج المداومة', fallbackRoute: AppRoutes.ruqyahHub),
           Expanded(
             child: ListenableBuilder(
               listenable: _all,

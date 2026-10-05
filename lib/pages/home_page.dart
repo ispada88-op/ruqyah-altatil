@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/data/quran_quotes.dart';
@@ -14,9 +13,8 @@ import 'package:roqia_altatil/services/haptic.dart';
 import 'package:roqia_altatil/services/share_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/config/app_identity.dart';
-import 'package:roqia_altatil/widgets/adhkar_reminders_card.dart';
 import 'package:roqia_altatil/widgets/app_card.dart';
-import 'package:roqia_altatil/widgets/notifications_settings_card.dart';
+import 'package:roqia_altatil/widgets/menu_group.dart';
 import 'package:roqia_altatil/widgets/quran_text.dart';
 import 'package:roqia_altatil/widgets/today_strip.dart';
 
@@ -111,158 +109,36 @@ class HomePage extends StatelessWidget {
 
                 const SizedBox(height: AppSpacing.xl),
 
-                // ٢) ثم الباقي في مجموعات قصيرة وواضحة.
-                _MenuGroup(
-                  title: 'الرقية',
+                // ٢) الأقسام: كل قسم قائمة قائمة بذاتها (المصحف في البطاقة أعلاه).
+                const MenuGroup(
+                  title: 'الأقسام',
                   rows: [
-                    _MenuRow(
-                      title: 'رقية التعطيل — صوتية',
-                      subtitle: '${AppIdentity.taTilOwner} • بأصوات مشايخ مختارين',
-                      icon: Icons.headphones_outlined,
-                      route: AppRoutes.audioRoqia,
-                    ),
-                    _MenuRow(
-                      title: 'رقية التعطيل — مكتوبة',
-                      subtitle: '${AppIdentity.taTilOwner} • اقرأها بخط واضح',
-                      icon: Icons.text_snippet_outlined,
-                      route: AppRoutes.writtenRoqia,
-                    ),
-                    _MenuRow(
-                      title: 'الرقية المستقلة',
-                      subtitle: 'الفاتحة والمعوذات وآيات وأدعية بعدد التكرار',
-                      iconWidget: _RuqyahBadge(),
-                      route: AppRoutes.generalRuqyah,
-                    ),
-                    _MenuRow(
-                      title: 'رقى حسب الحالة',
-                      subtitle: 'السحر • العين والحسد • الهم والحزن',
+                    MenuRow(
+                      title: 'الرقية',
+                      subtitle: 'رقية التعطيل • الرقية المستقلة • رقى حسب الحالة',
                       icon: Icons.healing_outlined,
-                      route: AppRoutes.ruqyahTypes,
+                      route: AppRoutes.ruqyahHub,
                     ),
-                    _MenuRow(
-                      title: 'ضوابط الرقية الشرعية',
-                      subtitle: 'الشروط والأدلة وما يُحذَّر منه',
-                      icon: Icons.rule_outlined,
-                      route: AppRoutes.ruqyahRules,
+                    MenuRow(
+                      title: 'الأذكار',
+                      subtitle: 'حصن المسلم • التحصين • التسبيح • التذكيرات',
+                      icon: Icons.wb_twilight_outlined,
+                      route: AppRoutes.adhkarHub,
                     ),
-                  ],
-                ).animate().fadeIn(delay: 180.ms, duration: 500.ms),
-
-                const SizedBox(height: AppSpacing.md),
-
-                _MenuGroup(
-                  title: 'الصلاة والقرآن',
-                  rows: [
-                    _MenuRow(
-                      title: 'مواقيت الصلاة',
-                      subtitle: 'تعمل بدون إنترنت، مع تذكيرات اختيارية',
+                    MenuRow(
+                      title: 'الصلاة',
+                      subtitle: 'المواقيت • القبلة • أذكار بعد الصلاة',
                       icon: Icons.mosque_outlined,
                       route: AppRoutes.prayerTimes,
                     ),
-                    _MenuRow(
-                      title: 'اتجاه القبلة',
-                      subtitle: 'بوصلة تدلّك على الكعبة',
-                      icon: Icons.explore_outlined,
-                      route: AppRoutes.qibla,
-                    ),
-                    _MenuRow(
-                      title: 'ختمة القرآن',
-                      subtitle: 'ورد يومي بمدة تختارها',
-                      icon: Icons.flag_outlined,
-                      route: AppRoutes.khatma,
-                    ),
-                    _MenuRow(
-                      title: 'البحث في القرآن',
-                      subtitle: 'ابحث بكلمة من الآية',
-                      icon: Icons.manage_search_outlined,
-                      route: AppRoutes.quranSearch,
-                    ),
-                    _MenuRow(
-                      title: 'العلامات المرجعية',
-                      subtitle: 'صفحات حفظتها في المصحف',
-                      icon: Icons.bookmarks_outlined,
-                      route: AppRoutes.bookmarks,
-                    ),
                   ],
-                ).animate().fadeIn(delay: 210.ms, duration: 500.ms),
-
-                const SizedBox(height: AppSpacing.md),
-
-                _MenuGroup(
-                  title: 'الأذكار',
-                  rows: [
-                    _MenuRow(
-                      title: 'أذكار الصباح والمساء',
-                      subtitle: 'كاملة من حصن المسلم بعدّاد لكل ذكر',
-                      icon: Icons.wb_twilight_outlined,
-                      route: AppRoutes.adhkar,
-                    ),
-                    _MenuRow(
-                      title: 'أذكار بعد الصلاة',
-                      subtitle: 'بعد السلام من كل فريضة من حصن المسلم',
-                      icon: Icons.menu_book_outlined,
-                      route: AppRoutes.afterPrayer,
-                    ),
-                    _MenuRow(
-                      title: 'الأذكار اليومية',
-                      subtitle: 'عداد التسبيح والأدعية المأثورة',
-                      icon: Icons.touch_app_outlined,
-                      route: AppRoutes.dhikr,
-                    ),
-                    _MenuRow(
-                      title: 'أذكار التحصين',
-                      subtitle: 'أذكار مأثورة بمصادرها للحفظ بإذن الله',
-                      icon: Icons.shield_moon_outlined,
-                      route: AppRoutes.tahseen,
-                    ),
-                  ],
-                ).animate().fadeIn(delay: 240.ms, duration: 500.ms),
-
-                const SizedBox(height: AppSpacing.md),
-
-                _MenuGroup(
-                  title: 'المزيد',
-                  rows: [
-                    _MenuRow(
-                      title: 'برنامج المداومة',
-                      subtitle: 'مهام يومية نحو ٧ أو ٢١ أو ٤٠ يوماً',
-                      icon: Icons.checklist_outlined,
-                      route: AppRoutes.program,
-                    ),
-                    _MenuRow(
-                      title: 'متابعة أيام الرقية',
-                      subtitle: 'سجّل قراءتك اليومية وتابع استمرارك',
-                      icon: Icons.calendar_month_outlined,
-                      route: AppRoutes.tracker,
-                    ),
-                    _MenuRow(
-                      title: 'اقتراحات',
-                      subtitle: 'اكتب لنا رأيك أو ملاحظتك',
-                      icon: Icons.feedback_outlined,
-                      route: AppRoutes.feedback,
-                    ),
-                    const _MenuRow(
-                      title: 'شارك التطبيق',
-                      subtitle: 'الدال على الخير كفاعله',
-                      icon: Icons.share_outlined,
-                      shareApp: true,
-                    ),
-                  ],
-                ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
+                ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
 
                 const SizedBox(height: AppSpacing.lg),
 
-                const AdhkarRemindersCard()
+                const _SadaqaCard()
                     .animate()
-                    .fadeIn(delay: 390.ms, duration: 600.ms)
-                    .slideX(begin: -0.1, end: 0),
-
-                const SizedBox(height: AppSpacing.lg),
-
-                const NotificationsSettingsCard()
-                    .animate()
-                    .fadeIn(delay: 400.ms, duration: 600.ms)
-                    .slideX(begin: -0.1, end: 0),
+                    .fadeIn(delay: 300.ms, duration: 600.ms),
 
                 const SizedBox(height: AppSpacing.lg),
 
@@ -464,6 +340,32 @@ class _MushafHeroState extends State<_MushafHero> {
                       ],
                     ],
                   ),
+                  const SizedBox(height: AppSpacing.sm),
+                  // ما يخصّ المصحف: الختمة والعلامات والبحث.
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xs,
+                    children: [
+                      for (final (icon, label, route) in [
+                        (Icons.flag_outlined, 'الختمة', AppRoutes.khatma),
+                        (Icons.bookmarks_outlined, 'العلامات', AppRoutes.bookmarks),
+                        (Icons.manage_search_outlined, 'البحث', AppRoutes.quranSearch),
+                      ])
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          onPressed: () {
+                            Haptic.light();
+                            context.go(route);
+                          },
+                          icon: Icon(icon, size: 20),
+                          label: Text(label,
+                              style: AppTextStyles.button(color: Colors.white)),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -474,161 +376,68 @@ class _MushafHeroState extends State<_MushafHero> {
   }
 }
 
-/// مجموعة صفوف بعنوان صغير: حاوية واحدة بخلفية موحّدة وفواصل رفيعة.
-class _MenuGroup extends StatelessWidget {
-  final String title;
-  final List<_MenuRow> rows;
-  const _MenuGroup({required this.title, required this.rows});
+/// «شارك التطبيق صدقة جارية»: عبارة الصدقة الجارية + زرّا المشاركة والاقتراحات.
+class _SadaqaCard extends StatelessWidget {
+  const _SadaqaCard();
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final teal = isDark ? AppColors.darkTeal : AppColors.primaryTeal;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 0, 4, AppSpacing.sm),
-          child: Text(
-            title,
-            style: AppTextStyles.subheader(color: teal)
-                .copyWith(fontWeight: FontWeight.w800),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSecondary : Colors.white,
-            borderRadius: BorderRadius.circular(AppRadius.xl),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.07),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
+    final c = PageColors(context);
+    return Container(
+      padding: AppSpacing.paddingLg,
+      decoration: BoxDecoration(
+        color: c.isDark
+            ? AppColors.darkSecondary.withValues(alpha: 0.6)
+            : Colors.white.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (var i = 0; i < rows.length; i++) ...[
-                if (i > 0)
-                  Divider(
-                    height: 1,
-                    indent: 72,
-                    color: (isDark ? Colors.white : Colors.black)
-                        .withValues(alpha: 0.08),
-                  ),
-                rows[i],
-              ],
+              Icon(Icons.volunteer_activism_outlined, color: c.gold, size: 26),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  AppIdentity.sadaqaLine,
+                  style: AppTextStyles.subheader(color: c.ink)
+                      .copyWith(fontWeight: FontWeight.w700, height: 1.6),
+                ),
+              ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-}
-
-/// صف واحد: أيقونة، عنوان، سطر وصف، سهم. يفتح [route] أو يشارك التطبيق.
-class _MenuRow extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData? icon;
-  final Widget? iconWidget;
-  final String? route;
-  final bool shareApp;
-
-  const _MenuRow({
-    required this.title,
-    required this.subtitle,
-    this.icon,
-    this.iconWidget,
-    this.route,
-    this.shareApp = false,
-  }) : assert(icon != null || iconWidget != null);
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final teal = isDark ? AppColors.darkTeal : AppColors.primaryTeal;
-    return InkWell(
-      onTap: () {
-        Haptic.light();
-        if (shareApp) {
-          ShareService.shareApp(context);
-        } else if (route != null) {
-          context.go(route!);
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            if (iconWidget != null)
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: teal.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
-                  child: DefaultTextStyle.merge(
-                    style: TextStyle(color: teal),
-                    child: iconWidget!,
-                  ),
-                ),
-              )
-            else
-              AppIconBadge(icon!),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTextStyles.body(
-                      color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
-                    ).copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: AppTextStyles.caption(
-                      color: isDark
-                          ? AppColors.textOnDarkSecondary
-                          : AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+          const SizedBox(height: AppSpacing.xs),
+          Text('الدال على الخير كفاعله',
+              style: AppTextStyles.caption(color: c.sub)),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              FilledButton.icon(
+                style: c.filled,
+                onPressed: () {
+                  Haptic.light();
+                  ShareService.shareApp(context);
+                },
+                icon: const Icon(Icons.share_outlined, size: 20),
+                label: const Text('شارك التطبيق'),
               ),
-            ),
-            // «التالي» في الواجهة العربية يتجه يساراً؛ chevron_right يعكسه الإطار
-            // تلقائياً في RTL (arrow_back_ios_new كان يشير لليمين = للخلف).
-            Icon(Icons.chevron_right, size: 24, color: teal.withValues(alpha: 0.8)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// شارة قسم «الرقية المستقلة»: أيقونة مكتوب فيها «رقية» بخط أميري.
-class _RuqyahBadge extends StatelessWidget {
-  const _RuqyahBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    final color = DefaultTextStyle.of(context).style.color;
-    return Center(
-      child: Text(
-        'رقية',
-        style: GoogleFonts.amiri(
-          fontSize: 17,
-          fontWeight: FontWeight.bold,
-          color: color,
-          height: 1.1,
-        ),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(foregroundColor: c.teal),
+                onPressed: () {
+                  Haptic.light();
+                  context.go(AppRoutes.feedback);
+                },
+                icon: const Icon(Icons.feedback_outlined, size: 20),
+                label: const Text('اقتراحات'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

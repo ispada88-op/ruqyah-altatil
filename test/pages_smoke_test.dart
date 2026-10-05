@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/pages/after_prayer_page.dart';
 import 'package:roqia_altatil/pages/bookmarks_page.dart';
 import 'package:roqia_altatil/pages/home_page.dart';
@@ -11,6 +12,7 @@ import 'package:roqia_altatil/pages/khatma_page.dart';
 import 'package:roqia_altatil/pages/prayer_times_page.dart';
 import 'package:roqia_altatil/pages/program_page.dart';
 import 'package:roqia_altatil/pages/quran_search_page.dart';
+import 'package:roqia_altatil/pages/section_hubs.dart';
 import 'package:roqia_altatil/pages/ruqyah_rules_page.dart';
 import 'package:roqia_altatil/services/bookmarks_service.dart';
 import 'package:roqia_altatil/services/khatma_service.dart';
@@ -81,9 +83,9 @@ void main() {
       });
 
   Future<void> pumpPage(WidgetTester tester, Widget page,
-      {bool dark = false}) async {
+      {bool dark = false, double height = 740}) async {
     await loadFonts();
-    tester.view.physicalSize = const Size(360, 740);
+    tester.view.physicalSize = Size(360, height);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(
@@ -121,6 +123,40 @@ void main() {
     await pumpPage(t, const HomePage(), dark: true);
     expect(find.text('حدّد موقعك لمواقيت الصلاة'), findsOneWidget);
     expect(find.text('ابدأ ختمة القرآن'), findsOneWidget);
+  });
+
+  smoke('ruqyah hub: تعطيل first, then other ruqyah and follow-up', (t) async {
+    located();
+    await pumpPage(t, const RuqyahHubPage(), height: 2600);
+    expect(find.text('رقية التعطيل'), findsOneWidget);
+    expect(find.text('لفضيلة الشيخ فهد القرني'), findsOneWidget);
+    expect(find.text('صوتية'), findsOneWidget);
+    expect(find.text('مكتوبة'), findsOneWidget);
+    expect(find.text('الرقية المستقلة'), findsOneWidget);
+    expect(find.text('رقية السحر'), findsOneWidget);
+    expect(find.text('برنامج المداومة'), findsOneWidget);
+    expect(find.text('ضوابط الرقية الشرعية'), findsOneWidget);
+  });
+
+  smoke('adhkar hub: حصن المسلم + التحصين + التسبيح + reminders', (t) async {
+    located();
+    await pumpPage(t, const AdhkarHubPage(), height: 2600, dark: true);
+    expect(find.text('أذكار الصباح والمساء'), findsOneWidget);
+    expect(find.text('أذكار بعد الصلاة'), findsOneWidget);
+    expect(find.text('أذكار التحصين'), findsOneWidget);
+    expect(find.text('عدّاد التسبيح والأدعية'), findsOneWidget);
+  });
+
+  smoke('home: sections + sadaqa line, no long link lists', (t) async {
+    located();
+    await pumpPage(t, const HomePage(), height: 2600);
+    expect(find.text('الرقية'), findsOneWidget);
+    expect(find.text('الأذكار'), findsOneWidget);
+    expect(find.text('الصلاة'), findsOneWidget);
+    expect(find.text('الختمة'), findsOneWidget);
+    expect(find.text('العلامات'), findsOneWidget);
+    expect(find.text('البحث'), findsOneWidget);
+    expect(find.text(AppIdentity.sadaqaLine), findsOneWidget);
   });
 
   smoke('prayer times page', (t) async {

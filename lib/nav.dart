@@ -22,8 +22,10 @@ import 'package:roqia_altatil/pages/reminders_page.dart';
 import 'package:roqia_altatil/pages/ruqyah_rules_page.dart';
 import 'package:roqia_altatil/pages/ruqyah_tracker_page.dart';
 import 'package:roqia_altatil/pages/ruqyah_types_page.dart';
+import 'package:roqia_altatil/pages/section_hubs.dart';
 import 'package:roqia_altatil/pages/verse_card_page.dart';
 import 'package:roqia_altatil/widgets/main_shell.dart';
+import 'package:roqia_altatil/widgets/section_back_bar.dart';
 
 /// GoRouter configuration with bottom navigation shell
 class AppRouter {
@@ -48,11 +50,29 @@ class AppRouter {
             ),
           ),
           GoRoute(
+            path: AppRoutes.ruqyahHub,
+            name: 'ruqyah-hub',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const RuqyahHubPage(),
+              transitionsBuilder: _fadeTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.adhkarHub,
+            name: 'adhkar-hub',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const AdhkarHubPage(),
+              transitionsBuilder: _fadeTransition,
+            ),
+          ),
+          GoRoute(
             path: AppRoutes.writtenRoqia,
             name: 'written-roqia',
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
-              child: const WrittenRoqiaPage(),
+              child: _sub('رقية التعطيل — مكتوبة', AppRoutes.ruqyahHub, const WrittenRoqiaPage()),
               transitionsBuilder: _fadeSlideTransition,
             ),
           ),
@@ -61,7 +81,7 @@ class AppRouter {
             name: 'audio-roqia',
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
-              child: const AudioRoqiaPage(),
+              child: _sub('رقية التعطيل — صوتية', AppRoutes.ruqyahHub, const AudioRoqiaPage()),
               transitionsBuilder: _fadeSlideTransition,
             ),
           ),
@@ -70,7 +90,7 @@ class AppRouter {
             name: 'dhikr',
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
-              child: const DhikrPage(),
+              child: _sub('عدّاد التسبيح', AppRoutes.adhkarHub, const DhikrPage()),
               transitionsBuilder: _fadeSlideTransition,
             ),
           ),
@@ -79,7 +99,7 @@ class AppRouter {
             name: 'tahseen',
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
-              child: const TahseenPage(),
+              child: _sub('أذكار التحصين', AppRoutes.adhkarHub, const TahseenPage()),
               transitionsBuilder: _fadeSlideTransition,
             ),
           ),
@@ -88,7 +108,7 @@ class AppRouter {
             name: 'general-ruqyah',
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
-              child: const GeneralRuqyahPage(),
+              child: _sub('الرقية المستقلة', AppRoutes.ruqyahHub, const GeneralRuqyahPage()),
               transitionsBuilder: _fadeSlideTransition,
             ),
           ),
@@ -97,12 +117,16 @@ class AppRouter {
             name: 'adhkar',
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
-              child: AdhkarPage(
-                initial: switch (state.uri.queryParameters['time']) {
-                  'morning' => AdhkarTime.morning,
-                  'evening' => AdhkarTime.evening,
-                  _ => null,
-                },
+              child: _sub(
+                'أذكار الصباح والمساء',
+                AppRoutes.adhkarHub,
+                AdhkarPage(
+                  initial: switch (state.uri.queryParameters['time']) {
+                    'morning' => AdhkarTime.morning,
+                    'evening' => AdhkarTime.evening,
+                    _ => null,
+                  },
+                ),
               ),
               transitionsBuilder: _fadeSlideTransition,
             ),
@@ -112,7 +136,7 @@ class AppRouter {
             name: 'ruqyah-types',
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
-              child: const RuqyahTypesPage(),
+              child: _sub('رقى حسب الحالة', AppRoutes.ruqyahHub, const RuqyahTypesPage()),
               transitionsBuilder: _fadeSlideTransition,
             ),
             routes: [
@@ -140,7 +164,7 @@ class AppRouter {
             name: 'after-prayer',
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
-              child: const AfterPrayerPage(),
+              child: _sub('أذكار بعد الصلاة', AppRoutes.adhkarHub, const AfterPrayerPage()),
               transitionsBuilder: _fadeSlideTransition,
             ),
           ),
@@ -248,7 +272,7 @@ class AppRouter {
             name: 'ruqyah-tracker',
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
-              child: const RuqyahTrackerPage(),
+              child: _sub('متابعة أيام الرقية', AppRoutes.ruqyahHub, const RuqyahTrackerPage()),
               transitionsBuilder: _fadeSlideTransition,
             ),
           ),
@@ -266,7 +290,7 @@ class AppRouter {
             name: 'feedback',
             pageBuilder: (context, state) => CustomTransitionPage(
               key: state.pageKey,
-              child: const FeedbackPage(),
+              child: _sub('اقتراحات', AppRoutes.home, const FeedbackPage()),
               transitionsBuilder: _fadeSlideTransition,
             ),
           ),
@@ -275,6 +299,14 @@ class AppRouter {
     ],
   );
   
+  /// صفحة فرعية بشريط رجوع إلى قائمتها (الصفحات التي بلا شريط خاص بها).
+  static Widget _sub(String title, String fallbackRoute, Widget page) => Column(
+        children: [
+          SectionBackBar(title: title, fallbackRoute: fallbackRoute),
+          Expanded(child: page),
+        ],
+      );
+
   // Fade transition
   static Widget _fadeTransition(
     BuildContext context,
@@ -337,6 +369,10 @@ class AppRoutes {
   static const String program = '/program';
   static const String verseCard = '/verse-card';
 
+  /// قائمتا القسمين الجديدتان (الرقية، الأذكار) — تبويبان في الشريط السفلي.
+  static const String ruqyahHub = '/hub/ruqyah';
+  static const String adhkarHub = '/hub/adhkar';
+
   /// بطاقة الآية ([surah]:[ayah]) للمشاركة كصورة.
   static String verseCardFor(int surah, int ayah) => '$verseCard?s=$surah&a=$ayah';
 
@@ -347,7 +383,47 @@ class AppRoutes {
     home, writtenRoqia, audioRoqia, dhikr, tahseen, generalRuqyah, feedback,
     adhkar, ruqyahTypes, mushaf, tracker, reminders, prayerTimes, qibla, afterPrayer,
     khatma, bookmarks, quranSearch, ruqyahRules, program, verseCard,
+    ruqyahHub, adhkarHub,
   };
+
+  /// جذور تبويبات الشريط السفلي بالترتيب: الرئيسية، المصحف، الرقية، الأذكار،
+  /// الصلاة (المواقيت وفيها القبلة وأذكار بعد الصلاة).
+  static const List<String> tabRoots = [
+    home,
+    mushaf,
+    ruqyahHub,
+    adhkarHub,
+    prayerTimes,
+  ];
+
+  /// رقم التبويب الذي تنتمي إليه [path] (٠ = الرئيسية وما لا قسم له).
+  static int tabOf(String path) {
+    if (path == mushaf || path.startsWith('$mushaf/')) return 1;
+    if (path.startsWith('$ruqyahTypes/')) return 2;
+    return switch (path) {
+      khatma || bookmarks || quranSearch || verseCard => 1,
+      ruqyahHub ||
+      writtenRoqia ||
+      audioRoqia ||
+      generalRuqyah ||
+      ruqyahTypes ||
+      ruqyahRules ||
+      program ||
+      tracker =>
+        2,
+      adhkarHub || adhkar || afterPrayer || dhikr || tahseen || reminders => 3,
+      prayerTimes || qibla => 4,
+      _ => 0,
+    };
+  }
+
+  /// أين يعود زر الرجوع (أندرويد) من [path]: قائمة القسم للصفحات الفرعية،
+  /// والرئيسية لجذور التبويبات.
+  static String parentOf(String path) {
+    if (tabRoots.contains(path)) return home;
+    final tab = tabOf(path);
+    return tab == 0 ? home : tabRoots[tab];
+  }
 
   /// أنواع «رقى حسب الحالة» المعروفة للمسار /ruqyah-types/:type.
   static const Set<String> ruqyahTypeIds = {'sihr', 'ayn', 'hamm'};

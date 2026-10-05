@@ -70,7 +70,7 @@ class _KhatmaPageState extends State<KhatmaPage> {
       body: Column(
         children: [
           const SectionBackBar(
-              title: 'ختمة القرآن', fallbackRoute: AppRoutes.home),
+              title: 'ختمة القرآن', fallbackRoute: AppRoutes.mushaf),
           Expanded(
             child: ListenableBuilder(
               listenable: _svc,

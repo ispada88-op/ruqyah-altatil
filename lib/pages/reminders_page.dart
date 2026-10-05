@@ -107,7 +107,7 @@ class _RemindersPageState extends State<RemindersPage> {
     return Column(
       children: [
         const SectionBackBar(
-            title: 'تذكيراتي الخاصة', fallbackRoute: AppRoutes.home),
+            title: 'تذكيراتي الخاصة', fallbackRoute: AppRoutes.adhkarHub),
         Expanded(
           child: Scaffold(
             floatingActionButton: full || _loading

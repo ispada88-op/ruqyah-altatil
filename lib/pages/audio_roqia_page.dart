@@ -228,6 +228,10 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
     final position = svc.position;
     final duration = svc.duration;
     final selectedReciter = svc.currentReciter;
+    // الدائرة تتكيّف مع ارتفاع الشاشة كي تبقى أزرار التشغيل ظاهرة تحت شريط الرجوع.
+    final circle = (MediaQuery.sizeOf(context).height * 0.22)
+        .clamp(170.0, 260.0)
+        .toDouble();
 
     return Container(
       decoration: BoxDecoration(
@@ -248,8 +252,8 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
 
               // Circle container
               Container(
-                width: 280,
-                height: 280,
+                width: circle,
+                height: circle,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark

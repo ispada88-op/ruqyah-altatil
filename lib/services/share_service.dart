@@ -86,10 +86,12 @@ class ShareService {
 
   /// مشاركة التطبيق نفسه (الدال على الخير كفاعله).
   static Future<void> shareApp(BuildContext context) async {
-    const text = 'تطبيق الرقية الشاملة (ومعه ${AppIdentity.taTilAttribution}) 🕊\n'
-        'رقية شرعية مكتوبة وصوتية وأذكار يومية — تطبيق خيري بدون إعلانات.\n\n'
+    const text = 'تطبيق ${AppIdentity.fullName} 🕊\n'
+        'مصحف المدينة وختمة وأذكار ومواقيت الصلاة ورقية شرعية، '
+        'ومعه ${AppIdentity.taTilAttribution} — تطبيق خيري بدون إعلانات.\n\n'
+        '${AppIdentity.sadaqaLine}\n\n'
         '$appShareUrl';
-    await _share(context, text: text, subject: 'تطبيق الرقية الشاملة');
+    await _share(context, text: text, subject: AppIdentity.fullName);
   }
 
   /// مشاركة نص عام (ذِكر/دعاء) مع ذيل التطبيق.

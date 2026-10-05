@@ -10,6 +10,22 @@ void main() {
         'رقية التعطيل لفضيلة الشيخ فهد القرني');
   });
 
+  test('full store name carries رقية + تعطيل + مصحف within the 30-char limit', () {
+    expect(AppIdentity.fullName, 'رقية شاملة رقية تعطيل ومصحف');
+    expect(AppIdentity.fullName.length, lessThanOrEqualTo(30));
+    for (final w in ['رقية', 'تعطيل', 'مصحف']) {
+      expect(AppIdentity.fullName, contains(w));
+    }
+  });
+
+  test('sadaqa line is shown and shared with the app link', () {
+    expect(AppIdentity.sadaqaLine, contains('صدقةً جارية'));
+    expect(File('lib/services/share_service.dart').readAsStringSync(),
+        contains('AppIdentity.sadaqaLine'));
+    expect(File('lib/pages/home_page.dart').readAsStringSync(),
+        contains('AppIdentity.sadaqaLine'));
+  });
+
   test('store-visible names use the new app name', () {
     expect(File('ios/Runner/Info.plist').readAsStringSync(),
         contains('<string>الرقية الشاملة</string>'));

@@ -18,6 +18,9 @@ class RuqyahTypesPage extends StatelessWidget {
     'hamm': Icons.sentiment_dissatisfied_outlined,
   };
 
+  /// أيقونة نوع الرقية (تُستعمل أيضاً في قائمة «الرقية»).
+  static IconData iconFor(String id) => _icons[id] ?? Icons.healing_outlined;
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -64,7 +67,7 @@ class RuqyahTypesPage extends StatelessWidget {
                           radius: 26,
                           backgroundColor: teal.withValues(alpha: 0.12),
                           child:
-                              Icon(_icons[t.id] ?? Icons.healing_outlined, color: teal),
+                              Icon(iconFor(t.id), color: teal),
                         ),
                         const SizedBox(width: AppSpacing.md),
                         Expanded(
@@ -126,7 +129,7 @@ class RuqyahTypePage extends StatelessWidget {
     final type = ruqyahTypeById(typeId) ?? kRuqyahTypes.first;
     return Column(
       children: [
-        SectionBackBar(title: type.title, fallbackRoute: AppRoutes.ruqyahTypes),
+        SectionBackBar(title: type.title, fallbackRoute: AppRoutes.ruqyahHub),
         Expanded(
           child: GeneralRuqyahPage(
             key: ValueKey(type.id),

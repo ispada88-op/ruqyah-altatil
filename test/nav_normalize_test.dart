@@ -39,4 +39,47 @@ void main() {
     expect(AppRoutes.mushafSurah(18, resume: true), '/mushaf/18?resume=1');
     expect(AppRoutes.ruqyahType('ayn'), '/ruqyah-types/ayn');
   });
+
+  test('bottom tabs: roots, section membership and back targets', () {
+    expect(AppRoutes.tabRoots, [
+      AppRoutes.home,
+      AppRoutes.mushaf,
+      AppRoutes.ruqyahHub,
+      AppRoutes.adhkarHub,
+      AppRoutes.prayerTimes,
+    ]);
+    // كل جذر يعود لنفسه كتبويب، والصفحات الفرعية تنتمي لقسمها.
+    for (var i = 0; i < AppRoutes.tabRoots.length; i++) {
+      expect(AppRoutes.tabOf(AppRoutes.tabRoots[i]), i);
+    }
+    expect(AppRoutes.tabOf(AppRoutes.khatma), 1);
+    expect(AppRoutes.tabOf('/mushaf/page/12'), 1);
+    expect(AppRoutes.tabOf(AppRoutes.audioRoqia), 2);
+    expect(AppRoutes.tabOf(AppRoutes.ruqyahType('sihr')), 2);
+    expect(AppRoutes.tabOf(AppRoutes.tahseen), 3);
+    expect(AppRoutes.tabOf(AppRoutes.afterPrayer), 3);
+    expect(AppRoutes.tabOf(AppRoutes.qibla), 4);
+    expect(AppRoutes.tabOf(AppRoutes.feedback), 0);
+
+    // زر الرجوع: الصفحة الفرعية إلى قائمتها، والجذر إلى الرئيسية.
+    expect(AppRoutes.parentOf(AppRoutes.audioRoqia), AppRoutes.ruqyahHub);
+    expect(AppRoutes.parentOf(AppRoutes.ruqyahType('ayn')), AppRoutes.ruqyahHub);
+    expect(AppRoutes.parentOf(AppRoutes.dhikr), AppRoutes.adhkarHub);
+    expect(AppRoutes.parentOf(AppRoutes.reminders), AppRoutes.adhkarHub);
+    expect(AppRoutes.parentOf(AppRoutes.khatma), AppRoutes.mushaf);
+    expect(AppRoutes.parentOf('/mushaf/page/12'), AppRoutes.mushaf);
+    expect(AppRoutes.parentOf(AppRoutes.qibla), AppRoutes.prayerTimes);
+    expect(AppRoutes.parentOf(AppRoutes.feedback), AppRoutes.home);
+    for (final root in AppRoutes.tabRoots) {
+      expect(AppRoutes.parentOf(root), AppRoutes.home, reason: root);
+    }
+  });
+
+  test('no section page falls through to the home tab by mistake', () {
+    // صفحة جديدة نُسي إدراجها في tabOf تظهر هنا بدل أن تُظهر «الرئيسية» نشطة.
+    const homeTab = {AppRoutes.home, AppRoutes.feedback};
+    for (final r in AppRoutes.all.difference(homeTab)) {
+      expect(AppRoutes.tabOf(r), isNot(0), reason: r);
+    }
+  });
 }

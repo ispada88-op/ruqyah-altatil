@@ -20,8 +20,6 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _currentIndex = 0;
-
   @override
   void initState() {
     super.initState();
@@ -31,51 +29,13 @@ class _MainShellState extends State<MainShell> {
     });
   }
 
-  void _onNavItemTapped(int index) {
-    setState(() => _currentIndex = index);
-    switch (index) {
-      case 0:
-        context.go(AppRoutes.home);
-        break;
-      case 1:
-        context.go(AppRoutes.mushaf);
-        break;
-      case 2:
-        context.go(AppRoutes.audioRoqia);
-        break;
-      case 3:
-        context.go(AppRoutes.writtenRoqia);
-        break;
-      case 4:
-        context.go(AppRoutes.dhikr);
-        break;
-    }
-  }
-
-  void _updateIndex(BuildContext context) {
-    final path = GoRouterState.of(context).uri.path;
-    final newIndex = switch (path) {
-      AppRoutes.home => 0,
-      AppRoutes.audioRoqia => 2,
-      AppRoutes.writtenRoqia => 3,
-      AppRoutes.dhikr => 4,
-      _
-          when path == AppRoutes.mushaf ||
-              path.startsWith('${AppRoutes.mushaf}/') =>
-        1,
-      AppRoutes.khatma || AppRoutes.bookmarks || AppRoutes.quranSearch => 1,
-      _ => 0,
-    };
-    if (_currentIndex != newIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _currentIndex = newIndex);
-      });
-    }
-  }
+  /// الضغط على تبويب يفتح جذره (فالضغط على التبويب الحالي يعود لقائمته).
+  void _onNavItemTapped(int index) => context.go(AppRoutes.tabRoots[index]);
 
   @override
   Widget build(BuildContext context) {
-    _updateIndex(context);
+    final path = GoRouterState.of(context).uri.path;
+    final currentIndex = AppRoutes.tabOf(path);
     final themeProvider = context.watch<ThemeProvider>();
     // select (لا watch): الـ shell يحتاج حالتين فقط من الصوت؛ watch كان يعيد
     // بناء الـ AppBar وشريط التنقل مع كل تحديث لموضع التشغيل.
@@ -87,10 +47,11 @@ class _MainShellState extends State<MainShell> {
 
     // زر الرجوع في أندرويد: خارج الرئيسية يعود إلى الرئيسية بدل إغلاق التطبيق
     // (التنقّل بـ context.go يستبدل المكدّس فلا يبقى شيء ليُفتح للخلف).
-    final atHome = GoRouterState.of(context).uri.path == AppRoutes.home;
+    // ومن صفحة فرعية يعود إلى قائمة قسمها (الرقية/الأذكار/المصحف) لا للرئيسية.
+    final atHome = path == AppRoutes.home;
     return BackToHomeScope(
       atHome: atHome,
-      onBackToHome: () => context.go(AppRoutes.home),
+      onBackToHome: () => context.go(AppRoutes.parentOf(path)),
       child: Scaffold(
         appBar: AppBar(
           title: Text(
@@ -142,7 +103,7 @@ class _MainShellState extends State<MainShell> {
                 ],
               ),
               child: BottomNavigationBar(
-                currentIndex: _currentIndex,
+                currentIndex: currentIndex,
                 onTap: _onNavItemTapped,
                 type: BottomNavigationBarType.fixed,
                 items: const [
@@ -155,17 +116,17 @@ class _MainShellState extends State<MainShell> {
                       activeIcon: Icon(Icons.auto_stories),
                       label: 'المصحف'),
                   BottomNavigationBarItem(
-                      icon: Icon(Icons.headphones_outlined),
-                      activeIcon: Icon(Icons.headphones),
-                      label: 'رقية التعطيل'),
+                      icon: Icon(Icons.healing_outlined),
+                      activeIcon: Icon(Icons.healing),
+                      label: 'الرقية'),
                   BottomNavigationBarItem(
-                      icon: Icon(Icons.text_snippet_outlined),
-                      activeIcon: Icon(Icons.text_snippet),
-                      label: 'المكتوبة'),
-                  BottomNavigationBarItem(
-                      icon: Icon(Icons.touch_app_outlined),
-                      activeIcon: Icon(Icons.touch_app),
+                      icon: Icon(Icons.wb_twilight_outlined),
+                      activeIcon: Icon(Icons.wb_twilight),
                       label: 'الأذكار'),
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.mosque_outlined),
+                      activeIcon: Icon(Icons.mosque),
+                      label: 'الصلاة'),
                 ],
               ),
             ),
