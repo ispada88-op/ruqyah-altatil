@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/pages/after_prayer_page.dart';
 import 'package:roqia_altatil/pages/bookmarks_page.dart';
+import 'package:roqia_altatil/pages/feedback_page.dart';
 import 'package:roqia_altatil/pages/home_page.dart';
 import 'package:roqia_altatil/pages/khatma_page.dart';
 import 'package:roqia_altatil/pages/prayer_times_page.dart';
@@ -124,6 +125,19 @@ void main() {
     expect(find.text('حدّد موقعك لمواقيت الصلاة'), findsOneWidget);
     expect(find.text('ابدأ ختمة القرآن'), findsOneWidget);
   });
+
+  for (final dark in [false, true]) {
+    smoke('feedback page invites ideas (dark: $dark)', (t) async {
+      await pumpPage(t, const FeedbackPage(), dark: dark, height: 1800);
+      expect(find.text('بفضل الله ثم اقتراحاتكم'), findsOneWidget);
+      expect(find.text('أضفنا مزايا وتحديثات.'), findsOneWidget);
+      expect(
+          find.text('في حال رغبتكم في مزايا أو إضافات،\nفضلاً الإرسال هنا.'),
+          findsOneWidget);
+      expect(find.text('اكتب فكرتك أو الميزة التي تتمنى إضافتها...'),
+          findsOneWidget);
+    });
+  }
 
   smoke('ruqyah hub: تعطيل first, then other ruqyah and follow-up', (t) async {
     located();

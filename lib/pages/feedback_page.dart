@@ -21,6 +21,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
   final List<String> _messageTypes = [
     '🌟 اقتراح',
+    '💡 ميزة أو إضافة جديدة',
     '🐞 مشكلة تقنية',
     '❤️ شكر وتقدير',
     '📝 ملاحظة عامة',
@@ -175,16 +176,63 @@ $message
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
-                  // Subtitle
-                  Text(
-                    'رأيك يهمنا — شاركنا اقتراحاتك لتحسين التطبيق',
-                    style: AppTextStyles.body(
-                      color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
+                  const SizedBox(height: 16),
+                  // دعوة لإرسال الأفكار: بطاقة بحدّ ذهبي بدل سطر واحد عابر.
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSecondary : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.accentGold.withValues(alpha: 0.7),
+                      ),
                     ),
-                    textAlign: TextAlign.center,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.lightbulb_outlined,
+                              color: AppColors.accentGold,
+                              size: 26,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'بفضل الله ثم اقتراحاتكم',
+                                style: AppTextStyles.subheader(
+                                  color: isDark
+                                      ? AppColors.textOnDark
+                                      : AppColors.primaryTeal,
+                                ).copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'أضفنا مزايا وتحديثات.',
+                          style: AppTextStyles.body(
+                            color: isDark
+                                ? AppColors.textOnDark
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'في حال رغبتكم في مزايا أو إضافات،\nفضلاً الإرسال هنا.',
+                          style: AppTextStyles.body(
+                            color: isDark
+                                ? AppColors.textOnDarkSecondary
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   // Name Field
                   Container(
                     decoration: BoxDecoration(
@@ -311,7 +359,7 @@ $message
                         color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'اكتب رسالتك هنا...',
+                        hintText: 'اكتب فكرتك أو الميزة التي تتمنى إضافتها...',
                         hintStyle: AppTextStyles.body(
                           color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
                         ),
