@@ -4,18 +4,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:roqia_altatil/config/app_identity.dart';
 
 void main() {
-  test('app is named الرقية الشاملة; رقية التعطيل is attributed to the Sheikh', () {
+  test('app is named الرقية الشاملة; رقية التعطيل is attributed to the Sheikh',
+      () {
     expect(AppIdentity.name, 'الرقية الشاملة');
-    expect(AppIdentity.taTilAttribution,
-        'رقية التعطيل لفضيلة الشيخ فهد القرني');
+    expect(
+        AppIdentity.taTilAttribution, 'رقية التعطيل لفضيلة الشيخ فهد القرني');
   });
 
-  test('full store name carries رقية + تعطيل + مصحف within the 30-char limit', () {
-    expect(AppIdentity.fullName, 'رقية شاملة رقية تعطيل ومصحف');
-    expect(AppIdentity.fullName.length, lessThanOrEqualTo(30));
-    for (final w in ['رقية', 'تعطيل', 'مصحف']) {
+  test('store name + subtitle read as one sentence, each within 30 chars', () {
+    expect(AppIdentity.storeName, 'الرقية الشاملة ورقية التعطيل');
+    expect(AppIdentity.storeSubtitle, startsWith('والمصحف الشريف'));
+    expect(AppIdentity.storeName.length, lessThanOrEqualTo(30));
+    expect(AppIdentity.storeSubtitle.length, lessThanOrEqualTo(30));
+    expect(AppIdentity.fullName, 'الرقية الشاملة ورقية التعطيل والمصحف الشريف');
+    for (final w in ['الرقية الشاملة', 'رقية التعطيل', 'المصحف الشريف']) {
       expect(AppIdentity.fullName, contains(w));
     }
+    // «رقية التعطيل» في اسم المتجر نفسه ليجدها من يبحث بها.
+    expect(AppIdentity.storeName, contains(AppIdentity.taTil));
   });
 
   test('sadaqa line is shown and shared with the app link', () {
@@ -29,25 +35,33 @@ void main() {
   test('store-visible names use the new app name', () {
     expect(File('ios/Runner/Info.plist').readAsStringSync(),
         contains('<string>الرقية الشاملة</string>'));
-    expect(File('android/app/src/main/res/values-ar/strings.xml').readAsStringSync(),
+    expect(
+        File('android/app/src/main/res/values-ar/strings.xml')
+            .readAsStringSync(),
         contains('>الرقية الشاملة<'));
-    expect(File('android/app/src/main/res/values-ar/strings.xml').readAsStringSync(),
+    expect(
+        File('android/app/src/main/res/values-ar/strings.xml')
+            .readAsStringSync(),
         isNot(contains('رقية التعطيل')));
   });
 
-  test('attribution is shown on first screen, home and the written ruqyah page', () {
+  test('attribution is shown on first screen, home and the written ruqyah page',
+      () {
     for (final f in [
       'lib/pages/onboarding_page.dart',
       'lib/pages/home_page.dart',
       'lib/pages/written_roqia_page.dart',
     ]) {
-      expect(File(f).readAsStringSync(), contains('AppIdentity.taTil'), reason: f);
+      expect(File(f).readAsStringSync(), contains('AppIdentity.taTil'),
+          reason: f);
     }
   });
 
-  test('searchable: store listing keeps «رقية التعطيل» in subtitle/keywords', () {
+  test('searchable: store listing keeps «رقية التعطيل» in name and keywords',
+      () {
     final s = File('docs/android/STORE_LISTING.md').readAsStringSync();
-    expect(s, contains('رقية التعطيل والأذكار والسحر'));
+    expect(s, contains(AppIdentity.storeName));
+    expect(s, contains(AppIdentity.storeSubtitle));
     expect(s, contains('رقيه التعطيل'));
   });
 }
