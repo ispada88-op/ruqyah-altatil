@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'error_reporter.dart';
+import '../config/app_identity.dart';
+import '../config/app_links.dart';
 
 /// خدمة مشاركة ونسخ النصوص القرآنية.
 ///
@@ -13,9 +15,8 @@ import 'error_reporter.dart';
 class ShareService {
   ShareService._();
 
-  /// رابط مشاركة التطبيق (صفحة GitHub Pages — يُستبدل بروابط المتاجر عند النشر).
-  static const String appShareUrl =
-      'https://ispada88-op.github.io/ruqyah-altatil/';
+  /// رابط مشاركة التطبيق: صفحة الهبوط (فيها زر App Store + Google Play عند نشره).
+  static const String appShareUrl = AppLinks.shareUrl;
 
   /// موضع نافذة المشاركة — إلزامي على iPad (popover anchor).
   /// يستخدم موضع الـ widget الضاغط إن وُجد، وإلا منتصف الشاشة.
@@ -55,12 +56,42 @@ class ShareService {
     }
   }
 
+  /// مشاركة صورة PNG (بطاقة آية) مع نص مرافق.
+  static Future<void> shareImage(
+    BuildContext context, {
+    required Uint8List bytes,
+    required String fileName,
+    String? text,
+  }) async {
+    final origin = _sharePosition(context);
+    try {
+      await Share.shareXFiles(
+        [XFile.fromData(bytes, name: fileName, mimeType: 'image/png')],
+        fileNameOverrides: [fileName],
+        text: text,
+        sharePositionOrigin: origin,
+      );
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'ShareService.shareImage');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذّرت مشاركة الصورة — حاول مرة أخرى'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   /// مشاركة التطبيق نفسه (الدال على الخير كفاعله).
   static Future<void> shareApp(BuildContext context) async {
-    const text = 'تطبيق رقية التعطيل 🕊\n'
-        'رقية شرعية مكتوبة وصوتية وأذكار يومية — تطبيق خيري بدون إعلانات.\n\n'
+    const text = 'تطبيق ${AppIdentity.fullName} 🕊\n'
+        'مصحف المدينة وختمة وأذكار ومواقيت الصلاة ورقية شرعية، '
+        'ومعه ${AppIdentity.taTilAttribution} — تطبيق خيري بدون إعلانات.\n\n'
+        '${AppIdentity.sadaqaLine}\n\n'
         '$appShareUrl';
-    await _share(context, text: text, subject: 'تطبيق رقية التعطيل');
+    await _share(context, text: text, subject: AppIdentity.fullName);
   }
 
   /// مشاركة نص عام (ذِكر/دعاء) مع ذيل التطبيق.
@@ -130,7 +161,7 @@ class ShareService {
     }
     body
       ..writeln()
-      ..writeln('— من تطبيق رقية التعطيل');
+      ..writeln('— من تطبيق الرقية الشاملة');
     await _share(context, text: body.toString(), subject: surahName);
   }
 
@@ -140,6 +171,6 @@ class ShareService {
     int? verseNumber,
   }) {
     final ref = verseNumber != null ? '$surahName: $verseNumber' : surahName;
-    return '$verseText\n\n— $ref\n\nمن تطبيق رقية التعطيل';
+    return '$verseText\n\n— $ref\n\nمن تطبيق الرقية الشاملة';
   }
 }

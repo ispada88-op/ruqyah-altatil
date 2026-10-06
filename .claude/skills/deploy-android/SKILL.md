@@ -48,7 +48,7 @@ Next steps:
 
 ## Don'ts
 
-- Do NOT bump `targetSdkVersion` below 35 (Google Play requirement).
+- Do NOT bump `targetSdkVersion` below 36 (Google Play requirement since 2026-08-31).
 - Do NOT change `applicationId` from `com.ruqyah.altatil`.
 - Do NOT skip `flutter analyze` even if user is in a hurry.
 - Do NOT push the AAB to GitHub — only the source code.

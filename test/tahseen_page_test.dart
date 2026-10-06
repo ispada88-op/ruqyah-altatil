@@ -59,7 +59,7 @@ void main() {
       expect(find.text('أذكار مأثورة بمصادرها'), findsOneWidget);
 
       // scroll through the list and count unique tahseen cards by their copy buttons
-      final copyButtons = find.byIcon(Icons.copy_rounded);
+      final copyButtons = find.byIcon(Icons.content_copy_outlined);
       // at least the first cards are built lazily; scroll to bottom to build all
       final listFinder = find.byType(Scrollable).first;
       await tester.scrollUntilVisible(

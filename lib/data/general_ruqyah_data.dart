@@ -15,6 +15,7 @@
 // الأذكار مضبوطة بالشكل ومصادرها مثبتة.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'package:roqia_altatil/services/quran_repository.dart' show quranForSharing;
 import 'verified_quran.dart';
 
 /// كتلة نصية داخل فقرة رقية: عنوان اختياري (اسم سورة/بسملة) + أسطر النص.
@@ -44,29 +45,51 @@ class GeneralRuqyahItem {
     this.isQuran = false,
   });
 
-  /// نص كامل للنسخ/المشاركة.
+  /// نص كامل للنسخ/المشاركة (مع اسم السورة وموضع الآيات للنص القرآني).
   String get plainText {
     final sb = StringBuffer();
+    if (isQuran) sb.writeln(subtitle != null ? '$title — $subtitle' : title);
     for (final b in blocks) {
       if (b.heading != null) sb.writeln(b.heading);
       for (final l in b.lines) {
-        sb.writeln(l);
+        sb.writeln(isQuran ? quranForSharing(l) : l);
       }
     }
     sb.write('(يُقرأ $repeatLabel)');
     return sb.toString();
   }
 
-  /// «٧ مرات» / «٣ مرات» بالأرقام العربية.
-  String get repeatLabel {
-    const eastern = {'3': '٣', '7': '٧'};
-    final n = eastern[repeat.toString()] ?? repeat.toString();
-    return '$n مرات';
-  }
+  /// «مرة واحدة» / «مرتان» / «٧ مرات» / «١٠٠ مرة» بالأرقام العربية.
+  String get repeatLabel => repeatLabelFor(repeat);
 }
 
-List<String> _withMarkers(SurahVerses s) =>
+/// صيغة العدد الصحيحة عربياً مع الأرقام العربية.
+String repeatLabelFor(int n) {
+  if (n == 1) return 'مرة واحدة';
+  if (n == 2) return 'مرتان';
+  final digits = n.toString().split('').map((d) => '٠١٢٣٤٥٦٧٨٩'[int.parse(d)]).join();
+  return n <= 10 ? '$digits مرات' : '$digits مرة';
+}
+
+/// أسطر الآيات: النص + مسافة غير قاطعة + رقم الآية (علامة نهاية آية في خط المجمع).
+List<String> verseLines(SurahVerses s) =>
     s.verses.map((v) => v.withMarker).toList(growable: false);
+
+/// المعوذات الثلاث (الإخلاص والفلق والناس) مع البسملة — تُستخدم في أكثر من قسم.
+List<RuqyahBlock> get muawwidhatBlocks => [
+      RuqyahBlock(
+        heading: 'سورة الإخلاص',
+        lines: [basmalaUthmani, ...verseLines(surahAlIkhlas)],
+      ),
+      RuqyahBlock(
+        heading: 'سورة الفلق',
+        lines: [basmalaUthmani, ...verseLines(surahAlFalaq)],
+      ),
+      RuqyahBlock(
+        heading: 'سورة الناس',
+        lines: [basmalaUthmani, ...verseLines(surahAnNas)],
+      ),
+    ];
 
 /// فقرات الرقية المستقلة بترتيب القراءة.
 List<GeneralRuqyahItem> get generalRuqyahItems => [
@@ -74,41 +97,28 @@ List<GeneralRuqyahItem> get generalRuqyahItems => [
         title: 'سورة الفاتحة',
         repeat: 7,
         isQuran: true,
-        blocks: [RuqyahBlock(lines: _withMarkers(surahAlFatiha))],
+        blocks: [RuqyahBlock(lines: verseLines(surahAlFatiha))],
       ),
       GeneralRuqyahItem(
         title: 'المعوذات',
         subtitle: 'الإخلاص والفلق والناس',
         repeat: 7,
         isQuran: true,
-        blocks: [
-          RuqyahBlock(
-            heading: 'سورة الإخلاص',
-            lines: [basmalaUthmani, ..._withMarkers(surahAlIkhlas)],
-          ),
-          RuqyahBlock(
-            heading: 'سورة الفلق',
-            lines: [basmalaUthmani, ..._withMarkers(surahAlFalaq)],
-          ),
-          RuqyahBlock(
-            heading: 'سورة الناس',
-            lines: [basmalaUthmani, ..._withMarkers(surahAnNas)],
-          ),
-        ],
+        blocks: muawwidhatBlocks,
       ),
       GeneralRuqyahItem(
         title: 'آيات من سورة طه',
         subtitle: 'طه (١٠٥-١٠٧)',
         repeat: 7,
         isQuran: true,
-        blocks: [RuqyahBlock(lines: _withMarkers(taHaMountains))],
+        blocks: [RuqyahBlock(lines: verseLines(taHaMountains))],
       ),
       GeneralRuqyahItem(
         title: 'آية من سورة هود',
         subtitle: 'هود (٤٤)',
         repeat: 7,
         isQuran: true,
-        blocks: [RuqyahBlock(lines: _withMarkers(hudFloodVerse))],
+        blocks: [RuqyahBlock(lines: verseLines(hudFloodVerse))],
       ),
       const GeneralRuqyahItem(
         title: 'بسم الله',
@@ -122,7 +132,7 @@ List<GeneralRuqyahItem> get generalRuqyahItems => [
       const GeneralRuqyahItem(
         title: 'التعوّذ بعزة الله',
         repeat: 7,
-        source: 'رواه الترمذي وأبو داود، وأصله في صحيح مسلم (٢٢٠٢)',
+        source: 'رواه ابن ماجه، وأصله في صحيح مسلم (٢٢٠٢)',
         blocks: [
           RuqyahBlock(lines: [
             'أَعُوذُ بِعِزَّةِ اللهِ وَقُدْرَتِهِ مِنْ شَرِّ مَا أَجِدُ وَأُحَاذِرُ',

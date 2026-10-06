@@ -5,6 +5,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config/app_identity.dart';
 import 'error_reporter.dart';
 
 /// نموذج القارئ.
@@ -81,16 +82,28 @@ class AudioPlayerService extends ChangeNotifier {
       _duration = d ?? Duration.zero;
       notifyListeners();
     });
+    // إصلاح 2026-09-28: positionStream يطلق عدة أحداث في الثانية؛ كان كل حدث
+    // يعيد بناء الـ shell كاملاً، ويكتب SharedPreferences ~5 مرات متتالية كل
+    // 5 ثوانٍ. الآن: إشعار الواجهة فقط عند تغيّر الثانية المعروضة، والحفظ مرة
+    // واحدة لكل 5 ثوانٍ.
     _player.positionStream.listen((p) {
+      final sec = p.inSeconds;
+      final changed = sec != _position.inSeconds;
       _position = p;
-      // persist every 5 seconds
-      if (p.inSeconds % 5 == 0) _persistPosition();
+      if (!changed) return;
+      if (sec % 5 == 0 && sec != _lastPersistedSec) _persistPosition();
       notifyListeners();
     });
     _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
         _position = Duration.zero;
         _persistPosition();
+        // just_audio يُبقي playing=true بعد النهاية فتظهر أيقونة «إيقاف» على مقطع
+        // منتهٍ (وشاشة القفل). نوقفه ونعيده للبداية ليعود زر التشغيل.
+        if (state.playing) {
+          _player.pause();
+          _player.seek(Duration.zero);
+        }
       }
       notifyListeners();
     });
@@ -125,8 +138,8 @@ class AudioPlayerService extends ChangeNotifier {
           reciter.localAsset,
           tag: MediaItem(
             id: reciter.id,
-            album: 'رقية التعطيل',
-            title: 'الرقية الشرعية',
+            album: 'الرقية الشاملة',
+            title: AppIdentity.taTil,
             artist: reciter.name,
           ),
         ),
@@ -164,6 +177,7 @@ class AudioPlayerService extends ChangeNotifier {
   Future<void> play() async {
     try {
       if (!_isLoaded) await loadReciter(_currentReciter);
+      if (!_isLoaded) return; // فشل التحميل: لا نبدأ تشغيلاً بلا مصدر
       await _player.play();
       notifyListeners();
     } catch (e, st) {
@@ -205,6 +219,8 @@ class AudioPlayerService extends ChangeNotifier {
   Future<void> skipForward([Duration delta = const Duration(seconds: 30)]) async {
     final target = _position + delta;
     final maxDur = _duration;
+    // المدة غير معروفة بعد (صفر) → لا نقفز لبداية المقطع بالخطأ.
+    if (maxDur == Duration.zero) return seek(target);
     await seek(target < maxDur ? target : maxDur);
   }
 
@@ -263,7 +279,10 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   // ─────────── Persistence ───────────
+  int _lastPersistedSec = -1;
+
   Future<void> _persistPosition() async {
+    _lastPersistedSec = _position.inSeconds;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(

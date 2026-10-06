@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/services/whats_new_service.dart';
 import 'package:roqia_altatil/theme.dart';
 
@@ -23,6 +24,13 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
 
   final List<_OnboardingItem> _pages = const [
     _OnboardingItem(
+      icon: '🕊',
+      title: AppIdentity.name,
+      highlight: '${AppIdentity.taTil}\n${AppIdentity.taTilOwner}',
+      description: 'مصحف ورقية صوتية ومكتوبة وأذكار ومواقيت الصلاة\nتطبيق خيري بدون إعلانات',
+      gradient: [Color(0xFF004D4D), Color(0xFF008B8B)],
+    ),
+    _OnboardingItem(
       icon: '🎙️',
       title: 'الرقية الصوتية',
       description: 'استمع إلى الرقية الشرعية بأصوات أفاضل المشايخ\nمع إمكانية التشغيل في الخلفية',
@@ -31,7 +39,7 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
     _OnboardingItem(
       icon: '📖',
       title: 'الرقية المكتوبة',
-      description: 'اقرأ آيات الرقية بخط عثماني واضح\nمطابق لمصحف المدينة المنورة',
+      description: 'اقرأ آيات الرقية بالرسم العثماني\nبرواية حفص عن عاصم، بضبطها الكامل',
       gradient: [Color(0xFFD4AF37), Color(0xFFE5C158)],
     ),
     _OnboardingItem(
@@ -157,6 +165,19 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
                             ),
                             textAlign: TextAlign.center,
                           ),
+                          if (page.highlight != null) ...[
+                            const SizedBox(height: 14),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 28),
+                              child: Text(
+                                page.highlight!,
+                                style: AppTextStyles.header(
+                                  color: AppColors.primaryTeal,
+                                ).copyWith(fontWeight: FontWeight.w800),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 16),
                           // Description
                           Padding(
@@ -243,11 +264,13 @@ class _OnboardingItem {
   final String icon;
   final String title;
   final String description;
+  final String? highlight;
   final List<Color> gradient;
   
   const _OnboardingItem({
     required this.icon,
     required this.title,
+    this.highlight,
     required this.description,
     required this.gradient,
   });

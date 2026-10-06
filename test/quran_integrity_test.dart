@@ -1,10 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roqia_altatil/data/quran_data.dart';
 import 'package:roqia_altatil/data/verified_quran.dart';
+import 'package:roqia_altatil/services/quran_repository.dart';
 
 /// Structural integrity checks for the Quran text used in the app.
 /// These guard against missing/duplicated/empty verses (a content-safety
-/// regression guard). Orthography itself is sourced from Tanzil Uthmani.
+/// regression guard). Orthography itself is sourced from the KFGQPC Hafs text.
 void main() {
   group('Long surahs (quran_data.dart) — exact ayah counts', () {
     test('Al-Anfal has 75 verses', () => expect(anfalVerses.length, 75));
@@ -67,19 +70,27 @@ void main() {
       expect(hudFloodVerse.verses.single.number, 44);
     });
 
-    // تثبيت حرفي ضد أي تعديل عرضي — النص مطابق لجلب KFGQPC Uthmani
-    // (Quran.com API v4، مع تطبيع ـٰ → ٰ وفق أسلوب الملف).
-    test('TaHa 105-107 exact text pinned', () {
-      expect(taHaMountains.verses[0].text,
-          'وَيَسْـَٔلُونَكَ عَنِ ٱلْجِبَالِ فَقُلْ يَنسِفُهَا رَبِّى نَسْفًا');
-      expect(taHaMountains.verses[1].text, 'فَيَذَرُهَا قَاعًا صَفْصَفًا');
-      expect(taHaMountains.verses[2].text,
-          'لَّا تَرَىٰ فِيهَا عِوَجًا وَلَآ أَمْتًا');
+    // Byte-exact pin against the SHA-256-pinned KFGQPC asset (the single source
+    // of truth) — not against hand-typed literals, whose combining-mark order
+    // silently differs (e.g. U+0622 vs U+0627 U+0653, shadda/kasra order).
+    final parsed = parseHafsJson(File(QuranRepository.assetPath).readAsStringSync());
+    String asset(int s, int a) => parsed.surahs[s]![a - 1];
+
+    test('TaHa 105-107 byte-identical to the KFGQPC asset', () {
+      for (final v in taHaMountains.verses) {
+        expect(v.text, asset(20, v.number), reason: 'TaHa ${v.number}');
+      }
     });
 
-    test('Hud 44 exact text pinned', () {
-      expect(hudFloodVerse.verses.single.text,
-          'وَقِيلَ يَٰٓأَرْضُ ٱبْلَعِى مَآءَكِ وَيَٰسَمَآءُ أَقْلِعِى وَغِيضَ ٱلْمَآءُ وَقُضِىَ ٱلْأَمْرُ وَٱسْتَوَتْ عَلَى ٱلْجُودِىِّ ۖ وَقِيلَ بُعْدًا لِّلْقَوْمِ ٱلظَّٰلِمِينَ');
+    test('Hud 44 byte-identical to the KFGQPC asset', () {
+      expect(hudFloodVerse.verses.single.text, asset(11, 44));
     });
+  });
+
+  test('Verse.withMarker = body + NBSP + Arabic-Indic number (KFGQPC aya_text form)', () {
+    final v = surahAlFatiha.verses[1];
+    expect(v.withMarker, '${v.text}\xA0٢');
+    expect(surahAlFatiha.verses.last.withMarker.endsWith('\xA0٧'), isTrue);
+    expect(taHaMountains.verses.first.withMarker.endsWith('\xA0١٠٥'), isTrue);
   });
 }

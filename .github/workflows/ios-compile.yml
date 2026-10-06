@@ -1,0 +1,66 @@
+# Fast compile check for the iOS widget extension (no signing, no Flutter, ~3 min).
+# Catches Swift errors in ios/PrayerWidget before the 10-minute release workflow,
+# and runs the Swift side of the Dart↔Swift data contract.
+name: iOS widget compile check
+
+on:
+  push:
+    branches: ["feat/**"]
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios-compile.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-compile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  widget:
+    name: Build PrayerWidget + contract test
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Project targets
+        run: xcodebuild -list -project ios/Runner.xcodeproj
+
+      - name: Build PrayerWidget (simulator, unsigned)
+        run: |
+          set +e
+          xcodebuild build \
+            -project ios/Runner.xcodeproj \
+            -target PrayerWidget \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=YES > build.log 2>&1
+          code=$?
+          echo "--- errors / warnings ---"
+          grep -E "error:|warning:" build.log | sort -u | head -80
+          echo "--- tail ---"
+          tail -n 15 build.log
+          exit $code
+
+      - name: Built extension looks right
+        run: |
+          appex=$(find ios/build -name PrayerWidget.appex -type d | head -1)
+          echo "appex: $appex"
+          ls "$appex"
+          /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$appex/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$appex/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$appex/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$appex/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundlePackageType" "$appex/Info.plist"
+          test -f "$appex/Tajawal-Bold.ttf"
+          test -f "$appex/PrivacyInfo.xcprivacy"
+
+      - name: Dart↔Swift data contract
+        run: |
+          swiftc ios/Shared/WidgetStore.swift \
+                 ios/PrayerWidget/WidgetSnapshot.swift \
+                 ios/PrayerWidget/AdhkarNow.swift \
+                 ios/PrayerWidget/Tests/main.swift \
+                 -o "$RUNNER_TEMP/contract"
+          TZ=Asia/Riyadh "$RUNNER_TEMP/contract" ios/PrayerWidget/Tests/snapshot_sample.json

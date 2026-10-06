@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// عائلة «الخط العثماني حفص» (مجمع الملك فهد) المعرّفة في pubspec.yaml.
+const String kQuranFontFamily = 'KFGQPCHafs';
 
 // =============================================================================
 // PROFESSIONAL COLOR PALETTE
@@ -30,6 +34,12 @@ class AppColors {
 
   static const Color success = Color(0xFF2E7D32);
   static const Color warning = Color(0xFFF57C00);
+
+  /// خلفية SnackBar تحذيرية بنص أبيض (تباين ٥٫٠:١؛ البرتقالي الفاتح ٢٫٧:١ فقط).
+  static const Color warningStrong = Color(0xFFB45309);
+
+  /// ذهبي صالح للنص فوق الأبيض/الكريمي (تباين ≈ ٦:١؛ accentGoldDark ٢٫٩:١).
+  static const Color goldText = Color(0xFF7A5F0F);
   static const Color error = Color(0xFFD32F2F);
   static const Color info = Color(0xFF0288D1);
 
@@ -74,7 +84,8 @@ class AppElevation {
 // =============================================================================
 // TYPOGRAPHY
 //   • Tajawal              → UI text (واضح، حروف منفصلة، غير متداخل)
-//   • Amiri Quran          → الآيات القرآنية (نسخ مزخرف، أصيل)
+//   • KFGQPC Hafs          → الآيات القرآنية بالرسم العثماني (مصحف المدينة)
+//   • Amiri                → اقتباسات إملائية قصيرة خارج المصحف
 //   • حجم متباعد + height مرتفع → القراءة المريحة
 // =============================================================================
 
@@ -119,13 +130,23 @@ class AppTextStyles {
         color: color ?? Colors.white,
       );
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━ Quranic style (Amiri) ━━━━━━━━━━━━━━━━━━━━━
-  // Amiri: خط نسخ كلاسيكي مزخرف - مناسب للقرآن.
+  // ━━━━━━━━━━━━━━━━━━━━━━━ Imla'i Quran quotes (Amiri) ━━━━━━━━━━━━━━━━━
+  // Amiri: للاقتباسات الإملائية القصيرة فقط؛ الرسم العثماني = mushaf() أدناه.
   // height: 2.2-2.4 لاستيعاب علامات التشكيل والوقف بدون تداخل.
   static TextStyle quran({Color? color, double? fontSize}) => GoogleFonts.amiri(
         fontSize: fontSize ?? 24,
         fontWeight: FontWeight.w500,
         height: 2.2,
+        color: color ?? AppColors.textPrimary,
+      );
+
+  /// نص المصحف: خط «الخط العثماني حفص» لمجمع الملك فهد (مصحف المدينة) — الخط
+  /// الوحيد الذي يرسم علامات المصحف كما في المطبوع. لا تضع [fontWeight]:
+  /// الخط له وزن واحد وأي وزن آخر يُصطنع تشويهاً.
+  static TextStyle mushaf({Color? color, double? fontSize, double? height}) => TextStyle(
+        fontFamily: kQuranFontFamily,
+        fontSize: fontSize ?? 26,
+        height: height ?? 2.0,
         color: color ?? AppColors.textPrimary,
       );
 
@@ -141,6 +162,19 @@ class AppTextStyles {
 // =============================================================================
 // LIGHT THEME
 // =============================================================================
+
+/// أيقونات شريط النظام: داكنة فوق الخلفية الفاتحة وفاتحة فوق الليلية.
+SystemUiOverlayStyle _overlayStyle({required bool dark}) {
+  final icons = dark ? Brightness.light : Brightness.dark;
+  return SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: icons,
+    statusBarBrightness: dark ? Brightness.dark : Brightness.light, // iOS
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: icons,
+    systemNavigationBarDividerColor: Colors.transparent,
+  );
+}
 
 ThemeData get lightTheme => ThemeData(
       useMaterial3: true,
@@ -168,6 +202,9 @@ ThemeData get lightTheme => ThemeData(
         scrolledUnderElevation: 0,
         centerTitle: true,
         titleTextStyle: AppTextStyles.header(color: AppColors.primaryTeal),
+        // خلفية الشريط شفافة فيحسبها Flutter «داكنة» ويرسم أيقونات النظام بيضاء
+        // فوق الكريمي: نحدد الأسلوب صراحةً.
+        systemOverlayStyle: _overlayStyle(dark: false),
       ),
       cardTheme: CardThemeData(
         elevation: AppElevation.md,
@@ -265,7 +302,8 @@ ThemeData get darkTheme => ThemeData(
         surface: AppColors.darkSecondary,
         surfaceContainerHighest: AppColors.darkSurface,
         error: AppColors.error,
-        onPrimary: Colors.white,
+        // نص فوق التيل الفاتح (#4DA6A6): الأبيض ٢٫٩:١ فقط، الداكن ≈ ٦:١.
+        onPrimary: Color(0xFF0B1F1F),
         onSecondary: AppColors.textOnDark,
         onSurface: AppColors.textOnDark,
         onError: Colors.white,
@@ -279,6 +317,7 @@ ThemeData get darkTheme => ThemeData(
         scrolledUnderElevation: 0,
         centerTitle: true,
         titleTextStyle: AppTextStyles.header(color: AppColors.darkTeal),
+        systemOverlayStyle: _overlayStyle(dark: true),
       ),
       cardTheme: CardThemeData(
         elevation: AppElevation.md,
@@ -291,14 +330,14 @@ ThemeData get darkTheme => ThemeData(
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.darkTeal,
-          foregroundColor: Colors.white,
+          foregroundColor: const Color(0xFF0B1F1F),
           elevation: AppElevation.md,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.xl),
           ),
           minimumSize: const Size(48, 48),
-          textStyle: AppTextStyles.button(color: Colors.white),
+          textStyle: AppTextStyles.button(color: const Color(0xFF0B1F1F)),
         ),
       ),
       iconTheme: const IconThemeData(

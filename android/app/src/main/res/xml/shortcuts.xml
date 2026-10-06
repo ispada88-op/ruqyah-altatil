@@ -12,8 +12,7 @@
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.ruqyah.altatil"
             android:targetClass="com.ruqyah.altatil.MainActivity"
-            android:data="ruqyah://audio" />
-        <categories android:name="android.shortcut.conversation" />
+            android:data="ruqyah://open/audio-roqia" />
     </shortcut>
 
     <!-- اختصار 2: الأذكار -->
@@ -27,7 +26,7 @@
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.ruqyah.altatil"
             android:targetClass="com.ruqyah.altatil.MainActivity"
-            android:data="ruqyah://dhikr" />
+            android:data="ruqyah://open/dhikr" />
     </shortcut>
 
     <!-- اختصار 3: آية الكرسي -->
@@ -41,7 +40,7 @@
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.ruqyah.altatil"
             android:targetClass="com.ruqyah.altatil.MainActivity"
-            android:data="ruqyah://written" />
+            android:data="ruqyah://open/written-roqia" />
     </shortcut>
 
 </shortcuts>

@@ -6,14 +6,45 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/data/general_ruqyah_data.dart';
 import 'package:roqia_altatil/services/share_service.dart';
 import 'package:roqia_altatil/theme.dart';
-import 'package:roqia_altatil/utils/arabic_text.dart';
+import 'package:roqia_altatil/utils/arabic_format.dart';
+import 'package:roqia_altatil/widgets/quran_text.dart';
 
 /// صفحة «الرقية المستقلة» — رقية مستقلة عن رقية التعطيل.
 ///
 /// كل فقرة لها عدّاد تكرار تفاعلي (٧ أو ٣ مرات): اضغط العدّاد بعد كل قراءة،
 /// وعند اكتمال العدد يظهر ✓ (والضغط بعدها يعيد العدّاد من جديد).
+///
+/// الصفحة نفسها تُعاد استخدامها لأقسام القراءة بعدّاد (أذكار الصباح والمساء،
+/// رقى حسب الحالة) بتمرير [items] وعنوان القسم.
 class GeneralRuqyahPage extends StatefulWidget {
-  const GeneralRuqyahPage({super.key});
+  const GeneralRuqyahPage({
+    super.key,
+    this.items,
+    this.title = 'الرقية المستقلة',
+    this.subtitle =
+        'رقية مستقلة عن رقية التعطيل — تُقرأ فقراتها بالترتيب وبعدد التكرار المبيَّن',
+    this.emblem = 'رقية',
+    this.intro,
+    this.headerExtra,
+    this.footer,
+  });
+
+  /// الفقرات؛ الافتراضي «الرقية المستقلة».
+  final List<GeneralRuqyahItem>? items;
+  final String title;
+  final String subtitle;
+
+  /// الكلمة داخل الدائرة أعلى الصفحة.
+  final String emblem;
+
+  /// بطاقة تعريف اختيارية (مصدر القسم أو تنبيه).
+  final String? intro;
+
+  /// عنصر إضافي تحت العنوان (مثل مبدّل الصباح/المساء).
+  final Widget? headerExtra;
+
+  /// سطر مصدر في آخر القائمة.
+  final String? footer;
 
   @override
   State<GeneralRuqyahPage> createState() => _GeneralRuqyahPageState();
@@ -37,7 +68,8 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (mounted) {
-        setState(() => _fontSize = prefs.getDouble(_kFontSizeKey) ?? 20.0);
+        // المفتاح مشترك مع المصحف (نطاقه ١٦-٣٦) — نقصّه لنطاق هذا السلايدر.
+        setState(() => _fontSize = (prefs.getDouble(_kFontSizeKey) ?? 20.0).clamp(14.0, 32.0));
       }
     } catch (_) {/* ignore */}
   }
@@ -69,7 +101,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final items = generalRuqyahItems;
+    final items = widget.items ?? generalRuqyahItems;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkPrimary : const Color(0xFFFFF8E7),
@@ -93,7 +125,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
             child: Row(
               children: [
                 Icon(
-                  Icons.text_fields,
+                  Icons.text_fields_outlined,
                   color:
                       isDark ? AppColors.accentGold : AppColors.accentGoldDark,
                 ),
@@ -126,7 +158,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                   ),
                 ),
                 Text(
-                  '${_fontSize.round()}',
+                  arDigits(_fontSize.round()),
                   style: TextStyle(
                     color: isDark ? AppColors.textOnDark : const Color(0xFF6F4E37),
                     fontWeight: FontWeight.bold,
@@ -140,6 +172,14 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
               padding: const EdgeInsets.all(16),
               children: [
                 _buildHeader(isDark),
+                if (widget.headerExtra != null) ...[
+                  const SizedBox(height: 12),
+                  widget.headerExtra!,
+                ],
+                if (widget.intro != null) ...[
+                  const SizedBox(height: 12),
+                  _buildIntroCard(widget.intro!, isDark),
+                ],
                 const SizedBox(height: 12),
                 _buildHowToCard(isDark),
                 const SizedBox(height: 12),
@@ -156,8 +196,50 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                     ),
                   );
                 }),
+                if (widget.footer != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      widget.footer!,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.caption(
+                        color: isDark
+                            ? AppColors.textOnDarkSecondary
+                            : AppColors.textSecondary,
+                      ).copyWith(fontSize: 12),
+                    ),
+                  ),
                 const SizedBox(height: 24),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntroCard(String text, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: (isDark ? AppColors.darkTeal : AppColors.primaryTeal)
+            .withValues(alpha: isDark ? 0.18 : 0.07),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outlined,
+              size: 20,
+              color: isDark ? AppColors.darkTeal : AppColors.primaryTeal),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTextStyles.caption(
+                color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
+              ).copyWith(height: 1.7),
+              textDirection: TextDirection.rtl,
             ),
           ),
         ],
@@ -189,28 +271,34 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
               ),
             ],
           ),
-          child: Center(
-            child: Text(
-              'رقية',
-              style: GoogleFonts.amiri(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                height: 1.1,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Center(
+              child: FittedBox(
+                child: Text(
+                  widget.emblem,
+                  style: GoogleFonts.amiri(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    height: 1.1,
+                  ),
+                ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 10),
         Text(
-          'الرقية المستقلة',
+          widget.title,
+          textAlign: TextAlign.center,
           style: AppTextStyles.header(
             color: isDark ? AppColors.textOnDark : AppColors.primaryTeal,
           ),
         ),
         const SizedBox(height: 4),
         Text(
-          'رقية مستقلة عن رقية التعطيل — تُقرأ فقراتها بالترتيب وبعدد التكرار المبيَّن',
+          widget.subtitle,
           textAlign: TextAlign.center,
           style: AppTextStyles.caption(
             color: isDark
@@ -294,7 +382,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                 ),
                 child: Center(
                   child: Text(
-                    '$order',
+                    arDigits(order),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -366,16 +454,24 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
             for (final line in block.lines) {
               yield Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                  item.isQuran ? simplifyQuran(line) : line,
-                  style: GoogleFonts.notoNaskhArabic(
-                    fontSize: _fontSize,
-                    height: 2,
-                    color: textColor,
-                  ),
-                  textAlign: item.isQuran ? TextAlign.right : TextAlign.center,
-                  textDirection: TextDirection.rtl,
-                ),
+                // Quran: verbatim KFGQPC text in the KFGQPC font, nothing altered
+                // between the verified data and the screen.
+                child: item.isQuran
+                    ? QuranText(
+                        line,
+                        style: AppTextStyles.mushaf(fontSize: _fontSize, color: textColor),
+                        textAlign: TextAlign.right,
+                      )
+                    : Text(
+                        line,
+                        style: GoogleFonts.notoNaskhArabic(
+                          fontSize: _fontSize,
+                          height: 2,
+                          color: textColor,
+                        ),
+                        textAlign: TextAlign.center,
+                        textDirection: TextDirection.rtl,
+                      ),
               );
             }
           }),
@@ -433,7 +529,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            done ? 'اكتمل ✓' : '$count / ${item.repeat}',
+                            done ? 'اكتمل ✓' : '${arDigits(count)} / ${arDigits(item.repeat)}',
                             style: TextStyle(
                               fontSize: _fontSize - 3,
                               fontWeight: FontWeight.bold,
@@ -463,7 +559,7 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                     ),
                   );
                 },
-                icon: Icon(Icons.copy_rounded, size: 20, color: gold),
+                icon: Icon(Icons.content_copy_outlined, size: 20, color: gold),
                 tooltip: 'نسخ',
               ),
               IconButton(
@@ -471,11 +567,11 @@ class _GeneralRuqyahPageState extends State<GeneralRuqyahPage> {
                   HapticFeedback.lightImpact();
                   ShareService.shareText(
                     context,
-                    text: '${item.plainText}\n\nمن تطبيق رقية التعطيل',
+                    text: '${item.plainText}\n\nمن تطبيق الرقية الشاملة',
                     subject: item.title,
                   );
                 },
-                icon: Icon(Icons.share_rounded, size: 20, color: gold),
+                icon: Icon(Icons.share_outlined, size: 20, color: gold),
                 tooltip: 'مشاركة',
               ),
             ],

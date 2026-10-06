@@ -13,6 +13,9 @@ Future<void> showSleepTimerSheet(BuildContext context) {
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
+    // بدونه يُقصّ الـ sheet عند 9/16 من الشاشة فيضيع زر إلغاء المؤقّت.
+    isScrollControlled: true,
+    useSafeArea: true,
     builder: (_) => const _SleepTimerSheet(),
   );
 }
@@ -21,9 +24,9 @@ class _SleepTimerSheet extends StatelessWidget {
   const _SleepTimerSheet();
 
   static const _options = [
-    (5, '5 دقائق'),
-    (15, '15 دقيقة'),
-    (30, '30 دقيقة'),
+    (5, '٥ دقائق'),
+    (15, '١٥ دقيقة'),
+    (30, '٣٠ دقيقة'),
     (60, 'ساعة'),
     (90, 'ساعة ونصف'),
   ];
@@ -33,7 +36,8 @@ class _SleepTimerSheet extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final audio = context.watch<AudioPlayerService>();
 
-    return Container(
+    return SingleChildScrollView(
+      child: Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSecondary : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -54,7 +58,7 @@ class _SleepTimerSheet extends StatelessWidget {
           ),
           Center(
             child: Icon(
-              Icons.bedtime,
+              Icons.timer_outlined,
               size: 32,
               color: isDark ? AppColors.darkTeal : AppColors.primaryTeal,
             ),
@@ -135,6 +139,7 @@ class _SleepTimerSheet extends StatelessWidget {
               ),
             ),
         ],
+      ),
       ),
     );
   }

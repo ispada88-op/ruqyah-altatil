@@ -1,0 +1,9 @@
+KFGQPC Hafs page fonts (QCF4_Hafs_01_W ... QCF4_Hafs_47_W, QCF4_QBSML)
+(c) King Fahd Glorious Quran Printing Complex, Madinah — all rights reserved.
+Source: «Mushaf Publisher» programme, https://qurancomplex.gov.sa/en/techquran/dev/
+The font files are embedded byte-for-byte as published; they are not modified,
+converted, subsetted or sold. Each glyph is one word of the Madinah Mushaf, so
+the page text is drawn exactly as printed (Hafs 'an 'Asim).
+
+خطوط صفحات المصحف — © مجمع الملك فهد لطباعة المصحف الشريف بالمدينة المنورة،
+جميع الحقوق محفوظة. تُضمَّن كما نشرها المجمع دون أي تعديل.

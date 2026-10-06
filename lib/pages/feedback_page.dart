@@ -1,5 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:roqia_altatil/config/app_links.dart';
+import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -19,6 +21,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
   final List<String> _messageTypes = [
     '🌟 اقتراح',
+    '💡 ميزة أو إضافة جديدة',
     '🐞 مشكلة تقنية',
     '❤️ شكر وتقدير',
     '📝 ملاحظة عامة',
@@ -43,41 +46,64 @@ class _FeedbackPageState extends State<FeedbackPage> {
       final name = _nameController.text.trim().isEmpty ? 'مستخدم مجهول' : _nameController.text.trim();
       final message = _messageController.text.trim();
       
-      final emailBody = Uri.encodeComponent('''
+      final subject = 'رسالة من تطبيق الرقية الشاملة - $_selectedType';
+      final plainBody = '''
 نوع الرسالة: $_selectedType
 الاسم: $name
 التاريخ والوقت: $dateTime
 
 الرسالة:
 $message
-      ''');
+''';
 
-      final emailUri = Uri.parse(
-        'mailto:ISPADA88@GMAIL.COM?subject=${Uri.encodeComponent('رسالة من تطبيق رقية التعطيل للشيخ فهد القرني - $_selectedType')}&body=$emailBody'
+      final emailUri = Uri(
+        scheme: 'mailto',
+        path: AppLinks.feedbackEmail,
+        query: 'subject=${Uri.encodeComponent(subject)}'
+            '&body=${Uri.encodeComponent(plainBody)}',
       );
 
-      if (await canLaunchUrl(emailUri)) {
-        await launchUrl(emailUri);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('شكراً! تم فتح تطبيق البريد لإرسال رسالتك ✅'),
-              backgroundColor: AppColors.primaryTeal,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-          
-          // Reset form
-          _nameController.clear();
-          _messageController.clear();
-          setState(() => _selectedType = '🌟 اقتراح');
-        }
-      } else {
-        throw 'لا يمكن فتح تطبيق البريد';
+      // إصلاح 2026-09-28: كان الكود يسأل canLaunchUrl أولاً — على أندرويد 11+
+      // يرجع false دائماً بدون <queries> لـ mailto، وعلى أي جهاز بدون تطبيق بريد
+      // تضيع رسالة المستخدم. الآن نحاول الفتح مباشرة، وإن فشل ننسخ الرسالة.
+      var opened = false;
+      try {
+        opened = await launchUrl(emailUri, mode: LaunchMode.externalApplication);
+      } catch (e, st) {
+        ErrorReporter.report(e, st, context: 'FeedbackPage.launchUrl');
       }
-    } catch (e) {
-      if (kDebugMode) debugPrint('Error sending feedback: $e');
+
+      if (!mounted) return;
+      if (opened) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('شكراً! تم فتح تطبيق البريد لإرسال رسالتك ✅'),
+            backgroundColor: AppColors.primaryTeal,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        _nameController.clear();
+        _messageController.clear();
+        setState(() => _selectedType = '🌟 اقتراح');
+      } else {
+        // لا يوجد تطبيق بريد: لا نضيّع ما كتبه المستخدم.
+        await Clipboard.setData(ClipboardData(
+          text: 'إلى: ${AppLinks.feedbackEmail}\nالموضوع: $subject\n\n$plainBody',
+        ));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'لم نجد تطبيق بريد على جهازك — نسخنا رسالتك، '
+              'الصقها في أي بريد وأرسلها إلى ${AppLinks.feedbackEmail}',
+            ),
+            backgroundColor: AppColors.warningStrong,
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      }
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'FeedbackPage._sendFeedback');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -136,7 +162,7 @@ $message
                       ],
                     ),
                     child: const Icon(
-                      Icons.mail_outline,
+                      Icons.mail_outlined,
                       size: 56,
                       color: Colors.white,
                     ),
@@ -150,16 +176,63 @@ $message
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
-                  // Subtitle
-                  Text(
-                    'رأيك يهمنا — شاركنا اقتراحاتك لتحسين التطبيق',
-                    style: AppTextStyles.body(
-                      color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
+                  const SizedBox(height: 16),
+                  // دعوة لإرسال الأفكار: بطاقة بحدّ ذهبي بدل سطر واحد عابر.
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSecondary : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.accentGold.withValues(alpha: 0.7),
+                      ),
                     ),
-                    textAlign: TextAlign.center,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.lightbulb_outlined,
+                              color: AppColors.accentGold,
+                              size: 26,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'بفضل الله ثم اقتراحاتكم',
+                                style: AppTextStyles.subheader(
+                                  color: isDark
+                                      ? AppColors.textOnDark
+                                      : AppColors.primaryTeal,
+                                ).copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'أضفنا مزايا وتحديثات.',
+                          style: AppTextStyles.body(
+                            color: isDark
+                                ? AppColors.textOnDark
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'في حال رغبتكم في مزايا أو إضافات،\nفضلاً الإرسال هنا.',
+                          style: AppTextStyles.body(
+                            color: isDark
+                                ? AppColors.textOnDarkSecondary
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   // Name Field
                   Container(
                     decoration: BoxDecoration(
@@ -186,7 +259,7 @@ $message
                           color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
                         ),
                         prefixIcon: Icon(
-                          Icons.person_outline,
+                          Icons.person_outlined,
                           color: isDark ? AppColors.accentGold : AppColors.primaryTeal,
                         ),
                         border: OutlineInputBorder(
@@ -286,7 +359,7 @@ $message
                         color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'اكتب رسالتك هنا...',
+                        hintText: 'اكتب فكرتك أو الميزة التي تتمنى إضافتها...',
                         hintStyle: AppTextStyles.body(
                           color: isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary,
                         ),
@@ -337,7 +410,7 @@ $message
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.send, size: 24),
+                                const Icon(Icons.send_outlined, size: 24),
                                 const SizedBox(width: 12),
                                 Text(
                                   'إرسال',

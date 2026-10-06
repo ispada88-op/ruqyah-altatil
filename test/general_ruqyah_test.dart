@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roqia_altatil/data/general_ruqyah_data.dart';
+import 'package:roqia_altatil/data/verified_quran.dart' show basmalaUthmani;
 import 'package:roqia_altatil/pages/general_ruqyah_page.dart';
+import 'package:roqia_altatil/utils/arabic_format.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -45,7 +47,7 @@ void main() {
       expect(m.blocks.map((b) => b.heading).toList(),
           ['سورة الإخلاص', 'سورة الفلق', 'سورة الناس']);
       for (final b in m.blocks) {
-        expect(b.lines.first, contains('بِسْمِ'));
+        expect(b.lines.first, basmalaUthmani);
         expect(b.lines.length, greaterThan(1));
       }
     });
@@ -91,18 +93,19 @@ void main() {
     testWidgets('counter increments on tap and completes at target',
         (tester) async {
       await pumpPage(tester);
-      // عدّاد الفاتحة يبدأ 0 / 7
-      expect(find.text('0 / 7'), findsWidgets);
-      await tester.ensureVisible(find.text('0 / 7').first);
+      // عدّاد الفاتحة يبدأ ٠ / ٧ (أرقام عربية هندية كبقية التطبيق)
+      String at(int n) => '${arDigits(n)} / ${arDigits(7)}';
+      expect(find.text(at(0)), findsWidgets);
+      await tester.ensureVisible(find.text(at(0)).first);
       await tester.pump();
-      await tester.tap(find.text('0 / 7').first);
+      await tester.tap(find.text(at(0)).first);
       await tester.pump();
-      expect(find.text('1 / 7'), findsOneWidget);
+      expect(find.text(at(1)), findsOneWidget);
       // ست ضغطات إضافية → اكتمال
       for (var i = 0; i < 6; i++) {
-        await tester.ensureVisible(find.text('${i + 1} / 7').first);
+        await tester.ensureVisible(find.text(at(i + 1)).first);
         await tester.pump();
-        await tester.tap(find.text('${i + 1} / 7').first);
+        await tester.tap(find.text(at(i + 1)).first);
         await tester.pump();
       }
       expect(find.text('اكتمل ✓'), findsOneWidget);

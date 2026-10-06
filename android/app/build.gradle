@@ -10,12 +10,17 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 def useLocalSigning = keystorePropertiesFile.exists()
+// CI must never produce a debug-signed release (Play rejects it): fail loudly.
+if (!useLocalSigning && System.getenv('CI') == 'true' &&
+        gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') || it.toLowerCase().contains('bundle') }) {
+    throw new GradleException('key.properties missing: refusing a debug-signed release build in CI')
+}
 
 android {
     namespace = "com.ruqyah.altatil"
-    // Hardcoded to satisfy Google Play 2025 target API mandate (35),
-    // independent of the local Flutter SDK's flutter.compileSdkVersion.
-    compileSdk = 35
+    // Google Play: from 2026-08-31 new apps/updates must target API 36 or higher.
+    // Hardcoded, independent of the local Flutter SDK's flutter.compileSdkVersion.
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -43,7 +48,7 @@ android {
     defaultConfig {
         applicationId = "com.ruqyah.altatil"
         minSdkVersion = flutter.minSdkVersion
-        targetSdk = 35
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

@@ -1,37 +1,35 @@
 ---
 name: verify-quran
-description: Verify Quranic verses in the codebase against the Tanzil Uthmani reference text. Use whenever the user mentions adding, editing, or auditing Quran text in the app.
+description: Verify Quranic verses in the codebase against the pinned King Fahd Complex (Madinah Mushaf) text. Use whenever the user mentions adding, editing, or auditing Quran text in the app.
 ---
 
 # Verify Quran Text
 
-Quran text is sacred — never trust manual edits. Whenever the user wants to
-add or change verses in `lib/data/verified_quran.dart` or `lib/data/quran_data.dart`:
+Quran text is sacred — never trust manual edits.
+
+## Source of truth
+
+`assets/quran/hafsData_v18.json` — King Fahd Glorious Quran Printing Complex
+(KFGQPC, Madinah) Hafs v0.18, verbatim, SHA-256 pinned (`test/quran_asset_test.dart`,
+`scripts/verify_quran.py`). It is shown with the byte-identical font
+`assets/fonts/kfgqpc/hafs.18.ttf` (EULA: never modify/convert/sell — see CLAUDE.md).
 
 ## Workflow
 
-1. **Source of truth**: Tanzil.net Uthmani XML (matches Madinah Mushaf KFGQPC).
-2. **Method**: Compare character-by-character after Unicode NFC normalization.
-3. **Acceptable normalizations**:
-   - Remove waqf marks (ۖ ۗ ۘ ۙ ۚ ۛ ۜ) before compare — they're typesetting.
-   - Treat `ـٰ` (tatweel + superscript alef) as equivalent to `ٰ` alone.
-   - Different Unicode orderings of combining marks count as equivalent.
-4. **Real differences** — flag immediately. Do not assume they're typos.
-   Show the user diff and ask for confirmation against an authoritative source.
-
-## Reference command
-
-```bash
-python3 scripts/verify_quran.py lib/data/verified_quran.dart
-```
-
-(If the script doesn't exist, point the user to:
-`https://github.com/risan/quran-json` or pyquran package for the reference text.)
+1. Never type an ayah. Add ranges to `EXTRACTS` / `VERIFIED` in
+   `scripts/gen_quran_data.py`, then run it — it writes `lib/data/*quran*.dart` from the JSON.
+2. Run `python3 scripts/verify_quran.py` — **byte equality only**, no normalisation,
+   no allowlist. Any failure = fix the source/generator, never the script.
+3. `python3 scripts/crosscheck_quran.py` compares the letters with the Tanzil reference
+   (`scripts/ref/quran-uthmani-tanzil.txt`); only 2:72 is a known difference.
+4. Imla'i quotes outside the Mushaf must be whole words of the cited ayah in
+   `scripts/ref/quran-simple.txt`.
 
 ## Don'ts
 
-- NEVER edit a verse based on hearing or memory.
-- NEVER apply autocorrect / linters to verse strings.
-- NEVER remove the ﴿N﴾ ayah markers — they're part of the display.
-- If Tanzil and Madinah Mushaf differ on a specific verse, prefer Madinah Mushaf
-  (KFGQPC) — that's our reference.
+- NEVER edit a verse based on hearing or memory, and never "fix" spelling to match another edition.
+- NEVER apply autocorrect / linters / formatters to verse strings.
+- NEVER change a letter or mark between the data and the screen (no substitutions, no
+  font weight — use `AppTextStyles.mushaf` / `QuranText`).
+- The ayah-number tail (NBSP + Arabic-Indic digits) is part of the KFGQPC format: the
+  font draws it as the end-of-ayah sign; for copy/share use `quranForSharing`.

@@ -1,0 +1,6 @@
+// إعدادات هدف الودجت. تأخذ رقم الإصدار والبناء من pubspec عبر Flutter
+// (Generated.xcconfig يُولَّد عند flutter pub get / flutter build — وهو خارج git).
+// القيم الافتراضية أدناه تكفي لبناء التحقق بدون Flutter فقط؛ أي Generated يتغلّب عليها.
+FLUTTER_BUILD_NAME = 1.1.0
+FLUTTER_BUILD_NUMBER = 1
+#include? "../Flutter/Generated.xcconfig"

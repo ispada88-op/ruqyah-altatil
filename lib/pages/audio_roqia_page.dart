@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:roqia_altatil/theme.dart';
@@ -227,6 +228,10 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
     final position = svc.position;
     final duration = svc.duration;
     final selectedReciter = svc.currentReciter;
+    // الدائرة تتكيّف مع ارتفاع الشاشة كي تبقى أزرار التشغيل ظاهرة تحت شريط الرجوع.
+    final circle = (MediaQuery.sizeOf(context).height * 0.22)
+        .clamp(170.0, 260.0)
+        .toDouble();
 
     return Container(
       decoration: BoxDecoration(
@@ -247,8 +252,8 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
 
               // Circle container
               Container(
-                width: 280,
-                height: 280,
+                width: circle,
+                height: circle,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark
@@ -271,7 +276,7 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                       : Icon(
                           svc.isPlaying
                               ? Icons.music_note
-                              : Icons.play_circle_outline,
+                              : Icons.play_circle_outlined,
                           size: 80,
                           color: Colors.white,
                         ),
@@ -280,21 +285,34 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
 
               const SizedBox(height: AppSpacing.xl),
 
-              // Title
+              // العنوان: رقية التعطيل (للشيخ فهد القرني) — والصوت بصوت القارئ.
               Text(
-                'رقية التعطيل والسحر',
+                'الرقية الصوتية',
+                style: AppTextStyles.caption(color: AppColors.accentGold)
+                    .copyWith(fontWeight: FontWeight.w700),
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                AppIdentity.taTil,
                 style: AppTextStyles.header(
                   color: isDark ? AppColors.textOnDark : AppColors.primaryTeal,
-                ),
+                ).copyWith(fontWeight: FontWeight.w800, fontSize: 28),
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                AppIdentity.taTilOwner,
+                style: AppTextStyles.subheader(
+                  color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
+                ).copyWith(fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: AppSpacing.sm),
 
-              // Sheikh name
+              // القارئ
               Text(
-                selectedReciter.name,
-                style: AppTextStyles.subheader(
+                'بصوت ${selectedReciter.name}',
+                style: AppTextStyles.body(
                   color: isDark
                       ? AppColors.textOnDarkSecondary
                       : AppColors.textSecondary,
@@ -313,7 +331,7 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: AppColors.error),
+                      const Icon(Icons.error_outlined, color: AppColors.error),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
@@ -426,8 +444,9 @@ class _AudioRoqiaPageState extends State<AudioRoqiaPage> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      runSpacing: 4,
                       children: [0.5, 0.75, 1.0, 1.25, 1.5].map((speed) {
                         final isSelected = _playbackSpeed == speed;
                         return Padding(

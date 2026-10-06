@@ -31,6 +31,7 @@ jobs:
       APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
       CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
       BUNDLE_ID: com.ruqyah.altatil
+      WIDGET_BUNDLE_ID: com.ruqyah.altatil.widget
 
     steps:
       - uses: actions/checkout@v4
@@ -48,17 +49,27 @@ jobs:
       - name: Initialize keychain
         run: keychain initialize
 
-      - name: Fetch signing files (auto-create certificate & profile)
+      - name: Fetch signing files (auto-create certificate & profiles)
         run: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          # امتداد الودجت (ios/PrayerWidget) له معرّف وملف توقيع خاصان.
+          app-store-connect fetch-signing-files "$WIDGET_BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
           xcode-project use-profiles
 
-      - name: Build IPA
+      - name: Quality gate (never upload a build that fails analyze/tests)
         run: |
           flutter pub get
+          python3 scripts/verify_quran.py
+          flutter analyze --no-fatal-infos
+          flutter test
+
+      - name: Build IPA
+        run: |
           flutter build ipa --release \
             --export-options-plist "$HOME/export_options.plist"
 

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:roqia_altatil/utils/arabic_format.dart';
+import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/data/written_roqia_data.dart';
-import 'package:roqia_altatil/utils/arabic_text.dart';
+import 'package:roqia_altatil/widgets/quran_text.dart';
 
 /// Written Roqia page with Quran-style design
 class WrittenRoqiaPage extends StatefulWidget {
@@ -28,7 +29,8 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (mounted) {
-        setState(() => _fontSize = prefs.getDouble(_kFontSizeKey) ?? 20.0);
+        // المفتاح مشترك مع المصحف (نطاقه ١٦-٣٦) — نقصّه لنطاق هذا السلايدر.
+        setState(() => _fontSize = (prefs.getDouble(_kFontSizeKey) ?? 20.0).clamp(14.0, 32.0));
       }
     } catch (_) {/* ignore */}
   }
@@ -63,7 +65,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
             child: Row(
               children: [
                 Icon(
-                  Icons.text_fields,
+                  Icons.text_fields_outlined,
                   color: isDark ? AppColors.accentGold : AppColors.accentGoldDark,
                 ),
                 const SizedBox(width: 12),
@@ -88,9 +90,12 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                   ),
                 ),
                 Text(
-                  '${_fontSize.round()}',
-                  style: const TextStyle(
-                    color: Color(0xFF6F4E37),
+                  arDigits(_fontSize.round()),
+                  style: TextStyle(
+                    // بنّي ثابت كان يكاد يختفي على الخلفية الداكنة.
+                    color: isDark
+                        ? AppColors.accentGold
+                        : const Color(0xFF6F4E37),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -101,7 +106,10 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Application Method Card (first)
+                // نسبة رقية التعطيل للشيخ — أول ما يراه القارئ.
+                _buildTaTilBanner(),
+                const SizedBox(height: 12),
+                // Application Method Card
                 _buildApplicationMethodCard(),
                 const SizedBox(height: 12),
                 _buildTahrijCard(),
@@ -115,9 +123,6 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                         s.basmala,
                         s.verses,
                         subtitle: s.subtitle,
-                        warning: s.name.contains('الزلزلة')
-                            ? '⚠️ الحامل لا تقرأ هذه السورة'
-                            : null,
                       ),
                       const SizedBox(height: 12),
                     ]),
@@ -125,6 +130,37 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                 _buildDuasCard(),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaTilBanner() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isDark ? AppColors.accentGold : AppColors.primaryTeal;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.14 : 0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            AppIdentity.taTil,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.header(color: color)
+                .copyWith(fontWeight: FontWeight.w800, fontSize: 22),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            AppIdentity.taTilOwner,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.subheader(
+              color: isDark ? AppColors.textOnDark : AppColors.textPrimary,
+            ).copyWith(fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -179,7 +215,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.eco,
+                  Icons.eco_outlined,
                   color: isDark ? AppColors.accentGold : const Color(0xFF388E3C),
                   size: 24,
                 ),
@@ -187,7 +223,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  '🌿 طريقة تطبيق الرقية',
+                  'طريقة تطبيق الرقية',
                   style: TextStyle(
                     fontSize: _fontSize + 2,
                     fontWeight: FontWeight.bold,
@@ -310,7 +346,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.volunteer_activism,
+                  Icons.volunteer_activism_outlined,
                   color: AppColors.accentGold,
                   size: 24,
                 ),
@@ -318,7 +354,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  '🤲 أدعية إزالة التعطيل',
+                  '🤲 أدعية رقية التعطيل — لفضيلة الشيخ فهد القرني',
                   style: TextStyle(
                     fontSize: _fontSize + 2,
                     fontWeight: FontWeight.bold,
@@ -398,7 +434,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.copy, size: 20),
+                icon: const Icon(Icons.content_copy_outlined, size: 20),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: text));
                   HapticFeedback.lightImpact();
@@ -482,7 +518,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: const Color(0xFF6F4E37), size: 20),
+                Icon(Icons.info_outlined, color: const Color(0xFF6F4E37), size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -509,7 +545,6 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
     String? basmala,
     List<String> verses, {
     String? subtitle,
-    String? warning,
     bool showMore = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -542,7 +577,7 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                     border: Border.all(color: isDark ? AppColors.accentGold : const Color(0xFFD4AF37)),
                   ),
                   child: Text(
-                    '$totalVerses آية',
+                    ayatLabel(totalVerses),
                     style: TextStyle(
                       fontSize: _fontSize - 4,
                       color: isDark ? AppColors.textOnDark : const Color(0xFF6F4E37),
@@ -572,11 +607,10 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
           ],
           Divider(color: isDark ? AppColors.accentGold : const Color(0xFFD4AF37), thickness: 1, height: 24),
           if (basmala != null) ...[
-            Text(
-              simplifyQuran(basmala),
-              style: GoogleFonts.notoNaskhArabic(
+            QuranText(
+              basmala,
+              style: AppTextStyles.mushaf(
                 fontSize: _fontSize + 2,
-                fontWeight: FontWeight.bold,
                 color: isDark ? AppColors.accentGold : const Color(0xFFD4AF37),
               ),
               textAlign: TextAlign.center,
@@ -588,11 +622,10 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
               ? const SizedBox(height: 12)
               : Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    simplifyQuran(verse),
-                    style: GoogleFonts.notoNaskhArabic(
+                  child: QuranText(
+                    verse,
+                    style: AppTextStyles.mushaf(
                       fontSize: _fontSize,
-                      height: 2,
                       color: isDark ? AppColors.textOnDark : const Color(0xFF6F4E37),
                     ),
                     textAlign: TextAlign.right,
@@ -612,34 +645,6 @@ class _WrittenRoqiaPageState extends State<WrittenRoqiaPage> {
                 ),
               ),
             ),
-          if (warning != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      warning,
-                      style: TextStyle(
-                        fontSize: _fontSize - 2,
-                        color: Colors.red.shade700,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textDirection: TextDirection.rtl,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );

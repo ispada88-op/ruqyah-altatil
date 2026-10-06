@@ -1,4 +1,5 @@
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -9,14 +10,34 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roqia_altatil/services/audio_player_service.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/services/notification_service.dart';
+import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/services/review_service.dart';
+import 'package:roqia_altatil/services/widget_sync_service.dart';
 import 'package:roqia_altatil/theme.dart';
+import 'package:roqia_altatil/config/app_identity.dart';
 import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/pages/onboarding_page.dart';
 
 Future<void> main() async {
   await ErrorReporter.runGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+
+    // الخطوط مضمّنة في assets/google_fonts (تعمل بدون إنترنت) — رخصة OFL تتطلب
+    // إرفاق نصها مع الخط، فنسجّله في صفحة التراخيص.
+    LicenseRegistry.addLicense(() async* {
+      for (final family in const ['Tajawal', 'Amiri', 'NotoNaskhArabic']) {
+        final text = await rootBundle.loadString('assets/google_fonts/OFL-$family.txt');
+        yield LicenseEntryWithLineBreaks([family], text);
+      }
+      // خط المصحف ونصه: مجمع الملك فهد — الترخيص يشترط إرفاق نصه مع الخط.
+      final kf = await rootBundle.loadString('assets/fonts/kfgqpc/KFGQPC-EULA.txt');
+      yield LicenseEntryWithLineBreaks(
+          ['KFGQPC HAFS Uthmanic Script (King Fahd Glorious Quran Printing Complex)'], kf);
+      // خطوط صفحات المصحف (QCF4) — حقوقها محفوظة للمجمع، تُضمَّن دون تعديل.
+      final qcf = await rootBundle.loadString('assets/fonts/qcf4/NOTICE.txt');
+      yield LicenseEntryWithLineBreaks(
+          ['KFGQPC Hafs page fonts (King Fahd Glorious Quran Printing Complex)'], qcf);
+    });
 
     // ═══ Edge-to-edge display + transparent system bars (Android) ═══
     // يخلي التطبيق يستخدم كامل الشاشة بدون شريط رمادي فوق/تحت.
@@ -39,6 +60,8 @@ Future<void> main() async {
         androidNotificationChannelName: 'تشغيل الرقية',
         androidNotificationOngoing: true,
         androidShowNotificationBadge: true,
+        // أيقونة أحادية اللون: أيقونة التطبيق الملوّنة تظهر دائرة فارغة في الإشعار.
+        androidNotificationIcon: 'drawable/ic_stat_notify',
       );
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'JustAudioBackground.init');
@@ -57,6 +80,7 @@ Future<void> main() async {
     await themeProvider.load();
 
     // ═══ Services ═══
+    await PrayerTimesService.instance.load(); // قبل الجدولة: التنبيهات تعتمد عليه
     await NotificationService.instance.initialize();
     await AudioPlayerService.instance.initialize();
 
@@ -67,7 +91,23 @@ Future<void> main() async {
     // ignore: discarded_futures
     ReviewService.instance.markSessionStart();
 
+    // ودجت iOS (الصلاة + وردي اليوم): يدفع لقطة المواقيت والختمة عند كل تغيّر.
+    WidgetSyncService.instance.attach();
+
     runApp(RuqyahApp(themeProvider: themeProvider));
+
+    // الضغط على إشعار (أذكار الصباح/المساء) يفتح الصفحة المناسبة مباشرة.
+    void openFromPayload(String payload) {
+      final route = AppRoutes.fromNotificationPayload(payload);
+      if (route != null) AppRouter.router.go(route);
+    }
+
+    NotificationService.instance.onOpenPayload = openFromPayload;
+    final launchPayload = NotificationService.instance.initialPayload;
+    if (launchPayload != null) {
+      NotificationService.instance.initialPayload = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) => openFromPayload(launchPayload));
+    }
   });
 }
 
@@ -93,6 +133,17 @@ class _RuqyahAppState extends State<RuqyahApp> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // عند الدخول والخروج: آخر ورد وآخر مواقيت في الودجت (المقارنة تمنع التكرار).
+    if (state == AppLifecycleState.resumed ||
+        state == AppLifecycleState.paused) {
+      // ignore: discarded_futures
+      WidgetSyncService.instance.sync();
+    }
+  }
+
+  @override
   void didChangePlatformBrightness() {
     super.didChangePlatformBrightness();
     _syncSystemUI();
@@ -100,7 +151,13 @@ class _RuqyahAppState extends State<RuqyahApp> with WidgetsBindingObserver {
 
   void _syncSystemUI() {
     if (!mounted) return;
-    final isDark = widget.themeProvider.isDarkMode(context);
+    // هذا الـ State فوق MaterialApp فلا يوجد MediaQuery هنا (كان يعود دائماً
+    // «فاتح» فتختفي أيقونات شريط النظام في الوضع الليلي) — نقرأ نظام التشغيل مباشرة.
+    final mode = widget.themeProvider.themeMode;
+    final isDark = mode == ThemeMode.dark ||
+        (mode == ThemeMode.system &&
+            WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+                Brightness.dark);
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
@@ -155,7 +212,7 @@ class _RuqyahAppState extends State<RuqyahApp> with WidgetsBindingObserver {
           WidgetsBinding.instance.addPostFrameCallback((_) => _syncSystemUI());
 
           return MaterialApp.router(
-            title: 'رقية التعطيل',
+            title: AppIdentity.name,
             debugShowCheckedModeBanner: false,
             theme: lightTheme,
             darkTheme: darkTheme,
@@ -205,11 +262,11 @@ class _RuqyahAppState extends State<RuqyahApp> with WidgetsBindingObserver {
                 color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.spa, size: 50, color: Colors.white),
+              child: const Icon(Icons.auto_stories_outlined, size: 50, color: Colors.white),
             ),
             const SizedBox(height: 24),
             Text(
-              'رقية التعطيل',
+              AppIdentity.name,
               style: AppTextStyles.header(color: Colors.white),
             ),
             const SizedBox(height: 8),

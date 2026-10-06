@@ -246,11 +246,11 @@ workflows:
 
       - name: "🔍 Analyze code quality"
         script: |
-          flutter analyze --no-fatal-infos || true
+          flutter analyze --no-fatal-infos
 
       - name: "🧪 Run unit and widget tests"
         script: |
-          flutter test --coverage || true
+          flutter test --coverage
 
       - name: "🏗️ Build iOS IPA (release)"
         script: |
