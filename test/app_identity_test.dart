@@ -11,17 +11,20 @@ void main() {
         AppIdentity.taTilAttribution, 'رقية التعطيل لفضيلة الشيخ فهد القرني');
   });
 
-  test('store name + subtitle read as one sentence, each within 30 chars', () {
-    expect(AppIdentity.storeName, 'الرقية الشاملة ورقية التعطيل');
-    expect(AppIdentity.storeSubtitle, startsWith('والمصحف الشريف'));
+  test('store name + subtitle show all three names, each within 30 chars', () {
+    expect(AppIdentity.storeName, 'الرقية الشاملة والمصحف الشريف');
+    expect(AppIdentity.storeSubtitle, 'رقية التعطيل للشيخ فهد القرني');
     expect(AppIdentity.storeName.length, lessThanOrEqualTo(30));
     expect(AppIdentity.storeSubtitle.length, lessThanOrEqualTo(30));
     expect(AppIdentity.fullName, 'الرقية الشاملة ورقية التعطيل والمصحف الشريف');
     for (final w in ['الرقية الشاملة', 'رقية التعطيل', 'المصحف الشريف']) {
       expect(AppIdentity.fullName, contains(w));
+      // الثلاثة ظاهرة في المتجر: الاسم + العنوان الفرعي معاً.
+      expect('${AppIdentity.storeName} ${AppIdentity.storeSubtitle}', contains(w));
     }
-    // «رقية التعطيل» في اسم المتجر نفسه ليجدها من يبحث بها.
-    expect(AppIdentity.storeName, contains(AppIdentity.taTil));
+    // «رقية التعطيل» تظهر في المتجر منسوبةً للشيخ دائماً (لا بلا نسبة).
+    expect(AppIdentity.storeSubtitle, contains(AppIdentity.taTil));
+    expect(AppIdentity.storeSubtitle, contains('للشيخ فهد القرني'));
   });
 
   test('sadaqa line is shown and shared with the app link', () {

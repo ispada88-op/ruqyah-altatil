@@ -53,8 +53,8 @@ lib/
 - صفحة جديدة؟ سجّلها في `AppRoutes.all` و`AppRoutes.tabOf` (يفشل `nav_normalize_test` إن نُسيت) وأضف صفاً في قائمة
   قسمها (`lib/pages/section_hubs.dart`). الصفحات التي بلا `SectionBackBar` خاص بها تُلفّ بـ `AppRouter._sub`.
 - زر الرجوع في أندرويد: `AppRoutes.parentOf` (الصفحة الفرعية → قائمة قسمها، جذر التبويب → الرئيسية).
-- الاسم: `AppIdentity.name` «الرقية الشاملة» (الأيقونة والشريط العلوي)، `AppIdentity.storeName` «الرقية الشاملة ورقية التعطيل» (اسم
-  App Store، ≤ ٣٠ حرفاً) + `AppIdentity.storeSubtitle` «والمصحف الشريف بلا إعلانات» (≤ ٣٠) يُقرآن جملة واحدة، و`AppIdentity.fullName`
+- الاسم: `AppIdentity.name` «الرقية الشاملة» (الأيقونة والشريط العلوي)، `AppIdentity.storeName` «الرقية الشاملة والمصحف الشريف» (اسم
+  App Store، ≤ ٣٠ حرفاً) + `AppIdentity.storeSubtitle` «رقية التعطيل للشيخ فهد القرني» (≤ ٣٠؛ تحمل نسبة الشيخ) فتظهر الثلاثة معاً، و`AppIdentity.fullName`
   «الرقية الشاملة ورقية التعطيل والمصحف الشريف» للنصوص الحرة (المشاركة)، `AppIdentity.sadaqaLine` عبارة «شارك التطبيق صدقةً جارية…» (الرئيسية ونص المشاركة).
 
 ## Code Conventions
