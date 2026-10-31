@@ -103,6 +103,10 @@ const _official = <_Official>[
   _Official('Abha — Umm al-Qura official site', 18.2164, 42.5053, 3, 'umm_al_qura', '''
 2026-10-31 04:54 06:08 11:54 15:12 17:39 19:09
 '''),
+  // السعودية: جازان من ummulqura.org.sa (31 أكتوبر 2026، UTC+3)
+  _Official('Jazan — Umm al-Qura official site', 16.8892, 42.5511, 3, 'umm_al_qura', '''
+2026-10-31 04:53 06:07 11:54 15:13 17:40 19:10
+'''),
   // مصر: يوم واحد فقط من ودجت دار الإفتاء (القاهرة 28 أكتوبر 2026، UTC+3 صيفي) — ثقة متوسطة
   _Official('Cairo — Dar al-Ifta widget (single day)', 30.0444, 31.2357, 3, 'egyptian', '''
 2026-10-28 05:38 07:06 12:39 15:47 18:11 19:30
