@@ -23,6 +23,9 @@ enum AdhanVoice {
   }
 
   String get clipAsset => 'assets/adhan/$id.wav';
+
+  /// الأذان كاملاً للتشغيل داخل التطبيق (زر «جرّب»، وفتح إشعار الصلاة على iPhone).
+  String get fullAsset => 'assets/adhan/$id.mp3';
   String get iosSoundName => 'adhan_$id.wav';
   String get androidRaw => 'adhan_$id';
   String get androidChannelId => 'prayer_adhan_$id';

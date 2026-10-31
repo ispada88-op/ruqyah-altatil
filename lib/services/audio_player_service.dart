@@ -54,6 +54,11 @@ class AudioPlayerService extends ChangeNotifier {
   Duration _position = Duration.zero;
   bool _isLoading = false;
   bool _isLoaded = false;
+
+  /// يُشغَّل الأذان على المشغّل نفسه (just_audio_background يدعم مشغّلاً واحداً):
+  /// لا يُحفظ موضعه ولا يتكرر، والمشغّل المصغّر للرقية يختفي أثناءه.
+  bool _adhanMode = false;
+  bool get isAdhanPlaying => _adhanMode && _player.playing;
   String? _errorMessage;
 
   Duration get duration => _duration;
@@ -88,6 +93,7 @@ class AudioPlayerService extends ChangeNotifier {
     // 5 ثوانٍ. الآن: إشعار الواجهة فقط عند تغيّر الثانية المعروضة، والحفظ مرة
     // واحدة لكل 5 ثوانٍ.
     _player.positionStream.listen((p) {
+      if (_adhanMode) return;
       final sec = p.inSeconds;
       final changed = sec != _position.inSeconds;
       _position = p;
@@ -96,6 +102,14 @@ class AudioPlayerService extends ChangeNotifier {
       notifyListeners();
     });
     _player.playerStateStream.listen((state) {
+      if (_adhanMode) {
+        if (state.processingState == ProcessingState.completed) {
+          _endAdhan();
+          _player.stop();
+        }
+        notifyListeners();
+        return;
+      }
       if (state.processingState == ProcessingState.completed) {
         _position = Duration.zero;
         _persistPosition();
@@ -135,7 +149,12 @@ class AudioPlayerService extends ChangeNotifier {
 
     try {
       await _player.stop();
+      _adhanMode = false;
       _currentReciter = reciter;
+      // الأذان يلغي التكرار مؤقتاً؛ نعيد اختيار المستخدم المحفوظ.
+      final loopPrefs = await SharedPreferences.getInstance();
+      await _player.setLoopMode(
+          loopPrefs.getBool(_kLoopKey) == true ? LoopMode.one : LoopMode.off);
 
       // MediaItem makes the player surface in lock-screen / notification.
       await _player.setAudioSource(
@@ -176,6 +195,51 @@ class AudioPlayerService extends ChangeNotifier {
       _isLoaded = false;
       notifyListeners();
     }
+  }
+
+  // ─────────── الأذان ───────────
+  /// يشغّل الأذان كاملاً داخل التطبيق (زر «جرّب»، أو فتح إشعار الصلاة على iPhone
+  /// حيث يحدّ النظام صوت الإشعار بـ٣٠ ثانية). يوقف الرقية إن كانت تعمل.
+  Future<void> playAdhan(String asset, String voiceName) async {
+    try {
+      await _player.stop();
+      _adhanMode = true;
+      _isLoaded = false; // تشغيل الرقية بعده يعيد تحميل القارئ
+      notifyListeners();
+      await _player.setLoopMode(LoopMode.off);
+      await _player.setAudioSource(
+        AudioSource.asset(
+          asset,
+          tag: MediaItem(
+            id: 'adhan',
+            album: 'الرقية الشاملة',
+            title: 'الأذان',
+            artist: voiceName,
+          ),
+        ),
+      );
+      unawaited(_player.play());
+    } catch (e, st) {
+      _adhanMode = false;
+      ErrorReporter.report(e, st, context: 'AudioPlayerService.playAdhan');
+      notifyListeners();
+    }
+  }
+
+  Future<void> stopAdhan() async {
+    if (!_adhanMode) return;
+    try {
+      await _player.stop();
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'AudioPlayerService.stopAdhan');
+    }
+    _endAdhan();
+    notifyListeners();
+  }
+
+  void _endAdhan() {
+    _adhanMode = false;
+    _position = Duration.zero;
   }
 
   // ─────────── Controls ───────────

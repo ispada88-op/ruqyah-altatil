@@ -7,10 +7,12 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:roqia_altatil/services/adhan_voices.dart';
 import 'package:roqia_altatil/services/audio_player_service.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/services/khatma_service.dart';
 import 'package:roqia_altatil/services/notification_service.dart';
+import 'package:roqia_altatil/services/prayer_reminders.dart';
 import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/services/review_service.dart';
 import 'package:roqia_altatil/services/widget_sync_service.dart';
@@ -113,6 +115,15 @@ Future<void> main() async {
     void openFromPayload(String payload) {
       final route = AppRoutes.fromNotificationPayload(payload);
       if (route != null) AppRouter.router.go(route);
+      // iPhone يقطع صوت الإشعار عند ٣٠ ثانية: فتح إشعار الصلاة يُكمل الأذان.
+      if (payload == 'prayer' && defaultTargetPlatform == TargetPlatform.iOS) {
+        PrayerRemindersStore.load().then((c) {
+          final v = c.adhanVoice;
+          if (v != AdhanVoice.none) {
+            AudioPlayerService.instance.playAdhan(v.fullAsset, v.label);
+          }
+        });
+      }
     }
 
     NotificationService.instance.onOpenPayload = openFromPayload;

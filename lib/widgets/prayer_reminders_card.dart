@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:roqia_altatil/services/adhan_voices.dart';
+import 'package:roqia_altatil/services/audio_player_service.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/services/notification_service.dart';
 import 'package:roqia_altatil/services/prayer_reminders.dart';
@@ -254,13 +255,30 @@ class _PrayerRemindersCardState extends State<PrayerRemindersCard>
                     style: AppTextStyles.body(color: textColor)
                         .copyWith(fontWeight: FontWeight.w500)),
               ),
-              TextButton.icon(
-                onPressed: _busy
-                    ? null
-                    : () => NotificationService.instance
-                        .showAdhanTest(_cfg.adhanVoice),
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('جرّب'),
+              ListenableBuilder(
+                listenable: AudioPlayerService.instance,
+                builder: (context, _) {
+                  final audio = AudioPlayerService.instance;
+                  final playing = audio.isAdhanPlaying;
+                  return TextButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () {
+                            final v = _cfg.adhanVoice;
+                            if (playing) {
+                              audio.stopAdhan();
+                            } else if (v == AdhanVoice.none) {
+                              NotificationService.instance.showAdhanTest(v);
+                            } else {
+                              audio.playAdhan(v.fullAsset, v.label);
+                            }
+                          },
+                    icon: Icon(playing
+                        ? Icons.stop_rounded
+                        : Icons.play_arrow_rounded),
+                    label: Text(playing ? 'إيقاف' : 'جرّب'),
+                  );
+                },
               ),
             ],
           ),
@@ -283,7 +301,7 @@ class _PrayerRemindersCardState extends State<PrayerRemindersCard>
               padding: const EdgeInsets.only(top: AppSpacing.xs),
               child: Text(
                 defaultTargetPlatform == TargetPlatform.iOS
-                    ? 'في iPhone يُسمع أول الأذان فقط (حدّ النظام ٣٠ ثانية).'
+                    ? 'يبدأ الإشعار بأول الأذان (حدّ iPhone ٣٠ ثانية)، واضغط الإشعار ليكتمل الأذان.'
                     : 'يُسمع الأذان كاملاً، ويتوقف بسحب الإشعار.',
                 style: AppTextStyles.caption(color: subColor),
               ),

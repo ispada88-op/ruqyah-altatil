@@ -15,6 +15,7 @@ void main() {
       if (v == AdhanVoice.none) continue;
       final clip = File(v.clipAsset);
       expect(clip.existsSync(), isTrue, reason: v.clipAsset);
+      expect(File(v.fullAsset).existsSync(), isTrue, reason: v.fullAsset);
       final raw = File('android/app/src/main/res/raw/${v.androidRaw}.mp3');
       expect(raw.existsSync(), isTrue, reason: raw.path);
       // wav PCM: ‏byteRate عند الإزاحة ٢٨؛ المدة = (الحجم − ٤٤) / byteRate.
