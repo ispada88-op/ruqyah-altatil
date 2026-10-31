@@ -222,6 +222,13 @@ check(daysText(1) == "يوم" && daysText(2) == "يومان", "days 1/2")
 check(daysText(5) == "٥ أيام" && daysText(12) == "١٢ يوماً", "days 3-10 / 11+")
 check(dayKey(now) == "2026-10-05", "dayKey (run with TZ=Asia/Riyadh)")
 
+// ودجت المواقيت: وقت ١٢ ساعة بأرقام إنجليزية، وتاريخان بأرقام إنجليزية (TZ=Asia/Riyadh: ٥:٢٠ مساءً).
+check(WClock.clock(now) == "5:20", "clock is latin 12h")
+check(WClock.meridiem(now) == "م", "meridiem after noon")
+check(WClock.hijri(now).contains("1448"), "hijri year in latin digits")
+check(WClock.gregorian(now).contains("2026") && WClock.gregorian(now).contains("5"), "gregorian in latin digits")
+check(!WClock.hijri(now).contains("٤"), "hijri has no arabic-indic digits")
+
 if failures > 0 {
     print("\(failures) failure(s)")
     exit(1)

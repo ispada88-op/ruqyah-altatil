@@ -131,7 +131,7 @@ class _BookmarksPageState extends State<BookmarksPage> {
                                         label: 'تراجع',
                                         onPressed: () {
                                           if (!_svc.contains(b.page)) {
-                                            _svc.toggle(b.page);
+                                            _svc.toggle(b.page, now: b.added);
                                           }
                                         },
                                       ),

@@ -69,7 +69,12 @@ class BookmarksService extends ChangeNotifier {
     if (existing >= 0) {
       _items.removeAt(existing);
     } else {
-      _items.insert(0, Bookmark(page, now ?? DateTime.now()));
+      final b = Bookmark(page, now ?? DateTime.now());
+      // الأحدث أولاً (وعند التساوي الجديدة أولاً) — فالتراجع عن حذف يعيد
+      // العلامة إلى مكانها بتاريخها الأصلي.
+      var at = _items.indexWhere((x) => x.added.compareTo(b.added) <= 0);
+      if (at < 0) at = _items.length;
+      _items.insert(at, b);
       if (_items.length > maxBookmarks) _items.removeLast();
     }
     notifyListeners();

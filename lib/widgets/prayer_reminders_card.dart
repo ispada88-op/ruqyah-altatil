@@ -184,6 +184,34 @@ class _PrayerRemindersCardState extends State<PrayerRemindersCard>
             subColor: subColor,
           ),
           _row(
+            icon: Icons.import_contacts_outlined,
+            title: 'تذكير ورد الختمة',
+            subtitle: 'بعد الصلاة التي تختارها بنحو ٤٥ دقيقة، حين تكون لديك ختمة جارية',
+            value: _cfg.khatmaAfter != null,
+            onChanged: (v) => _apply(v
+                ? _cfg.copyWith(khatmaAfter: PrayerKind.fajr)
+                : _cfg.copyWith(clearKhatma: true)),
+            accent: accent,
+            textColor: textColor,
+            subColor: subColor,
+          ),
+          if (_cfg.khatmaAfter != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Wrap(
+                spacing: AppSpacing.sm,
+                children: [
+                  for (final k in _prayers)
+                    ChoiceChip(
+                      label: Text(k.label),
+                      selected: _cfg.khatmaAfter == k,
+                      onSelected:
+                          _busy ? null : (_) => _apply(_cfg.copyWith(khatmaAfter: k)),
+                    ),
+                ],
+              ),
+            ),
+          _row(
             icon: Icons.auto_stories_outlined,
             title: 'سورة الكهف يوم الجمعة',
             subtitle: 'صباح الجمعة، بعد الشروق بنحو ٢٠ دقيقة',

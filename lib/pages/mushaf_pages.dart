@@ -205,9 +205,24 @@ class _MushafIndexPageState extends State<MushafIndexPage> {
                       if (i == surahs.length) {
                         return Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Text(kQuranCredit,
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.caption().copyWith(fontSize: 11)),
+                          child: Column(
+                            children: [
+                              Text(kQuranCredit,
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.caption().copyWith(fontSize: 11)),
+                              const SizedBox(height: 12),
+                              Text(
+                                'النص بالرسم العثماني كما في مصحف المدينة، فقد يختلف إملاء بعض الكلمات عن الإملاء المعتاد (كالألف الصغيرة وموضع الهمزة)، وهذا هو الرسم الصحيح.',
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.caption().copyWith(fontSize: 11),
+                              ),
+                              TextButton.icon(
+                                onPressed: () => context.push(AppRoutes.feedback),
+                                icon: const Icon(Icons.flag_outlined, size: 18),
+                                label: const Text('أبلغ عن خطأ في النص'),
+                              ),
+                            ],
+                          ),
                         );
                       }
                       final s = surahs[i];

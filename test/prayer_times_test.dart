@@ -247,4 +247,123 @@ void main() {
     // أزل المؤقّت الدوري قبل نهاية الاختبار.
     await t.pumpWidget(const SizedBox());
   });
+
+  group('isRamadanUmmAlQura (embedded table)', () {
+    bool r(int y, int m, int d) => isRamadanUmmAlQura(DateTime(y, m, d));
+
+    test('Ramadan boundaries match the Umm al-Qura calendar', () {
+      // ١٤٤٦: ١ مارس ٢٠٢٥ ← ٢٩ يوماً
+      expect(r(2025, 2, 28), isFalse);
+      expect(r(2025, 3, 1), isTrue);
+      expect(r(2025, 3, 29), isTrue);
+      expect(r(2025, 3, 30), isFalse);
+      // ١٤٤٧: ١٨ فبراير ٢٠٢٦ ← ٣٠ يوماً
+      expect(r(2026, 2, 17), isFalse);
+      expect(r(2026, 2, 18), isTrue);
+      expect(r(2026, 3, 19), isTrue);
+      expect(r(2026, 3, 20), isFalse);
+      // ١٤٤٨: ٨ فبراير ٢٠٢٧ ← ٢٩ يوماً (التحويل الجدولي كان يمدّه يوماً)
+      expect(r(2027, 2, 7), isFalse);
+      expect(r(2027, 2, 8), isTrue);
+      expect(r(2027, 3, 8), isTrue);
+      expect(r(2027, 3, 9), isFalse);
+    });
+
+    test('Isha is +30 min only inside Ramadan, and not on Eid day', () {
+      Duration gap(DateTime d) {
+        final p = computePrayerDay(
+            lat: 18.22,
+            lon: 42.51,
+            date: d,
+            method: PrayerMethod.ummAlQura,
+            madhab: PrayerMadhab.shafi);
+        return p[PrayerKind.isha].difference(p[PrayerKind.maghrib]);
+      }
+
+      expect(gap(DateTime(2027, 3, 8)), const Duration(minutes: 120));
+      expect(gap(DateTime(2027, 3, 9)), const Duration(minutes: 90));
+      expect(gap(DateTime(2027, 2, 7)), const Duration(minutes: 90));
+    });
+
+    test('outside the table it falls back instead of failing', () {
+      expect(() => r(2100, 6, 1), returnsNormally);
+      expect(() => r(2010, 6, 1), returnsNormally);
+    });
+  });
+
+  group('worldwide robustness', () {
+    PrayerDay day(double lat, double lon, DateTime d,
+            {PrayerMethod method = PrayerMethod.muslimWorldLeague,
+            PrayerHighLat hl = PrayerHighLat.auto,
+            PrayerMadhab madhab = PrayerMadhab.shafi}) =>
+        computePrayerDay(
+            lat: lat, lon: lon, date: d, method: method, madhab: madhab, highLat: hl);
+
+    test('polar day/night no longer throws and stays in order', () {
+      for (final d in [DateTime(2027, 6, 21), DateTime(2026, 12, 21)]) {
+        final t = day(69.65, 18.96, d); // Tromsø
+        final order = [
+          for (final k in PrayerKind.values) t[k],
+        ];
+        for (var i = 1; i < order.length; i++) {
+          expect(order[i].isAfter(order[i - 1]), isTrue, reason: '$d #$i');
+        }
+      }
+      expect(() => day(-78.0, 166.0, DateTime(2027, 6, 21)), returnsNormally);
+    });
+
+    test('high-latitude rule: auto = seventh above 48°, no effect near the equator',
+        () {
+      final d = DateTime(2027, 6, 21);
+      final auto = day(51.5072, -0.1276, d); // لندن
+      final middle = day(51.5072, -0.1276, d, hl: PrayerHighLat.middle);
+      final seventh = day(51.5072, -0.1276, d, hl: PrayerHighLat.seventh);
+      expect(auto[PrayerKind.isha], seventh[PrayerKind.isha]);
+      expect(auto[PrayerKind.fajr], seventh[PrayerKind.fajr]);
+      expect(auto[PrayerKind.isha].isBefore(middle[PrayerKind.isha]), isTrue);
+      expect(auto[PrayerKind.fajr].isAfter(middle[PrayerKind.fajr]), isTrue);
+
+      final a1 = day(18.22, 42.51, d);
+      final a2 = day(18.22, 42.51, d, hl: PrayerHighLat.middle);
+      for (final k in PrayerKind.values) {
+        expect(a1[k], a2[k]);
+      }
+    });
+
+    test('twilight-angle rule never throws, even for interval methods', () {
+      expect(
+          () => day(51.5, -0.12, DateTime(2027, 6, 21),
+              method: PrayerMethod.ummAlQura, hl: PrayerHighLat.angle),
+          returnsNormally);
+      expect(
+          () => day(51.5, -0.12, DateTime(2027, 6, 21), hl: PrayerHighLat.angle),
+          returnsNormally);
+    });
+
+    test('Karachi-method regions default to the Hanafi Asr unless the user chose',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+      final svc = PrayerTimesService.instance..debugSet();
+      PrayerCity byName(String n) => kPrayerCities.firstWhere((c) => c.name == n);
+      expect(defaultMadhabFor(PrayerMethod.karachi), PrayerMadhab.hanafi);
+      expect(defaultMadhabFor(PrayerMethod.ummAlQura), PrayerMadhab.shafi);
+
+      await svc.setCity(byName('دلهي'));
+      expect(svc.method, PrayerMethod.karachi);
+      expect(svc.madhab, PrayerMadhab.hanafi);
+
+      await svc.setMadhab(PrayerMadhab.shafi); // اختيار صريح
+      await svc.setCity(byName('كراتشي'));
+      expect(svc.madhab, PrayerMadhab.shafi);
+
+      await svc.setCity(byName('الرياض')); // لا يتأثر
+      expect(svc.method, isNot(PrayerMethod.karachi));
+      svc.debugSet();
+    });
+
+    test('isFarFrom: only real relocations pass the 25 km bar', () {
+      expect(isFarFrom(21.4225, 39.8262, 21.43, 39.83, 25), isFalse);
+      expect(isFarFrom(24.7136, 46.6753, 21.4858, 39.1925, 25), isTrue);
+    });
+  });
 }

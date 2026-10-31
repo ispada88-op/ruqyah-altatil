@@ -441,6 +441,7 @@ class AppRoutes {
         'prayer' => prayerTimes,
         'afterprayer' => afterPrayer,
         'kahf' => mushafPage(kKahfPage),
+        'khatma' => khatma,
         'sleep' => tahseen,
         _ => null,
       };

@@ -7,6 +7,7 @@ import 'package:roqia_altatil/services/khatma_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
 import 'package:roqia_altatil/widgets/app_card.dart';
+import 'package:roqia_altatil/widgets/page_number_dialog.dart';
 import 'package:roqia_altatil/widgets/section_back_bar.dart';
 
 /// ختمة القرآن: اختيار المدة ثم ورد يومي يتقدّم بقراءة المصحف.
@@ -20,6 +21,7 @@ class KhatmaPage extends StatefulWidget {
 class _KhatmaPageState extends State<KhatmaPage> {
   final _svc = KhatmaService.instance;
   int _choice = 30;
+  int _from = 1; // صفحة البداية (١ = أول المصحف)
 
   @override
   void initState() {
@@ -38,6 +40,14 @@ class _KhatmaPageState extends State<KhatmaPage> {
         180 => '٦ أشهر',
         _ => '${arDigits(d)} يوماً',
       };
+
+  Future<void> _pickStart() async {
+    final n = await showPageNumberDialog(context,
+        title: 'البدء من صفحة',
+        confirmLabel: 'حفظ',
+        initial: _from == 1 ? null : _from);
+    if (n != null && mounted) setState(() => _from = n);
+  }
 
   Future<void> _confirmStop() async {
     final ok = await showDialog<bool>(
@@ -134,7 +144,7 @@ class _KhatmaPageState extends State<KhatmaPage> {
                             style: AppTextStyles.body(color: c.ink)),
                       ),
                       Text(
-                        '${pagesLabel(khatmaDailyTarget(nextPage: 1, daysLeft: d))} يومياً',
+                        '${pagesLabel(khatmaDailyTarget(nextPage: _from, daysLeft: d))} يومياً',
                         style: AppTextStyles.caption(color: c.sub),
                       ),
                       const SizedBox(width: AppSpacing.sm),
@@ -145,6 +155,32 @@ class _KhatmaPageState extends State<KhatmaPage> {
           ],
         ),
       ),
+      const SizedBox(height: AppSpacing.sm),
+      AppCard(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        onTap: () {
+          Haptic.select();
+          _pickStart();
+        },
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
+          child: Row(children: [
+            Icon(Icons.bookmark_outline, color: c.gold),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                  _from == 1
+                      ? 'البدء من أول المصحف'
+                      : 'البدء من صفحة ${arDigits(_from)}',
+                  style: AppTextStyles.body(color: c.ink)),
+            ),
+            Text('تغيير', style: AppTextStyles.caption(color: c.teal)),
+          ]),
+        ),
+      ),
+      const SizedBox(height: AppSpacing.xs),
+      Text('قرأتَ جزءاً من المصحف قبل ذلك؟ حدّد الصفحة التي تبدأ منها.',
+          style: AppTextStyles.caption(color: c.sub)),
       const SizedBox(height: AppSpacing.md),
       FilledButton.icon(
         style: c.filled,
@@ -152,7 +188,7 @@ class _KhatmaPageState extends State<KhatmaPage> {
         label: const Text('ابدأ الختمة'),
         onPressed: () async {
           Haptic.medium();
-          await _svc.start(_choice);
+          await _svc.start(_choice, fromPage: _from);
         },
       ),
     ];
@@ -217,6 +253,13 @@ class _KhatmaPageState extends State<KhatmaPage> {
                 : 'من صفحة ${arDigits(s.todayStartPage)} إلى صفحة ${arDigits(s.todayEndPage)} (${pagesLabel(s.todayTarget)})',
             style: AppTextStyles.body(color: c.ink),
           ),
+          if (s.todayTarget >= 5) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'تقسيم مقترح: نحو ${pagesLabel((s.todayTarget + 4) ~/ 5)} بعد كل صلاة',
+              style: AppTextStyles.caption(color: c.sub),
+            ),
+          ],
           const SizedBox(height: AppSpacing.sm),
           LinearProgressIndicator(
             value: s.todayTarget == 0 ? 0 : s.todayRead / s.todayTarget,
@@ -234,6 +277,35 @@ class _KhatmaPageState extends State<KhatmaPage> {
           ),
         ]),
       ),
+      if (s.isBehind(DateTime.now())) ...[
+        const SizedBox(height: AppSpacing.md),
+        AppCard(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.schedule, color: c.gold),
+              const SizedBox(width: AppSpacing.sm),
+              Text('تأخّرت عن الخطة',
+                  style: AppTextStyles.subheader(color: c.ink)),
+            ]),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              left < 0
+                  ? 'انتهت مدة الخطة وبقي ${pagesLabel(s.pagesLeft)}. مدّ الخطة لتكمل بوتيرتك الأولى (${pagesLabel(s.planPace)} يومياً).'
+                  : 'ارتفع وردك إلى ${pagesLabel(s.todayTarget)}. مدّ الخطة لتعود إلى وتيرتك الأولى (${pagesLabel(s.planPace)} يومياً) دون أن تفقد ما قرأت.',
+              style: AppTextStyles.body(color: c.ink),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            FilledButton.tonal(
+              onPressed: () {
+                Haptic.medium();
+                s.extendToPace();
+              },
+              child: const Text('مدّد الخطة'),
+            ),
+          ]),
+        ),
+      ],
       const SizedBox(height: AppSpacing.md),
       FilledButton.icon(
         style: c.filled,
@@ -260,7 +332,7 @@ class _KhatmaPageState extends State<KhatmaPage> {
       ),
       const SizedBox(height: AppSpacing.sm),
       Text(
-        'تتقدّم الختمة حين تفتح الصفحة التالية لما قرأت بالتسلسل؛ القفز بين الصفحات لا يُحتسب.',
+        'تُحتسب الصفحة حين تبقى ظاهرة نحو ${arDigits(kKhatmaDwell.inSeconds)} ثوانٍ، وبالتسلسل فقط؛ التقليب السريع والقفز بين الصفحات لا يُحتسبان.',
         style: AppTextStyles.caption(color: c.sub),
         textAlign: TextAlign.center,
       ),

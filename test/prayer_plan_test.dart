@@ -218,4 +218,54 @@ void main() {
     expect(AppRoutes.fromNotificationPayload('nope'), isNull);
     expect(AppRoutes.fromNotificationPayload(null), isNull);
   });
+
+  group('khatma reminder', () {
+    const cfg = PrayerReminderConfig(khatmaAfter: PrayerKind.fajr);
+    List<PlannedNotification> kh({
+      bool active = true,
+      bool doneToday = false,
+      PrayerReminderConfig c = cfg,
+    }) =>
+        planPrayerNotifications(
+          now: friday,
+          dayFor: dayFor,
+          cfg: c,
+          morning: off,
+          evening: off,
+          budget: 1000,
+          khatmaActive: active,
+          khatmaDoneToday: doneToday,
+        );
+
+    test('one per day, 45 min after the chosen prayer, opens the khatma', () {
+      final out = kh();
+      expect(out.length, 7);
+      expect(out.every((n) => n.kind == PlannedKind.khatma), isTrue);
+      expect(out.every((n) => n.payload == 'khatma'), isTrue);
+      final fajr = dayFor(DateTime(2026, 10, 2))[PrayerKind.fajr];
+      expect(out.first.when.millisecondsSinceEpoch,
+          fajr.add(const Duration(minutes: kKhatmaOffsetMin)).millisecondsSinceEpoch);
+      expect(AppRoutes.fromNotificationPayload('khatma'), AppRoutes.khatma);
+    });
+
+    test('nothing without an active khatma or when disabled', () {
+      expect(kh(active: false), isEmpty);
+      expect(kh(c: const PrayerReminderConfig()), isEmpty);
+    });
+
+    test('a finished wird skips today only', () {
+      final out = kh(doneToday: true);
+      expect(out.length, 6);
+      expect(out.first.when.day, 3);
+    });
+
+    test('config round-trips and counts as enabled', () async {
+      expect(cfg.anyEnabled, isTrue);
+      await PrayerRemindersStore.save(
+          const PrayerReminderConfig(khatmaAfter: PrayerKind.isha));
+      expect((await PrayerRemindersStore.load()).khatmaAfter, PrayerKind.isha);
+      await PrayerRemindersStore.save(const PrayerReminderConfig());
+      expect((await PrayerRemindersStore.load()).khatmaAfter, isNull);
+    });
+  });
 }

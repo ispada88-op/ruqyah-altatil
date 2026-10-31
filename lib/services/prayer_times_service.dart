@@ -5,6 +5,7 @@ import 'package:adhan/adhan.dart' as adhan;
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 import '../data/prayer_cities.dart';
 import '../data/saudi_places.dart';
@@ -27,6 +28,25 @@ enum PrayerKind {
   bool get isPrayer => this != PrayerKind.sunrise;
 }
 
+/// جاكيم (ماليزيا): فجر ١٨° وعشاء ١٨° — من بيانات e-solat الرسمية. الفروق الصحيحة
+/// (احتياط الدقائق) استُخرجت من الجدول الرسمي لا من مصدر ثانوي.
+adhan.CalculationParameters _jakimParams() =>
+    adhan.CalculationParameters(fajrAngle: 18, ishaAngle: 18)
+      ..methodAdjustments = adhan.PrayerAdjustments(
+          fajr: 2, sunrise: -1, dhuhr: 3, asr: 2, maghrib: 1, isha: 1);
+
+/// وزارة الأوقاف الأردنية: فجر ١٨° وعشاء ١٨°، والشروق والمغرب بفارق ٥ دقائق احتياطاً.
+adhan.CalculationParameters _jordanParams() =>
+    adhan.CalculationParameters(fajrAngle: 18, ishaAngle: 18)
+      ..methodAdjustments = adhan.PrayerAdjustments(
+          fajr: 0, sunrise: -6, dhuhr: 0, asr: 1, maghrib: 7, isha: 0);
+
+/// وزارة الشؤون الدينية الإندونيسية (Kemenag): فجر ٢٠° وعشاء ١٨° مع احتياط ~٢ دقيقة.
+adhan.CalculationParameters _kemenagParams() =>
+    adhan.CalculationParameters(fajrAngle: 20, ishaAngle: 18)
+      ..methodAdjustments = adhan.PrayerAdjustments(
+          fajr: 3, sunrise: -3, dhuhr: 4, asr: 3, maghrib: 3, isha: 2);
+
 /// طرق حساب المواقيت. المعرّف [id] هو ما يُحفظ في الجهاز — لا يتغير أبداً.
 enum PrayerMethod {
   ummAlQura('umm_al_qura', 'أم القرى (السعودية)',
@@ -44,12 +64,22 @@ enum PrayerMethod {
       adhan.CalculationMethod.singapore),
   turkey('turkey', 'تركيا', adhan.CalculationMethod.turkey),
   northAmerica('north_america', 'أمريكا الشمالية (ISNA)',
-      adhan.CalculationMethod.north_america);
+      adhan.CalculationMethod.north_america),
+  // طرق الجهات الرسمية التي حُقّقت من جداولها المنشورة (انظر test/prayer_times_test.dart).
+  jakim('jakim', 'ماليزيا (جاكيم)', adhan.CalculationMethod.other, _jakimParams),
+  jordan('jordan', 'الأردن (وزارة الأوقاف)', adhan.CalculationMethod.other,
+      _jordanParams),
+  kemenag('kemenag', 'إندونيسيا (وزارة الشؤون الدينية)',
+      adhan.CalculationMethod.other, _kemenagParams);
 
   final String id;
   final String label;
   final adhan.CalculationMethod _method;
-  const PrayerMethod(this.id, this.label, this._method);
+  final adhan.CalculationParameters Function()? _custom;
+  const PrayerMethod(this.id, this.label, this._method, [this._custom]);
+
+  adhan.CalculationParameters _buildParams() =>
+      _custom != null ? _custom() : _method.getParameters();
 
   static PrayerMethod? byId(String? id) {
     for (final m in values) {
@@ -72,6 +102,41 @@ enum PrayerMadhab {
       id == 'hanafi' ? PrayerMadhab.hanafi : PrayerMadhab.shafi;
 }
 
+/// قاعدة تحديد الفجر والعشاء في العروض العالية، حيث قد لا يغيب الشفق أو يقصر الليل.
+/// «تلقائي»: سُبع الليل فوق خط عرض ٤٨°، ونصف الليل دونه (توصية مكتبة Adhan).
+enum PrayerHighLat {
+  auto('auto', 'تلقائي (موصى به)'),
+  seventh('seventh', 'سُبع الليل'),
+  middle('middle', 'منتصف الليل'),
+  angle('angle', 'زاوية الشفق');
+
+  final String id;
+  final String label;
+  const PrayerHighLat(this.id, this.label);
+
+  static PrayerHighLat byId(String? id) {
+    for (final v in values) {
+      if (v.id == id) return v;
+    }
+    return PrayerHighLat.auto;
+  }
+}
+
+/// ما فوق هذا العرض يظهر أثر القاعدة في الصيف/الشتاء؛ ويُعرض خيارها في الإعدادات.
+const double kHighLatitudeDeg = 48;
+
+/// عرض «أقرب البلاد» للمناطق القطبية حيث لا تغيب الشمس أو لا تطلع.
+const double kPolarFallbackLat = 48.5;
+
+/// الجمهور على العصر بظل المثل، والحنفية بالمثلين: الافتراضي حسب طريقة المنطقة
+/// (طريقة كراتشي تُستعمل مع الحنفي في جنوب آسيا). لا يُطبَّق إلا إن لم يختر المستخدم.
+PrayerMadhab defaultMadhabFor(PrayerMethod m) =>
+    m == PrayerMethod.karachi ? PrayerMadhab.hanafi : PrayerMadhab.shafi;
+
+/// هل [a] تبعد عن [b] أكثر من [km] كيلومتر؟
+bool isFarFrom(double aLat, double aLon, double bLat, double bLon, double km) =>
+    _distanceKm(aLat, aLon, bLat, bLon) >= km;
+
 enum PrayerLocationSource { gps, city }
 
 /// جدول يوم واحد بتوقيت جهاز المستخدم.
@@ -86,25 +151,71 @@ class PrayerDay {
 /// الحساب نفسه كدالة نقية (بلا تخزين ولا واجهة) — قابلة للاختبار.
 ///
 /// طريقة أم القرى: العشاء بعد المغرب بـ٩٠ دقيقة، وفي رمضان بـ١٢٠ (كما في
-/// تقويم أم القرى). رمضان يُعرف بالتحويل الجدولي — قد يخطئ يوماً عند حدّي الشهر.
+/// تقويم أم القرى). رمضان يُعرف من جدول أم القرى المضمَّن (انظر [isRamadanUmmAlQura]).
 PrayerDay computePrayerDay({
   required double lat,
   required double lon,
   required DateTime date,
   required PrayerMethod method,
   required PrayerMadhab madhab,
+  PrayerHighLat highLat = PrayerHighLat.auto,
+  tz.Location? zone,
 }) {
-  final params = method._method.getParameters();
-  params.madhab =
-      madhab == PrayerMadhab.hanafi ? adhan.Madhab.hanafi : adhan.Madhab.shafi;
-  if (method == PrayerMethod.ummAlQura && gregorianToHijri(date).isRamadan) {
-    params.adjustments.isha = params.adjustments.isha + 30;
+  adhan.PrayerTimes calc(double useLat, DateTime d) {
+    final params = method._buildParams();
+    params.madhab =
+        madhab == PrayerMadhab.hanafi ? adhan.Madhab.hanafi : adhan.Madhab.shafi;
+    // «زاوية الشفق» تحتاج زاوية للعشاء؛ طرق الفاصل الزمني (أم القرى، قطر) تعود لسُبع الليل.
+    final rule = switch (highLat) {
+      PrayerHighLat.middle => adhan.HighLatitudeRule.middle_of_the_night,
+      PrayerHighLat.seventh => adhan.HighLatitudeRule.seventh_of_the_night,
+      PrayerHighLat.angle => params.ishaAngle == null
+          ? adhan.HighLatitudeRule.seventh_of_the_night
+          : adhan.HighLatitudeRule.twilight_angle,
+      PrayerHighLat.auto => useLat.abs() > kHighLatitudeDeg
+          ? adhan.HighLatitudeRule.seventh_of_the_night
+          : adhan.HighLatitudeRule.middle_of_the_night,
+    };
+    params.highLatitudeRule = rule;
+    if (method == PrayerMethod.ummAlQura && isRamadanUmmAlQura(date)) {
+      params.adjustments.isha = params.adjustments.isha + 30;
+    }
+    return adhan.PrayerTimes(
+      adhan.Coordinates(useLat, lon),
+      adhan.DateComponents(d.year, d.month, d.day),
+      params,
+    );
   }
-  final pt = adhan.PrayerTimes(
-    adhan.Coordinates(lat, lon),
-    adhan.DateComponents(date.year, date.month, date.day),
-    params,
-  );
+
+  adhan.PrayerTimes forDate(DateTime d) {
+    try {
+      return calc(lat, d);
+    } on ArgumentError {
+      // نهار أو ليل قطبي (الشمس لا تغيب/لا تطلع): تُحسب المواقيت بخط عرض «أقرب
+      // البلاد» ٤٨٫٥° على الطول نفسه، وهو ما تفتي به المجامع الفقهية لهذه المناطق.
+      return calc(lat < 0 ? -kPolarFallbackLat : kPolarFallbackLat, d);
+    }
+  }
+
+  // [date] هو يوم الموقع المحلي. المكتبة تحسب على يوم UTC، وقرب خط التاريخ
+  // (تونغا، ساموا، كيريباتي: توقيت +١٣/+١٤ على طول غربي) يقع ظهر اليوم المحلي
+  // في يوم UTC السابق، فتخرج مواقيت الغد. نختار اليوم الذي يقع ظهره محلياً في
+  // التاريخ المطلوب ([zone] = منطقة الموقع، وnull = منطقة الجهاز).
+  bool onDate(DateTime t) {
+    final w = zone == null ? t.toLocal() : tz.TZDateTime.from(t, zone);
+    return w.year == date.year && w.month == date.month && w.day == date.day;
+  }
+
+  var pt = forDate(date);
+  if (!onDate(pt.dhuhr)) {
+    for (final shift in const [-1, 1]) {
+      final alt = forDate(DateTime(date.year, date.month, date.day + shift));
+      if (onDate(alt.dhuhr)) {
+        pt = alt;
+        break;
+      }
+    }
+  }
   return PrayerDay(DateTime(date.year, date.month, date.day), {
     PrayerKind.fajr: pt.fajr,
     PrayerKind.sunrise: pt.sunrise,
@@ -154,6 +265,19 @@ PrayerMethod defaultMethodFor(double lat, double lon) {
 const String kUnknownPlaceLabel = 'موقعك الحالي';
 
 /// أقرب مدينة تُعدّ «مدينتك» (كم)، وبعدها حتى [_kNearKm] يُكتب «قرب …».
+/// طرق تحققنا من مطابقتها لجدول الجهة الرسمية المنشور (±١ دقيقة؛ انظر
+/// test/prayer_official_timetables_test.dart) → البلد الذي تحقّقت فيه. خارج هذا
+/// البلد تبقى الطريقة «حساباً عاماً» حتى يُتحقق من جدول رسمي.
+const Map<PrayerMethod, String> kVerifiedMethodCountry = {
+  PrayerMethod.ummAlQura: 'السعودية',
+  PrayerMethod.jakim: 'ماليزيا',
+  PrayerMethod.jordan: 'الأردن',
+  PrayerMethod.kemenag: 'إندونيسيا',
+  PrayerMethod.turkey: 'تركيا',
+  PrayerMethod.singapore: 'سنغافورة',
+  PrayerMethod.egyptian: 'مصر',
+};
+
 const double _kInCityKm = 40;
 const double _kNearKm = 90;
 
@@ -178,6 +302,20 @@ String placeLabelFor(double lat, double lon) {
   return bestKm <= _kInCityKm ? name : 'قرب $name';
 }
 
+/// أقرب مكان معروف ضمن ٩٠ كم (محلياً، بلا خدمة خارجية)، وإلا null.
+PrayerCity? nearestPlace(double lat, double lon) {
+  PrayerCity? best;
+  var bestKm = _kNearKm;
+  for (final c in _kAllPlaces) {
+    final d = _distanceKm(lat, lon, c.lat, c.lon);
+    if (d <= bestKm) {
+      bestKm = d;
+      best = c;
+    }
+  }
+  return best;
+}
+
 enum GpsOutcome { ok, serviceOff, denied, deniedForever, failed }
 
 /// إعدادات المواقيت المحفوظة على الجهاز فقط — لا شيء يُرسل لأي خادم.
@@ -192,6 +330,8 @@ class PrayerTimesService extends ChangeNotifier {
   static const _kMethod = 'prayer_method';
   static const _kMethodManual = 'prayer_method_manual';
   static const _kMadhab = 'prayer_madhab';
+  static const _kMadhabManual = 'prayer_madhab_manual';
+  static const _kHighLat = 'prayer_high_lat';
 
   double? _lat;
   double? _lon;
@@ -200,6 +340,8 @@ class PrayerTimesService extends ChangeNotifier {
   PrayerMethod _method = PrayerMethod.ummAlQura;
   bool _methodManual = false;
   PrayerMadhab _madhab = PrayerMadhab.shafi;
+  bool _madhabManual = false;
+  PrayerHighLat _highLat = PrayerHighLat.auto;
   bool _loaded = false;
   final Map<String, PrayerDay> _cache = {};
 
@@ -211,6 +353,20 @@ class PrayerTimesService extends ChangeNotifier {
   PrayerLocationSource? get source => _source;
   PrayerMethod get method => _method;
   PrayerMadhab get madhab => _madhab;
+  PrayerHighLat get highLat => _highLat;
+
+  /// بلد الموقع (أقرب مكان معروف ضمن ٩٠ كم)، وإلا null.
+  String? get country =>
+      hasLocation ? nearestPlace(_lat!, _lon!)?.country : null;
+
+  /// الطريقة الحالية مطابقة لجدول الجهة الرسمية في بلد الموقع.
+  bool get methodVerifiedHere {
+    final c = country;
+    return c != null && kVerifiedMethodCountry[_method] == c;
+  }
+
+  /// خط عرض مرتفع: الفجر والعشاء قد يُقدَّران صيفاً بقاعدة العروض العالية.
+  bool get isHighLatitude => hasLocation && _lat!.abs() > kHighLatitudeDeg;
 
   Future<void> load() async {
     try {
@@ -235,6 +391,8 @@ class PrayerTimesService extends ChangeNotifier {
           PrayerMethod.byId(p.getString(_kMethod)) ?? PrayerMethod.ummAlQura;
       _methodManual = p.getBool(_kMethodManual) ?? false;
       _madhab = PrayerMadhab.byId(p.getString(_kMadhab));
+      _madhabManual = p.getBool(_kMadhabManual) ?? false;
+      _highLat = PrayerHighLat.byId(p.getString(_kHighLat));
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'PrayerTimesService.load');
     }
@@ -255,6 +413,7 @@ class PrayerTimesService extends ChangeNotifier {
         date: date,
         method: _method,
         madhab: _madhab,
+        highLat: _highLat,
       );
     } catch (e, st) {
       // مكتبة الحساب قد ترفض إحداثيات متطرفة؛ الواجهة تتعامل مع null.
@@ -302,6 +461,7 @@ class PrayerTimesService extends ChangeNotifier {
     _label = c.name;
     _source = PrayerLocationSource.city;
     if (!_methodManual) _method = PrayerMethod.byId(c.method) ?? _method;
+    if (!_madhabManual) _madhab = defaultMadhabFor(_method);
     await _persist();
   }
 
@@ -338,6 +498,7 @@ class PrayerTimesService extends ChangeNotifier {
       _label = placeLabelFor(_lat!, _lon!);
       _source = PrayerLocationSource.gps;
       if (!_methodManual) _method = defaultMethodFor(_lat!, _lon!);
+      if (!_madhabManual) _madhab = defaultMadhabFor(_method);
       await _persist();
       return GpsOutcome.ok;
     } on TimeoutException {
@@ -356,7 +517,42 @@ class PrayerTimesService extends ChangeNotifier {
 
   Future<void> setMadhab(PrayerMadhab m) async {
     _madhab = m;
+    _madhabManual = true;
     await _persist();
+  }
+
+  Future<void> setHighLat(PrayerHighLat v) async {
+    _highLat = v;
+    await _persist();
+  }
+
+  /// للمسافر: عند فتح التطبيق، إن كان الموقع من الجهاز والإذن ممنوحاً من قبل،
+  /// نقرأ آخر موقع معروف (دون تشغيل GPS ودون طلب إذن) ونحدّث المواقيت إن ابتعد
+  /// أكثر من [thresholdKm]. المعالجة على الجهاز فقط. يعيد true إن تغيّر الموقع.
+  Future<bool> refreshGpsIfMoved({double thresholdKm = 25}) async {
+    try {
+      if (_source != PrayerLocationSource.gps || !hasLocation) return false;
+      final perm = await Geolocator.checkPermission();
+      if (perm != LocationPermission.whileInUse &&
+          perm != LocationPermission.always) {
+        return false;
+      }
+      final pos = await Geolocator.getLastKnownPosition();
+      if (pos == null) return false;
+      final lat = (pos.latitude * 100).round() / 100;
+      final lon = (pos.longitude * 100).round() / 100;
+      if (!isFarFrom(_lat!, _lon!, lat, lon, thresholdKm)) return false;
+      _lat = lat;
+      _lon = lon;
+      _label = placeLabelFor(lat, lon);
+      if (!_methodManual) _method = defaultMethodFor(lat, lon);
+      if (!_madhabManual) _madhab = defaultMadhabFor(_method);
+      await _persist();
+      return true;
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'PrayerTimesService.refreshGpsIfMoved');
+      return false;
+    }
   }
 
   Future<void> _persist() async {
@@ -373,6 +569,8 @@ class PrayerTimesService extends ChangeNotifier {
       await p.setString(_kMethod, _method.id);
       await p.setBool(_kMethodManual, _methodManual);
       await p.setString(_kMadhab, _madhab.id);
+      await p.setBool(_kMadhabManual, _madhabManual);
+      await p.setString(_kHighLat, _highLat.id);
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'PrayerTimesService.persist');
     }
@@ -386,12 +584,16 @@ class PrayerTimesService extends ChangeNotifier {
     String label = '',
     PrayerMethod method = PrayerMethod.ummAlQura,
     PrayerMadhab madhab = PrayerMadhab.shafi,
+    PrayerHighLat highLat = PrayerHighLat.auto,
+    bool madhabManual = false,
   }) {
     _lat = lat;
     _lon = lon;
     _label = label;
     _method = method;
     _madhab = madhab;
+    _highLat = highLat;
+    _madhabManual = madhabManual;
     _loaded = true;
     _cache.clear();
     notifyListeners();

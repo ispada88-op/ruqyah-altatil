@@ -10,7 +10,8 @@ enum PlannedKind {
   prayerAlert,
   afterPrayer,
   kahf,
-  sleep
+  sleep,
+  khatma
 }
 
 /// إشعار واحد مجدوَل بوقت محدد (لا يتكرر). يُبنى من [planPrayerNotifications].
@@ -41,6 +42,10 @@ const int kAfterPrayerOffsetMin = 30;
 /// أذكار النوم بعد العشاء بكم دقيقة.
 const int kSleepOffsetMin = 45;
 
+/// تذكير ورد الختمة بعد أذان الصلاة المختارة بكم دقيقة (بعد أذكار ما بعد الصلاة
+/// بـ٣٠ دقيقة كي لا يتزاحما).
+const int kKhatmaOffsetMin = 45;
+
 /// تذكير الكهف الجمعة بعد الشروق بكم دقيقة.
 const int kKahfOffsetMin = 20;
 
@@ -57,6 +62,8 @@ List<PlannedNotification> planPrayerNotifications({
   required AdhkarReminderConfig evening,
   required int budget,
   int maxDays = 7,
+  bool khatmaActive = false,
+  bool khatmaDoneToday = false,
 }) {
   if (budget <= 0) return const [];
   final out = <PlannedNotification>[];
@@ -139,6 +146,17 @@ List<PlannedNotification> planPrayerNotifications({
           body: 'اليوم الجمعة — اضغط لقراءة سورة الكهف.',
           payload: 'kahf',
           kind: PlannedKind.kahf));
+    }
+    // ورد الختمة: فقط مع ختمة جارية، ولا تذكير لليوم إن أُتمّ ورده.
+    final kh = cfg.khatmaAfter;
+    if (kh != null && khatmaActive && !(d == 0 && khatmaDoneToday)) {
+      out.add(PlannedNotification(
+          id: idOf(14),
+          when: at(day[kh].add(const Duration(minutes: kKhatmaOffsetMin))),
+          title: 'ورد الختمة 📖',
+          body: 'حان وقت وردك اليوم — اضغط لتكمله.',
+          payload: 'khatma',
+          kind: PlannedKind.khatma));
     }
     if (cfg.sleep) {
       out.add(PlannedNotification(

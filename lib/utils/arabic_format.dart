@@ -83,3 +83,20 @@ String shortLeftAr(Duration d) {
   if (h == 0) return '${arDigits(m)} د';
   return m == 0 ? '${arDigits(h)} س' : '${arDigits(h)} س ${arDigits(m)} د';
 }
+
+/// يقرأ عدداً صحيحاً مكتوباً بأرقام عربية («٢٠») أو فارسية أو لاتينية، وإلا null.
+/// لوحة الأرقام في بعض الأجهزة العربية تُخرج أرقاماً عربية، و`int.tryParse`
+/// وحده يرفضها.
+int? parseArabicInt(String s) {
+  final b = StringBuffer();
+  for (final r in s.trim().runes) {
+    if (r >= 0x0660 && r <= 0x0669) {
+      b.writeCharCode(0x30 + r - 0x0660);
+    } else if (r >= 0x06F0 && r <= 0x06F9) {
+      b.writeCharCode(0x30 + r - 0x06F0);
+    } else {
+      b.writeCharCode(r);
+    }
+  }
+  return int.tryParse(b.toString());
+}

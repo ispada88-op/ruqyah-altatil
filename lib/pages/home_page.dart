@@ -10,6 +10,7 @@ import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/pages/mushaf_page_reader.dart' show kLastPageKey;
 import 'package:roqia_altatil/utils/arabic_format.dart';
 import 'package:roqia_altatil/services/haptic.dart';
+import 'package:roqia_altatil/services/review_service.dart';
 import 'package:roqia_altatil/services/share_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/config/app_identity.dart';
@@ -135,6 +136,8 @@ class HomePage extends StatelessWidget {
                 ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
 
                 const SizedBox(height: AppSpacing.lg),
+
+                const _ReviewNudgeCard(),
 
                 const _SadaqaCard()
                     .animate()
@@ -376,6 +379,74 @@ class _MushafHeroState extends State<_MushafHero> {
   }
 }
 
+/// بطاقة هادئة تدعو للتقييم بعد استخدام معتاد. ليست نافذة منبثقة: تُغلق بـ«لاحقاً»
+/// وتختفي نهائياً بالتقييم أو بعد تأجيلين (انظر [ReviewPolicy.shouldShowCard]).
+class _ReviewNudgeCard extends StatelessWidget {
+  const _ReviewNudgeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PageColors(context);
+    return ValueListenableBuilder<bool>(
+      valueListenable: ReviewService.instance.cardVisible,
+      builder: (context, visible, _) {
+        if (!visible) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+          child: Container(
+            padding: AppSpacing.paddingLg,
+            decoration: BoxDecoration(
+              color: c.isDark
+                  ? AppColors.darkSecondary.withValues(alpha: 0.6)
+                  : Colors.white.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: c.gold.withValues(alpha: 0.7)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.star_rounded, color: c.gold, size: 26),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'إن نفعك التطبيق، فتقييمك في المتجر يوصله لمزيد من الناس، ويكون لك أجر في هذه الصدقة الجارية بإذن الله.',
+                        style: AppTextStyles.body(color: c.ink).copyWith(height: 1.7),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    FilledButton.icon(
+                      style: c.filled,
+                      onPressed: () {
+                        Haptic.light();
+                        ReviewService.instance.openWriteReview();
+                      },
+                      icon: const Icon(Icons.star_outline_rounded, size: 20),
+                      label: const Text('قيّم التطبيق'),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    TextButton(
+                      style: TextButton.styleFrom(foregroundColor: c.sub),
+                      onPressed: () => ReviewService.instance.dismissCard(),
+                      child: const Text('لاحقاً'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// «شارك التطبيق صدقة جارية»: عبارة الصدقة الجارية + زرّا المشاركة والاقتراحات.
 class _SadaqaCard extends StatelessWidget {
   const _SadaqaCard();
@@ -435,7 +506,21 @@ class _SadaqaCard extends StatelessWidget {
                 icon: const Icon(Icons.feedback_outlined, size: 20),
                 label: const Text('اقتراحات'),
               ),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(foregroundColor: c.teal),
+                onPressed: () {
+                  Haptic.light();
+                  ReviewService.instance.openWriteReview();
+                },
+                icon: const Icon(Icons.star_outline_rounded, size: 20),
+                label: const Text('قيّم التطبيق'),
+              ),
             ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'تقييمك في المتجر يوصل التطبيق لمزيد من الناس، ويكون لك أجر في هذه الصدقة الجارية بإذن الله.',
+            style: AppTextStyles.caption(color: c.sub),
           ),
         ],
       ),

@@ -192,6 +192,25 @@ void main() {
     expect(find.text('وردك اليوم'), findsOneWidget);
   });
 
+  smoke('khatma page: start-from-page card, then the "behind" offer, dark',
+      (t) async {
+    located();
+    await t.runAsync(() => KhatmaService.instance.stop());
+    await pumpPage(t, const KhatmaPage(), dark: true);
+    expect(find.text('البدء من أول المصحف'), findsOneWidget);
+    // خطة أسبوع بدأت قبل ٥ أيام بلا قراءة: الورد قفز فوق ١٫٥ ضعف الوتيرة.
+    final fiveDaysAgo = DateTime.now().subtract(const Duration(days: 5));
+    await t.runAsync(
+        () => KhatmaService.instance.start(7, now: fiveDaysAgo));
+    KhatmaService.instance.refresh();
+    await t.pump(const Duration(milliseconds: 300));
+    expect(t.takeException(), isNull);
+    expect(find.text('تأخّرت عن الخطة'), findsOneWidget);
+    expect(find.text('مدّد الخطة'), findsOneWidget);
+    expect(find.textContaining('نحو'), findsWidgets); // تقسيم الورد على الصلوات
+    await t.runAsync(() => KhatmaService.instance.stop());
+  });
+
   smoke('program page', (t) async {
     located();
     await pumpPage(t, const ProgramPage());

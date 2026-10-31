@@ -42,6 +42,7 @@ class AudioPlayerService extends ChangeNotifier {
 
   static const _kLastReciterKey = 'audio_last_reciter_id';
   static const _kLastPositionKey = 'audio_last_position_sec';
+  static const _kLoopKey = 'audio_loop';
 
   final AudioPlayer _player = AudioPlayer();
   AudioPlayer get player => _player;
@@ -117,6 +118,10 @@ class AudioPlayerService extends ChangeNotifier {
           (r) => r.id == lastId,
           orElse: () => kReciters.first,
         );
+      }
+      // التكرار يُحفظ: من نام على الرقية لا يعيد تفعيله كل ليلة.
+      if (prefs.getBool(_kLoopKey) == true) {
+        await _player.setLoopMode(LoopMode.one);
       }
     } catch (_) {/* fallback to default */}
   }
@@ -241,18 +246,26 @@ class AudioPlayerService extends ChangeNotifier {
   /// تبديل التكرار اللانهائي للمقطع الحالي (مفيد للتشغيل أثناء النوم).
   Future<void> toggleLoop() async {
     try {
-      final next =
-          _player.loopMode == LoopMode.one ? LoopMode.off : LoopMode.one;
-      await _player.setLoopMode(next);
-      notifyListeners();
+      await _setLoop(_player.loopMode != LoopMode.one);
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'toggleLoop');
     }
   }
 
+  Future<void> _setLoop(bool on) async {
+    await _player.setLoopMode(on ? LoopMode.one : LoopMode.off);
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kLoopKey, on);
+    } catch (_) {/* best-effort */}
+  }
+
   // ─────────── Sleep timer ───────────
   void startSleepTimer(Duration duration) {
     cancelSleepTimer();
+    // المقطع نحو ساعة وربع؛ مؤقّت أطول منه يصمت قبل موعده إن لم يتكرر.
+    if (!isLooping) unawaited(_setLoop(true));
     _sleepRemaining = duration;
     _sleepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_sleepRemaining == null) {

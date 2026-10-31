@@ -13,6 +13,7 @@ import 'custom_reminders.dart';
 import 'error_reporter.dart';
 import 'prayer_notification_plan.dart';
 import 'prayer_reminders.dart';
+import 'khatma_service.dart';
 import 'prayer_times_service.dart';
 import '../data/hisn_almuslim_dhikr.dart';
 
@@ -415,6 +416,8 @@ class NotificationService {
       if (prayerSvc.hasLocation) {
         try {
           final prayerCfg = await PrayerRemindersStore.load();
+          final khatma = KhatmaService.instance;
+          await khatma.ensureLoaded();
           final reserve = periodicOn ? minDhikrWhenEnabled : 0;
           final budget = isIos
               ? maxPending - 1 - custom.length - adhkarCount - reserve
@@ -427,6 +430,8 @@ class NotificationService {
             morning: adhkarCfg[AdhkarSlot.morning]!,
             evening: adhkarCfg[AdhkarSlot.evening]!,
             budget: budget,
+            khatmaActive: khatma.active,
+            khatmaDoneToday: khatma.todayDoneAt(now),
           );
           const prayerDetails = NotificationDetails(
             android: AndroidNotificationDetails(

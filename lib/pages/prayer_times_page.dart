@@ -30,6 +30,18 @@ String prayerLabelOn(PrayerKind k, DateTime day) =>
         ? 'الجمعة'
         : k.label;
 
+/// شفافية المصدر: الطريقة، وهل طابقناها بجدول الجهة الرسمية في هذا البلد،
+/// وتنبيه العروض العالية حيث قد يُقدَّر الفجر والعشاء.
+String prayerSourceNote(PrayerTimesService svc) {
+  final m = svc.method.label;
+  final base = svc.methodVerifiedHere
+      ? 'الطريقة: $m — مطابقة لجدول الجهة الرسمية'
+      : 'الطريقة: $m — حساب فلكي عام، وقد يختلف دقائق عن مسجدك';
+  return svc.isHighLatitude
+      ? '$base\nخط عرض مرتفع: الفجر والعشاء قد يُقدَّران صيفاً'
+      : base;
+}
+
 /// مواقيت الصلاة: حساب فلكي داخل الجهاز (بدون إنترنت) + القبلة + تنبيهات.
 class PrayerTimesPage extends StatefulWidget {
   const PrayerTimesPage({super.key});
@@ -388,12 +400,21 @@ class _TimesCard extends StatelessWidget {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Text(prayerSourceNote(svc),
+                style: AppTextStyles.caption(
+                    color: isDark
+                        ? AppColors.textOnDarkSecondary
+                        : AppColors.textSecondary)),
+          ),
           for (final k in PrayerKind.values)
             _TimeRow(
               label: prayerLabelOn(k, now),
               time: day[k],
-              isNext:
-                  next != null && next.kind == k && next.time.day == day[k].day,
+              isNext: next != null &&
+                  next.kind == k &&
+                  next.time.isAtSameMomentAs(day[k]),
               passed: day[k].isBefore(now),
               dim: !k.isPrayer,
             ),
@@ -538,6 +559,32 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 if (mounted) setState(() {});
               },
             ),
+            if ((_svc.lat ?? 0).abs() > kHighLatitudeDeg) ...[
+              const SizedBox(height: AppSpacing.md),
+              Text('الفجر والعشاء في العروض العالية',
+                  style:
+                      AppTextStyles.subheader(color: PageColors(context).ink)),
+              const SizedBox(height: 4),
+              DropdownButtonFormField<PrayerHighLat>(
+                initialValue: _svc.highLat,
+                isExpanded: true,
+                items: [
+                  for (final v in PrayerHighLat.values)
+                    DropdownMenuItem(value: v, child: Text(v.label)),
+                ],
+                onChanged: (v) async {
+                  if (v == null) return;
+                  await _svc.setHighLat(v);
+                  await widget.onChanged();
+                  if (mounted) setState(() {});
+                },
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'تُستعمل حين يقصر الليل أو لا يغيب الشفق، فيُقيَّد الفجر والعشاء بجزء من الليل.',
+                style: AppTextStyles.caption(color: sub),
+              ),
+            ],
             const SizedBox(height: AppSpacing.md),
             Text('وقت العصر',
                 style: AppTextStyles.subheader(color: PageColors(context).ink)),

@@ -12,6 +12,7 @@ import 'package:roqia_altatil/services/mushaf_pages_repository.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
 import 'package:roqia_altatil/widgets/mushaf_page_view.dart';
+import 'package:roqia_altatil/widgets/page_number_dialog.dart';
 import 'package:roqia_altatil/widgets/section_back_bar.dart';
 
 /// آخر صفحة قُرئت (١..٦٠٤).
@@ -27,10 +28,15 @@ class MushafPageReaderPage extends StatefulWidget {
   State<MushafPageReaderPage> createState() => _MushafPageReaderPageState();
 }
 
-class _MushafPageReaderPageState extends State<MushafPageReaderPage> {
+class _MushafPageReaderPageState extends State<MushafPageReaderPage>
+    with WidgetsBindingObserver {
   late final PageController _controller;
   late int _current;
   late final Future<MushafLayout> _layout;
+
+  /// الصفحة تُحتسب في الختمة بعد بقائها ظاهرة مدة كافية، لا بمجرد المرور بها.
+  late final PageDwellTimer _dwell =
+      PageDwellTimer((p) => KhatmaService.instance.onPageViewed(p));
 
   @override
   void initState() {
@@ -40,11 +46,24 @@ class _MushafPageReaderPageState extends State<MushafPageReaderPage> {
     _layout = MushafPagesRepository.instance.layout();
     _save(_current);
     BookmarksService.instance.ensureLoaded();
-    KhatmaService.instance.onPageViewed(_current);
+    WidgetsBinding.instance.addObserver(this);
+    _dwell.show(_current);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // التطبيق في الخلفية أو الشاشة مقفلة: لا تُحتسب الصفحة المفتوحة.
+    if (state == AppLifecycleState.resumed) {
+      _dwell.show(_current);
+    } else {
+      _dwell.pause();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _dwell.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -62,7 +81,7 @@ class _MushafPageReaderPageState extends State<MushafPageReaderPage> {
     final p = index + 1;
     setState(() => _current = p);
     _save(p);
-    KhatmaService.instance.onPageViewed(p);
+    _dwell.show(p);
     // حمّل خط الصفحتين المجاورتين مسبقاً ليكون السحب سلساً.
     for (final n in [p - 1, p + 1]) {
       if (n >= 1 && n <= MushafLayout.pageCount) {
@@ -74,32 +93,9 @@ class _MushafPageReaderPageState extends State<MushafPageReaderPage> {
   }
 
   Future<void> _jumpDialog() async {
-    final c = TextEditingController();
-    final n = await showDialog<int>(
-      context: context,
-      builder: (ctx) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          title: const Text('الانتقال إلى صفحة'),
-          content: TextField(
-            controller: c,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(hintText: '١ – ٦٠٤'),
-            onSubmitted: (v) => Navigator.pop(ctx, int.tryParse(v)),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, int.tryParse(c.text)),
-              child: const Text('انتقال'),
-            ),
-          ],
-        ),
-      ),
-    );
-    c.dispose();
-    if (n != null && n >= 1 && n <= MushafLayout.pageCount && _controller.hasClients) {
+    final n = await showPageNumberDialog(context);
+    if (!mounted) return;
+    if (n != null && _controller.hasClients) {
       _controller.jumpToPage(n - 1);
     }
   }

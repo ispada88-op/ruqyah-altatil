@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:roqia_altatil/services/audio_player_service.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
+import 'package:roqia_altatil/services/khatma_service.dart';
 import 'package:roqia_altatil/services/notification_service.dart';
 import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/services/review_service.dart';
@@ -81,6 +82,10 @@ Future<void> main() async {
 
     // ═══ Services ═══
     await PrayerTimesService.instance.load(); // قبل الجدولة: التنبيهات تعتمد عليه
+    // مسافر؟ إن ابتعد موقعه المحفوظ نحدّثه من آخر موقع للجهاز (بلا طلب إذن).
+    await PrayerTimesService.instance
+        .refreshGpsIfMoved()
+        .timeout(const Duration(seconds: 2), onTimeout: () => false);
     await NotificationService.instance.initialize();
     await AudioPlayerService.instance.initialize();
 
@@ -90,6 +95,14 @@ Future<void> main() async {
 
     // ignore: discarded_futures
     ReviewService.instance.markSessionStart();
+    // لحظة رضا: اكتمال ورد الختمة اليوم → قد تُطلب نافذة التقييم الرسمية.
+    KhatmaService.instance.onTodayCompleted = () {
+      ReviewService.instance.onPositiveMoment();
+      // أُتمّ ورد اليوم: لا يصله تذكير الورد المجدوَل لهذا اليوم.
+      NotificationService.instance.reschedule();
+    };
+    KhatmaService.instance.onPlanChanged =
+        () => NotificationService.instance.reschedule();
 
     // ودجت iOS (الصلاة + وردي اليوم): يدفع لقطة المواقيت والختمة عند كل تغيّر.
     WidgetSyncService.instance.attach();

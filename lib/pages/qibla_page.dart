@@ -6,6 +6,7 @@ import 'package:flutter_compass/flutter_compass.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:roqia_altatil/nav.dart';
+import 'package:roqia_altatil/services/magnetic_declination.dart';
 import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
@@ -30,6 +31,21 @@ class QiblaPage extends StatefulWidget {
 
 class _QiblaPageState extends State<QiblaPage> {
   bool _wasAligned = false;
+
+  /// الانحراف المغناطيسي عند موقع المستخدم (أندرويد فقط؛ ٠ على iOS لأن
+  /// الحزمة تعطي الاتجاه الحقيقي هناك).
+  double _declination = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final svc = PrayerTimesService.instance;
+    if (svc.hasLocation) {
+      MagneticDeclination.forLocation(svc.lat!, svc.lon!).then((d) {
+        if (mounted && d != _declination) setState(() => _declination = d);
+      });
+    }
+  }
 
   /// القبلة مقرّبة إلى ٠..٣٥٩ (المقرّب قد يعطي ٣٦٠).
   static int _deg(double q) => q.round() % 360;
@@ -79,7 +95,9 @@ class _QiblaPageState extends State<QiblaPage> {
     return StreamBuilder<CompassEvent>(
       stream: stream,
       builder: (context, snap) {
-        final heading = snap.data?.heading; // null = لا بوصلة أو لم تصل قراءة
+        // null = لا بوصلة أو لم تصل قراءة (أو قراءة سالبة غير صالحة). القراءة
+        // تُصحَّح من المغناطيسي إلى الحقيقي لأن القبلة تُحسب من الشمال الحقيقي.
+        final heading = trueHeadingFrom(snap.data?.heading, _declination);
         final hasCompass = heading != null;
         final delta = hasCompass ? angleDelta(qibla, heading) : null;
         // تثبيت (hysteresis): ندخل المحاذاة عند ±٣° ونخرج عند ±٥° فلا يومض الحال
@@ -132,8 +150,8 @@ class _QiblaPageState extends State<QiblaPage> {
             Text(
               'ضع الجهاز أفقياً مسطّحاً وابتعد عن المعادن والمغناطيس. '
               'إن بدت القراءة غير دقيقة فحرّك الجهاز بشكل رقم ٨ لمعايرة البوصلة. '
-              'البوصلة تقرأ الشمال المغناطيسي وقد يزيد الفرق عن الحقيقي بضع درجات '
-              'في بعض المدن. هي وسيلة مساعدة؛ وإن توفّر لك اتجاه المحراب في المسجد فهو المعتمد.',
+              'يُصحَّح الانحراف المغناطيسي تلقائياً حسب موقعك. '
+              'هي وسيلة مساعدة؛ وإن توفّر لك اتجاه المحراب في المسجد فهو المعتمد.',
               textAlign: TextAlign.center,
               style: AppTextStyles.caption(color: sub),
             ),

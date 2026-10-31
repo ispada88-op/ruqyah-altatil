@@ -96,7 +96,7 @@ struct PrayerWidget: Widget {
             PrayerWidgetView(entry: entry)
         }
         .configurationDisplayName("مواقيت الصلاة")
-        .description("الصلاة القادمة وما تبقّى عليها، والمدة منذ آخر أذان.")
+        .description("الصلاة القادمة وما تبقّى عليها، وأوقات اليوم بأرقام واضحة، والتاريخ الهجري والميلادي.")
         .supportedFamilies([
             .systemSmall,
             .systemMedium,
@@ -116,7 +116,7 @@ struct PrayerWidgetView: View {
             .environment(\.layoutDirection, .rightToLeft)
             .environment(\.locale, Locale(identifier: "ar_SA"))
             .widgetURL(URL(string: "ruqyah://open/prayer-times"))
-            .widgetBackgroundFor(family)
+            .nightBackgroundFor(family)
     }
 
     @ViewBuilder
@@ -142,110 +142,150 @@ struct PrayerWidgetView: View {
     }
 }
 
-// MARK: - مكوّنات مشتركة
 
-/// «مضى ساعة و٥٥ دقيقة منذ العصر» — الوقت يتحرك وحده (Text style: .relative).
-struct ElapsedLine: View {
-    let previous: PrayerPoint
-    var size: CGFloat = 11
+// MARK: - مكوّنات مشتركة («ليل ذهبي»)
+
+/// الوقت بأرقام إنجليزية بارزة مع «ص/م» — يُرسم يسار-إلى-يمين دائماً حتى لا ينقلب «4:52».
+struct NightClock: View {
+    let date: Date
+    let size: CGFloat
+    let meridiemSize: CGFloat
+    var color: Color = WNight.goldBright
 
     var body: some View {
-        (Text(verbatim: "مضى ")
-            + Text(previous.date, style: .relative)
-            + Text(verbatim: " منذ " + previous.slot.name))
-            .font(WTheme.font(size))
-            .foregroundColor(WTheme.cream.opacity(0.85))
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
+        HStack(alignment: .lastTextBaseline, spacing: 3) {
+            Text(verbatim: WClock.clock(date))
+                .font(WTheme.font(size, .bold))
+                .monospacedDigit()
+                .foregroundColor(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            Text(verbatim: WClock.meridiem(date))
+                .font(WTheme.font(meridiemSize, .bold))
+                .foregroundColor(color)
+        }
+        .environment(\.layoutDirection, .leftToRight)
+        .shadow(color: WNight.gold.opacity(0.30), radius: 10)
     }
 }
 
-// MARK: - صغير: «الحلقة»
+/// «بعد 0:59:12» — العدّاد يتحرك وحده، بأرقام إنجليزية.
+struct NightCountdown: View {
+    let target: Date
+    var size: CGFloat = 12.5
+
+    var body: some View {
+        (Text(verbatim: "بعد ") + Text(target, style: .timer))
+            .font(WTheme.font(size, .medium))
+            .monospacedDigit()
+            .foregroundColor(WNight.text)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .environment(\.locale, Locale(identifier: "en_US"))
+    }
+}
+
+/// التاريخ الهجري (أم القرى) فوق الميلادي.
+struct NightDates: View {
+    let date: Date
+    var hijriSize: CGFloat = 12.5
+    var gregorianSize: CGFloat = 11.5
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(verbatim: WClock.hijri(date))
+                .font(WTheme.font(hijriSize, .bold))
+                .foregroundColor(WNight.gold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(verbatim: WClock.gregorian(date))
+                .font(WTheme.font(gregorianSize, .medium))
+                .foregroundColor(WNight.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+    }
+}
+
+// MARK: - صغير
 
 struct PrayerSmallView: View {
     let info: PrayerInfo
 
     var body: some View {
-        VStack(spacing: 4) {
-            ZStack {
-                RingView(progress: info.progress, lineWidth: 7)
-                VStack(spacing: 0) {
-                    Text(verbatim: info.next.slot.name)
-                        .font(WTheme.font(14, .bold))
-                        .foregroundColor(WTheme.goldSoft)
-                    Text(info.next.date, style: .timer)
-                        .font(WTheme.font(20, .bold))
-                        .monospacedDigit()
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                    Text(info.next.date, style: .time)
-                        .font(WTheme.font(11))
-                        .foregroundColor(WTheme.cream.opacity(0.85))
-                }
-                .padding(.horizontal, 14)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(WNight.gold)
+                    .frame(width: 7, height: 7)
+                    .shadow(color: WNight.gold.opacity(0.8), radius: 4)
+                Text(verbatim: info.next.slot.name)
+                    .font(WTheme.font(15, .bold))
+                    .foregroundColor(WNight.gold)
+                Spacer(minLength: 4)
+                Text(verbatim: info.city)
+                    .font(WTheme.font(11, .medium))
+                    .foregroundColor(WNight.text.opacity(0.75))
+                    .lineLimit(1)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            if let prev = info.previous {
-                ElapsedLine(previous: prev, size: 10.5)
-            }
+            NightClock(date: info.next.date, size: 48, meridiemSize: 15)
+                .padding(.top, 4)
+            NightCountdown(target: info.next.date)
+            Spacer(minLength: 2)
+            NightDates(date: info.now, hijriSize: 12, gregorianSize: 11)
         }
     }
 }
 
-// MARK: - متوسط: «قوس اليوم»
+// MARK: - متوسط
 
 struct PrayerMediumView: View {
     let info: PrayerInfo
 
     var body: some View {
-        VStack(spacing: 4) {
-            HStack(alignment: .top) {
+        VStack(spacing: 6) {
+            HStack(alignment: .center, spacing: 6) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(verbatim: info.next.slot.name)
-                        .font(WTheme.font(19, .bold))
-                        .foregroundColor(WTheme.goldSoft)
-                    (Text(verbatim: "بعد ") + Text(info.next.date, style: .timer))
-                        .font(WTheme.font(13, .medium))
-                        .monospacedDigit()
-                        .foregroundColor(.white)
-                }
-                Spacer(minLength: 8)
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text(verbatim: info.city)
-                        .font(WTheme.font(12, .medium))
-                        .foregroundColor(WTheme.cream)
+                    Text(verbatim: "القادمة · " + info.city)
+                        .font(WTheme.font(10.5, .medium))
+                        .foregroundColor(WNight.text.opacity(0.75))
                         .lineLimit(1)
-                    if let prev = info.previous {
-                        ElapsedLine(previous: prev, size: 10.5)
-                    }
+                        .minimumScaleFactor(0.7)
+                    Text(verbatim: info.next.slot.name)
+                        .font(WTheme.font(22, .bold))
+                        .foregroundColor(WNight.gold)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                NightClock(date: info.next.date, size: 44, meridiemSize: 14)
+                    .layoutPriority(1)
+                Spacer(minLength: 0)
+                VStack(alignment: .trailing, spacing: 2) {
+                    NightCountdown(target: info.next.date, size: 12)
+                    NightDates(date: info.now, hijriSize: 11.5, gregorianSize: 10.5)
                 }
             }
+            .frame(maxHeight: .infinity)
 
-            PrayerDayArc(info: info)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            PrayerCells(info: info)
+            NightCells(info: info)
         }
     }
 }
 
-/// خمس خلايا: اسم الصلاة ووقتها، والقادمة مظلَّلة بالذهبي.
-struct PrayerCells: View {
+/// خمس خلايا: اسم الصلاة ووقتها بأرقام إنجليزية، والقادمة مظلَّلة بالذهبي.
+struct NightCells: View {
     let info: PrayerInfo
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 4) {
             ForEach(info.todayPrayers) { p in
-                PrayerCell(point: p, isNext: p.slot == info.next.slot)
+                NightCell(point: p, isNext: p.slot == info.next.slot)
             }
         }
     }
 }
 
-struct PrayerCell: View {
+struct NightCell: View {
     let point: PrayerPoint
     let isNext: Bool
 
@@ -253,130 +293,30 @@ struct PrayerCell: View {
         VStack(spacing: 0) {
             Text(verbatim: point.slot.name)
                 .font(WTheme.font(11, .medium))
-                .foregroundColor(isNext ? WTheme.goldSoft : WTheme.cream)
-            Text(point.date, style: .time)
-                .font(WTheme.font(10))
-                .foregroundColor(isNext ? WTheme.goldSoft : WTheme.cream.opacity(0.75))
+                .foregroundColor(isNext ? WNight.goldBright : WNight.text)
+            Text(verbatim: WClock.clock(point.date))
+                .font(WTheme.font(18, .bold))
+                .monospacedDigit()
+                .foregroundColor(isNext ? WNight.goldBright : WNight.cream)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+            Text(verbatim: WClock.meridiem(point.date))
+                .font(WTheme.font(9, .medium))
+                .foregroundColor(isNext ? WNight.goldBright.opacity(0.8) : WNight.text.opacity(0.6))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(isNext ? WTheme.gold.opacity(0.22) : Color.clear)
+            RoundedRectangle(cornerRadius: 12)
+                .fill(isNext ? WNight.gold.opacity(0.20) : Color.white.opacity(0.07))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isNext ? WNight.gold.opacity(0.75) : Color.white.opacity(0.10), lineWidth: 1)
         )
     }
 }
 
-// MARK: - قوس اليوم
-
-enum DayArcGeometry {
-    /// f=0 الفجر (يمين الشاشة) … f=1 العشاء (يسارها) — اتجاه القراءة العربية.
-    static func point(f: Double, in size: CGSize) -> CGPoint {
-        let inset: CGFloat = 8
-        let usable = size.width - inset * 2
-        let x = inset + usable * CGFloat(1.0 - f)
-        let rise = (size.height - 14) * CGFloat(sin(Double.pi * f))
-        let y = size.height - 6 - rise
-        return CGPoint(x: x, y: y)
-    }
-
-    static func fraction(of date: Date, fajr: Date, isha: Date) -> Double {
-        let total = isha.timeIntervalSince(fajr)
-        if total <= 0 { return 0 }
-        let value = date.timeIntervalSince(fajr) / total
-        return min(max(value, 0), 1)
-    }
-}
-
-struct DayArcShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let steps = 48
-        for i in 0...steps {
-            let f = Double(i) / Double(steps)
-            let pt = DayArcGeometry.point(f: f, in: rect.size)
-            if i == 0 {
-                path.move(to: pt)
-            } else {
-                path.addLine(to: pt)
-            }
-        }
-        return path
-    }
-}
-
-struct PrayerDayArc: View {
-    let info: PrayerInfo
-
-    var body: some View {
-        GeometryReader { geo in
-            arc(size: geo.size)
-        }
-    }
-
-    @ViewBuilder
-    private func arc(size: CGSize) -> some View {
-        let prayers = info.todayPrayers
-        if let first = prayers.first, let last = prayers.last, prayers.count >= 2 {
-            let fajr = first.date
-            let isha = last.date
-            ZStack {
-                DayArcShape()
-                    .stroke(
-                        Color.white.opacity(0.28),
-                        style: StrokeStyle(lineWidth: 1.6, lineCap: .round, dash: [3, 4])
-                    )
-                ForEach(prayers) { p in
-                    marker(
-                        point: p,
-                        position: DayArcGeometry.point(
-                            f: DayArcGeometry.fraction(of: p.date, fajr: fajr, isha: isha),
-                            in: size
-                        )
-                    )
-                }
-                sun(
-                    position: DayArcGeometry.point(
-                        f: DayArcGeometry.fraction(of: info.now, fajr: fajr, isha: isha),
-                        in: size
-                    )
-                )
-            }
-        } else {
-            Color.clear
-        }
-    }
-
-    @ViewBuilder
-    private func marker(point: PrayerPoint, position: CGPoint) -> some View {
-        if point.slot == info.next.slot {
-            Circle()
-                .stroke(WTheme.gold, lineWidth: 2)
-                .frame(width: 10, height: 10)
-                .position(position)
-        } else if point.date <= info.now {
-            Circle()
-                .fill(Color.white)
-                .frame(width: 6, height: 6)
-                .position(position)
-        } else {
-            Circle()
-                .stroke(Color.white.opacity(0.6), lineWidth: 1.4)
-                .frame(width: 6, height: 6)
-                .position(position)
-        }
-    }
-
-    private func sun(position: CGPoint) -> some View {
-        Circle()
-            .fill(WTheme.goldSoft)
-            .frame(width: 11, height: 11)
-            .shadow(color: WTheme.gold.opacity(0.9), radius: 5)
-            .position(position)
-    }
-}
 
 // MARK: - شاشة القفل
 
@@ -402,6 +342,7 @@ struct PrayerLockCircular: View {
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
+                    .environment(\.locale, Locale(identifier: "en_US"))
             }
             .padding(.horizontal, 7)
         }
@@ -417,12 +358,13 @@ struct PrayerLockRectangular: View {
                 Text(verbatim: info.next.slot.name)
                     .font(WTheme.font(15, .bold))
                 Spacer(minLength: 4)
-                Text(info.next.date, style: .time)
+                Text(verbatim: WClock.clock(info.next.date) + " " + WClock.meridiem(info.next.date))
                     .font(WTheme.font(13, .medium))
             }
             (Text(verbatim: "بعد ") + Text(info.next.date, style: .timer))
                 .font(WTheme.font(12))
                 .monospacedDigit()
+                .environment(\.locale, Locale(identifier: "en_US"))
             ProgressView(value: info.progress)
                 .progressViewStyle(.linear)
             if let prev = info.previous {
@@ -441,7 +383,7 @@ struct PrayerLockInline: View {
     let info: PrayerInfo
 
     var body: some View {
-        Text(verbatim: info.next.slot.name + " ") + Text(info.next.date, style: .time)
+        Text(verbatim: info.next.slot.name + " " + WClock.clock(info.next.date) + " " + WClock.meridiem(info.next.date))
     }
 }
 

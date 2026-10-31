@@ -29,6 +29,8 @@ class _SleepTimerSheet extends StatelessWidget {
     (30, '٣٠ دقيقة'),
     (60, 'ساعة'),
     (90, 'ساعة ونصف'),
+    (180, '٣ ساعات'),
+    (480, '٨ ساعات'),
   ];
 
   @override

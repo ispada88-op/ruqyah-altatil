@@ -172,6 +172,42 @@ enum WirdState {
     }
 }
 
+// MARK: - الوقت والتاريخ بأرقام إنجليزية
+
+/// تنسيقات ودجت المواقيت: وقت ١٢ ساعة بأرقام لاتينية، وتاريخ هجري (أم القرى) وميلادي.
+enum WClock {
+    private static func formatter(_ pattern: String, locale: String, calendar: Calendar? = nil) -> DateFormatter {
+        let f = DateFormatter()
+        if let c = calendar { f.calendar = c }
+        f.locale = Locale(identifier: locale)
+        f.timeZone = TimeZone.current
+        f.dateFormat = pattern
+        return f
+    }
+
+    /// «4:52» — لا يتأثر بإعداد ١٢/٢٤ ساعة ولا بلغة الجهاز.
+    static func clock(_ date: Date) -> String {
+        return formatter("h:mm", locale: "en_US_POSIX").string(from: date)
+    }
+
+    /// «ص» قبل الظهر، «م» بعده.
+    static func meridiem(_ date: Date) -> String {
+        return Calendar.current.component(.hour, from: date) < 12 ? "ص" : "م"
+    }
+
+    /// «17 جمادى الأولى 1448».
+    static func hijri(_ date: Date) -> String {
+        let cal = Calendar(identifier: .islamicUmmAlQura)
+        return formatter("d MMMM yyyy", locale: "ar@numbers=latn", calendar: cal).string(from: date)
+    }
+
+    /// «الأربعاء 28 أكتوبر 2026».
+    static func gregorian(_ date: Date) -> String {
+        let cal = Calendar(identifier: .gregorian)
+        return formatter("EEEE d MMMM yyyy", locale: "ar@numbers=latn", calendar: cal).string(from: date)
+    }
+}
+
 // MARK: - نصوص عربية
 
 /// أرقام عربية هندية (٠-٩) كما في التطبيق.

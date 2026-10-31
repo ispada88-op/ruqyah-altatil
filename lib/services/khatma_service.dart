@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,6 +26,43 @@ int khatmaDailyTarget({required int nextPage, required int daysLeft}) {
   return (remaining + d - 1) ~/ d;
 }
 
+/// وتيرة الخطة: صفحات اليوم لو سارت الخطة بلا تأخّر (من الصفحة [fromPage]
+/// على [days] يوماً). تُستعمل سقفاً للورد بعد انتهاء المدة، وللتمديد.
+int khatmaPace({required int days, int fromPage = 1}) {
+  final remaining = (kMushafPages - fromPage + 1).clamp(1, kMushafPages);
+  final d = days < 1 ? 1 : days;
+  return (remaining + d - 1) ~/ d;
+}
+
+/// مدة بقاء الصفحة ظاهرة قبل أن تُحتسب مقروءة في الختمة.
+const Duration kKhatmaDwell = Duration(seconds: 10);
+
+/// يحتسب الصفحة مقروءة بعد بقائها ظاهرة [dwell]؛ التقليب السريع بين الصفحات
+/// لا يحتسب شيئاً. [show] يُستدعى عند ظهور صفحة، و[pause] عند خروج التطبيق
+/// للخلفية (حتى لا تُحتسب صفحة تُركت مفتوحة والشاشة مقفلة).
+class PageDwellTimer {
+  PageDwellTimer(this.onRead, {this.dwell = kKhatmaDwell});
+
+  final void Function(int page) onRead;
+  final Duration dwell;
+  Timer? _timer;
+
+  void show(int page) {
+    _timer?.cancel();
+    _timer = Timer(dwell, () {
+      _timer = null;
+      onRead(page);
+    });
+  }
+
+  void pause() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  void dispose() => pause();
+}
+
 /// ختمة القرآن بخطة يومية: تتقدّم تلقائياً بقراءة الصفحات بالتسلسل في المصحف.
 class KhatmaService extends ChangeNotifier {
   KhatmaService._();
@@ -38,6 +77,8 @@ class KhatmaService extends ChangeNotifier {
   DateTime _start = DateTime.now();
   int _days = 30;
   int _next = 1; // أول صفحة لم تُقرأ بعد
+  int _startPage = 1; // الصفحة التي بدأت منها الخطة
+  int _pace = 0; // وتيرة الخطة عند بدئها (٠ = قديمة: تُشتقّ من المدة)
   String _dayKey = '';
   int _dayStart = 1;
   int _dayTarget = 0;
@@ -51,7 +92,19 @@ class KhatmaService extends ChangeNotifier {
   int get days => _days;
   int get nextPage => _next.clamp(1, kMushafPages);
   int get completedCount => _completed;
+  int get startPage => _startPage;
+
+  /// صفحات اليوم لو سارت الخطة بلا تأخّر. تُثبَّت عند بدء الخطة ولا يغيّرها
+  /// التمديد، فلا يظهر عرض التمديد من جديد بعد قبوله.
+  int get planPace =>
+      _pace > 0 ? _pace : khatmaPace(days: _days, fromPage: _startPage);
   DateTime get startDate => _start;
+
+  /// يُستدعى مرة حين يكتمل ورد اليوم (يُربط بطلب التقييم من main.dart).
+  VoidCallback? onTodayCompleted;
+
+  /// تُستدعى حين تبدأ ختمة أو تتوقف (يُربط بإعادة جدولة تذكير الورد من main.dart).
+  VoidCallback? onPlanChanged;
 
   /// أول صفحة وآخر صفحة في ورد اليوم.
   int get todayStartPage => _dayStart;
@@ -91,6 +144,8 @@ class KhatmaService extends ChangeNotifier {
       _start = (s is String ? DateTime.tryParse(s) : null) ?? DateTime.now();
       _days = i('khatma_days', 30, 1, 3650);
       _next = i('khatma_next', 1, 1, kMushafPages + 1);
+      _startPage = i('khatma_start_page', 1, 1, kMushafPages);
+      _pace = i('khatma_pace', 0, 0, kMushafPages);
       final dk = p.get('khatma_day_key');
       _dayKey = dk is String ? dk : '';
       _dayStart = i('khatma_day_start', 1, 1, kMushafPages);
@@ -113,8 +168,45 @@ class KhatmaService extends ChangeNotifier {
     final daysLeft = _days - calendarDaysBetween(_start, now);
     _dayKey = key;
     _dayStart = _next.clamp(1, kMushafPages);
-    _dayTarget = khatmaDailyTarget(nextPage: _next, daysLeft: daysLeft);
+    _dayTarget = _targetFor(_next, daysLeft);
     _save();
+  }
+
+  /// ورد اليوم من الصفحة [fromPage] وقد بقي [daysLeft] يوماً (مع اليوم).
+  /// بعد انتهاء المدة لا يصير الورد كل المتبقي في يوم واحد، بل لا يتجاوز
+  /// وتيرة الخطة الأصلية.
+  int _targetFor(int fromPage, int daysLeft) {
+    if (daysLeft >= 1) {
+      return khatmaDailyTarget(nextPage: fromPage, daysLeft: daysLeft);
+    }
+    final remaining = (kMushafPages - fromPage + 1).clamp(0, kMushafPages);
+    final pace = planPace;
+    return remaining < pace ? remaining : pace;
+  }
+
+  /// هل تأخّرت عن الخطة تأخّراً يستحق عرض التمديد؟ (انتهت المدة وبقي أكثر من
+  /// يوم، أو صار ورد اليوم أكثر من ١٫٥ ضعف الوتيرة الأصلية.)
+  bool isBehind(DateTime now) {
+    if (!_active || _dayTarget == 0) return false;
+    if (daysLeftAfterToday(now) < 0) return pagesLeft > planPace;
+    return _dayTarget * 2 > planPace * 3;
+  }
+
+  /// يمدّ الخطة إلى وتيرتها الأصلية: يُعاد حساب المدة من الصفحات المتبقية، ويبقى
+  /// تقدّم اليوم كما هو.
+  Future<void> extendToPace({DateTime? now}) async {
+    await ensureLoaded();
+    if (!_active) return;
+    final n = now ?? DateTime.now();
+    _rollover(n);
+    final elapsed = calendarDaysBetween(_start, n).clamp(0, 3650);
+    final remaining = (kMushafPages - _dayStart + 1).clamp(1, kMushafPages);
+    final pace = planPace;
+    final newLeft = (remaining + pace - 1) ~/ pace;
+    _days = (elapsed + newLeft).clamp(1, 3650);
+    _dayTarget = _targetFor(_dayStart, _days - elapsed);
+    notifyListeners();
+    await _save();
   }
 
   /// للواجهة: يتأكد من يوم اليوم (إن بقي التطبيق مفتوحاً بعد منتصف الليل).
@@ -131,12 +223,15 @@ class KhatmaService extends ChangeNotifier {
     _active = true;
     _days = days.clamp(1, 3650);
     _start = DateTime(n.year, n.month, n.day);
-    _next = fromPage.clamp(1, kMushafPages);
+    _startPage = fromPage.clamp(1, kMushafPages);
+    _next = _startPage;
+    _pace = khatmaPace(days: _days, fromPage: _startPage);
     _finishedDay = '';
     _dayKey = '';
     _rollover(n);
     notifyListeners();
     await _save();
+    onPlanChanged?.call();
   }
 
   Future<void> stop() async {
@@ -144,10 +239,11 @@ class KhatmaService extends ChangeNotifier {
     _active = false;
     notifyListeners();
     await _save();
+    onPlanChanged?.call();
   }
 
-  /// فُتحت صفحة [p] في القارئ: إن كانت هي المتوقعة تقدّمت الختمة.
-  /// (التخطّي بالسحب أو القفز لا يُحتسب قراءةً.)
+  /// قُرئت صفحة [p] (بقيت ظاهرة في القارئ [kKhatmaDwell]): إن كانت هي المتوقعة
+  /// تقدّمت الختمة. (التخطّي بالسحب أو القفز لا يُحتسب قراءةً.)
   Future<void> onPageViewed(int p, {DateTime? now}) async {
     await ensureLoaded();
     if (!_active) return;
@@ -155,10 +251,12 @@ class KhatmaService extends ChangeNotifier {
     // وإلا حُسبت صفحات اليوم الجديد على بداية الأمس.
     _rollover(now ?? DateTime.now());
     if (p != _next) return;
+    final wasDone = todayDone;
     _next = p + 1;
     if (_next > kMushafPages) _finish();
     notifyListeners();
     await _save();
+    if (!wasDone && todayDone) onTodayCompleted?.call();
   }
 
   void _finish() {
@@ -172,11 +270,13 @@ class KhatmaService extends ChangeNotifier {
     await ensureLoaded();
     if (!_active) return;
     refresh(now);
+    final wasDone = todayDone;
     final end = todayEndPage;
     if (_next <= end) _next = end + 1;
     if (_next > kMushafPages) _finish();
     notifyListeners();
     await _save();
+    if (!wasDone && todayDone) onTodayCompleted?.call();
   }
 
   Future<void> _save() async {
@@ -186,6 +286,8 @@ class KhatmaService extends ChangeNotifier {
       await p.setString('khatma_start', khatmaDayKey(_start));
       await p.setInt('khatma_days', _days);
       await p.setInt('khatma_next', _next);
+      await p.setInt('khatma_start_page', _startPage);
+      await p.setInt('khatma_pace', _pace);
       await p.setString('khatma_day_key', _dayKey);
       await p.setInt('khatma_day_start', _dayStart);
       await p.setInt('khatma_day_target', _dayTarget);

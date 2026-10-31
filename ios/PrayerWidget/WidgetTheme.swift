@@ -80,3 +80,52 @@ struct RingView: View {
         }
     }
 }
+
+// MARK: - «ليل ذهبي» (ودجت المواقيت)
+
+enum WNight {
+    static let inkTop = Color(red: 0.094, green: 0.141, blue: 0.251)      // #182440
+    static let inkBottom = Color(red: 0.031, green: 0.047, blue: 0.094)   // #080C18
+    static let gold = Color(red: 0.910, green: 0.784, blue: 0.459)        // #E8C875
+    static let goldBright = Color(red: 0.953, green: 0.839, blue: 0.541)  // #F3D68A
+    static let text = Color(red: 0.851, green: 0.827, blue: 0.761)        // #D9D3C2
+    static let cream = Color(red: 0.957, green: 0.918, blue: 0.816)       // #F4EAD0
+}
+
+/// حبر داكن بلمعة زجاجية خفيفة من الزاوية العليا.
+struct NightBackground: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [WNight.inkTop, WNight.inkBottom],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            LinearGradient(
+                colors: [Color.white.opacity(0.14), Color.white.opacity(0)],
+                startPoint: .topLeading,
+                endPoint: .center
+            )
+        }
+    }
+}
+
+extension View {
+    /// مثل widgetBackgroundFor لكن بخلفية «ليل ذهبي».
+    @ViewBuilder
+    func nightBackgroundFor(_ family: WidgetFamily) -> some View {
+        if #available(iOS 17.0, *) {
+            if family.isAccessory {
+                self.containerBackground(for: .widget) { Color.clear }
+            } else {
+                self.containerBackground(for: .widget) { NightBackground() }
+            }
+        } else {
+            if family.isAccessory {
+                self
+            } else {
+                self.padding(12).background(NightBackground())
+            }
+        }
+    }
+}

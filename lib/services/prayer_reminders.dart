@@ -17,27 +17,39 @@ class PrayerReminderConfig {
   /// تذكير بأذكار النوم بعد العشاء.
   final bool sleep;
 
+  /// تذكير بورد الختمة بعد هذه الصلاة (null = معطّل). يعمل حين تكون لديك ختمة
+  /// جارية ولم يكتمل ورد اليوم.
+  final PrayerKind? khatmaAfter;
+
   const PrayerReminderConfig({
     this.alerts = const {},
     this.afterPrayer = false,
     this.kahfFriday = false,
     this.sleep = false,
+    this.khatmaAfter,
   });
 
   bool get anyEnabled =>
-      alerts.isNotEmpty || afterPrayer || kahfFriday || sleep;
+      alerts.isNotEmpty ||
+      afterPrayer ||
+      kahfFriday ||
+      sleep ||
+      khatmaAfter != null;
 
   PrayerReminderConfig copyWith({
     Set<PrayerKind>? alerts,
     bool? afterPrayer,
     bool? kahfFriday,
     bool? sleep,
+    PrayerKind? khatmaAfter,
+    bool clearKhatma = false,
   }) =>
       PrayerReminderConfig(
         alerts: alerts ?? this.alerts,
         afterPrayer: afterPrayer ?? this.afterPrayer,
         kahfFriday: kahfFriday ?? this.kahfFriday,
         sleep: sleep ?? this.sleep,
+        khatmaAfter: clearKhatma ? null : (khatmaAfter ?? this.khatmaAfter),
       );
 }
 
@@ -48,6 +60,7 @@ class PrayerRemindersStore {
   static const _kAfter = 'prayer_after_adhkar';
   static const _kKahf = 'prayer_kahf_friday';
   static const _kSleep = 'prayer_sleep_adhkar';
+  static const _kKhatma = 'prayer_khatma_after'; // اسم PrayerKind أو غائب
 
   /// الشروق ليس صلاة فلا ينفع للتنبيه.
   static bool _valid(PrayerKind k) => k.isPrayer;
@@ -65,6 +78,13 @@ class PrayerRemindersStore {
         afterPrayer: p.get(_kAfter) == true,
         kahfFriday: p.get(_kKahf) == true,
         sleep: p.get(_kSleep) == true,
+        khatmaAfter: () {
+          final name = p.get(_kKhatma);
+          for (final k in PrayerKind.values) {
+            if (_valid(k) && k.name == name) return k;
+          }
+          return null;
+        }(),
       );
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'PrayerRemindersStore.load');
@@ -81,5 +101,10 @@ class PrayerRemindersStore {
     await p.setBool(_kAfter, c.afterPrayer);
     await p.setBool(_kKahf, c.kahfFriday);
     await p.setBool(_kSleep, c.sleep);
+    if (c.khatmaAfter != null && _valid(c.khatmaAfter!)) {
+      await p.setString(_kKhatma, c.khatmaAfter!.name);
+    } else {
+      await p.remove(_kKhatma);
+    }
   }
 }
