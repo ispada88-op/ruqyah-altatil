@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'adhan_voices.dart';
 import 'error_reporter.dart';
 import 'prayer_times_service.dart';
 
@@ -21,12 +22,16 @@ class PrayerReminderConfig {
   /// جارية ولم يكتمل ورد اليوم.
   final PrayerKind? khatmaAfter;
 
+  /// صوت تنبيه دخول الوقت ([AdhanVoice.none] = صوت الإشعار المعتاد).
+  final AdhanVoice adhanVoice;
+
   const PrayerReminderConfig({
     this.alerts = const {},
     this.afterPrayer = false,
     this.kahfFriday = false,
     this.sleep = false,
     this.khatmaAfter,
+    this.adhanVoice = AdhanVoice.none,
   });
 
   bool get anyEnabled =>
@@ -43,6 +48,7 @@ class PrayerReminderConfig {
     bool? sleep,
     PrayerKind? khatmaAfter,
     bool clearKhatma = false,
+    AdhanVoice? adhanVoice,
   }) =>
       PrayerReminderConfig(
         alerts: alerts ?? this.alerts,
@@ -50,6 +56,7 @@ class PrayerReminderConfig {
         kahfFriday: kahfFriday ?? this.kahfFriday,
         sleep: sleep ?? this.sleep,
         khatmaAfter: clearKhatma ? null : (khatmaAfter ?? this.khatmaAfter),
+        adhanVoice: adhanVoice ?? this.adhanVoice,
       );
 }
 
@@ -61,6 +68,7 @@ class PrayerRemindersStore {
   static const _kKahf = 'prayer_kahf_friday';
   static const _kSleep = 'prayer_sleep_adhkar';
   static const _kKhatma = 'prayer_khatma_after'; // اسم PrayerKind أو غائب
+  static const _kVoice = 'prayer_adhan_voice'; // AdhanVoice.id
 
   /// الشروق ليس صلاة فلا ينفع للتنبيه.
   static bool _valid(PrayerKind k) => k.isPrayer;
@@ -85,6 +93,7 @@ class PrayerRemindersStore {
           }
           return null;
         }(),
+        adhanVoice: AdhanVoice.byId(p.getString(_kVoice)),
       );
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'PrayerRemindersStore.load');
@@ -101,6 +110,7 @@ class PrayerRemindersStore {
     await p.setBool(_kAfter, c.afterPrayer);
     await p.setBool(_kKahf, c.kahfFriday);
     await p.setBool(_kSleep, c.sleep);
+    await p.setString(_kVoice, c.adhanVoice.id);
     if (c.khatmaAfter != null && _valid(c.khatmaAfter!)) {
       await p.setString(_kKhatma, c.khatmaAfter!.name);
     } else {

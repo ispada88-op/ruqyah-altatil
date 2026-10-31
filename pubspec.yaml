@@ -16,6 +16,7 @@ dependencies:
   provider: ^6.1.2
   go_router: ^16.2.0
   just_audio: ^0.10.5
+  path_provider: ^2.1.5
   just_audio_background: ^0.0.1-beta.13   # background playback (lock screen + notification)
   audio_session: ^0.2.2
   shared_preferences: ^2.0.0
@@ -50,6 +51,8 @@ flutter:
   assets:
     - assets/icons/
     - assets/audio/
+    # مقاطع الأذان لإشعار iOS (≤٣٠ث). الأذان الكامل لأندرويد في res/raw.
+    - assets/adhan/
     # Bundled Google Fonts (offline Quran text on first launch; no request to
     # fonts.gstatic.com). Names MUST follow google_fonts' Family-Variant.ttf.
     # Any weight not bundled here is still fetched at runtime as before.

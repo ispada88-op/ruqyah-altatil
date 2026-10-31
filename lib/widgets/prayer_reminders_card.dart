@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:roqia_altatil/services/adhan_voices.dart';
 import 'package:roqia_altatil/services/error_reporter.dart';
 import 'package:roqia_altatil/services/notification_service.dart';
 import 'package:roqia_altatil/services/prayer_reminders.dart';
@@ -172,6 +173,7 @@ class _PrayerRemindersCardState extends State<PrayerRemindersCard>
             ),
           if (!_exactOk && _cfg.alerts.isNotEmpty)
             _exactHint(accent, textColor, subColor),
+          if (_cfg.alerts.isNotEmpty) _voicePicker(accent, textColor, subColor),
           const Divider(height: 1),
           _row(
             icon: Icons.menu_book_outlined,
@@ -231,6 +233,61 @@ class _PrayerRemindersCardState extends State<PrayerRemindersCard>
             textColor: textColor,
             subColor: subColor,
           ),
+        ],
+      ),
+    );
+  }
+
+  /// صوت تنبيه دخول الوقت: إشعار عادي أو أذان مؤذني الحرمين، مع تجربة فورية.
+  Widget _voicePicker(Color accent, Color textColor, Color subColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.volume_up_outlined, size: 20, color: accent),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text('صوت التنبيه',
+                    style: AppTextStyles.body(color: textColor)
+                        .copyWith(fontWeight: FontWeight.w500)),
+              ),
+              TextButton.icon(
+                onPressed: _busy
+                    ? null
+                    : () => NotificationService.instance
+                        .showAdhanTest(_cfg.adhanVoice),
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('جرّب'),
+              ),
+            ],
+          ),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            children: [
+              for (final v in AdhanVoice.values)
+                ChoiceChip(
+                  label: Text(v.label),
+                  selected: _cfg.adhanVoice == v,
+                  onSelected: _busy
+                      ? null
+                      : (_) => _apply(_cfg.copyWith(adhanVoice: v)),
+                ),
+            ],
+          ),
+          if (_cfg.adhanVoice != AdhanVoice.none)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Text(
+                defaultTargetPlatform == TargetPlatform.iOS
+                    ? 'في iPhone يُسمع أول الأذان فقط (حدّ النظام ٣٠ ثانية).'
+                    : 'يُسمع الأذان كاملاً، ويتوقف بسحب الإشعار.',
+                style: AppTextStyles.caption(color: subColor),
+              ),
+            ),
         ],
       ),
     );

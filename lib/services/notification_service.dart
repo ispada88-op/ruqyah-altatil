@@ -1,13 +1,16 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show PlatformException;
+import 'package:flutter/services.dart' show PlatformException, rootBundle;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'adhan_voices.dart';
 import 'adhkar_reminders.dart';
 import 'custom_reminders.dart';
 import 'error_reporter.dart';
@@ -446,6 +449,7 @@ class NotificationService {
             ),
             iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
           );
+          final adhanDetails = await _adhanDetails(prayerCfg.adhanVoice);
           // تنبيه دخول الوقت وحده يحتاج دقة الدقيقة؛ الباقي (أذكار) يحتمل نافذة.
           final exact = !isIos && await exactAlarmsAllowed();
           for (final n in planned) {
@@ -454,7 +458,9 @@ class NotificationService {
               n.title,
               n.body,
               n.when,
-              prayerDetails,
+              n.kind == PlannedKind.prayerAlert && adhanDetails != null
+                  ? adhanDetails
+                  : prayerDetails,
               mode: exact && n.kind == PlannedKind.prayerAlert
                   ? AndroidScheduleMode.exactAllowWhileIdle
                   : AndroidScheduleMode.inexactAllowWhileIdle,
@@ -559,6 +565,67 @@ class NotificationService {
       await _plugin.cancelAll();
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'cancelAll');
+    }
+  }
+
+  /// تفاصيل إشعار دخول الوقت بصوت الأذان المختار، أو null لصوت الإشعار المعتاد.
+  /// على iOS يُنسخ المقطع أولاً إلى Library/Sounds (حيث يبحث النظام عن الأصوات).
+  Future<NotificationDetails?> _adhanDetails(AdhanVoice v) async {
+    if (v == AdhanVoice.none) return null;
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        !await _installIosSound(v)) {
+      return null;
+    }
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        v.androidChannelId,
+        'الأذان: ${v.label}',
+        channelDescription: 'تنبيه دخول وقت الصلاة بصوت الأذان',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound(v.androidRaw),
+        styleInformation: const BigTextStyleInformation(''),
+      ),
+      iOS: DarwinNotificationDetails(
+          presentAlert: true, presentSound: true, sound: v.iosSoundName),
+    );
+  }
+
+  Future<bool> _installIosSound(AdhanVoice v) async {
+    try {
+      final lib = await getLibraryDirectory();
+      final file = File('${lib.path}/Sounds/${v.iosSoundName}');
+      if (await file.exists()) return true;
+      await file.parent.create(recursive: true);
+      final data = await rootBundle.load(v.clipAsset);
+      await file.writeAsBytes(
+          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+          flush: true);
+      return true;
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'NotificationService.installIosSound');
+      return false;
+    }
+  }
+
+  /// تجربة صوت الأذان المختار الآن بإشعار فوري (يُسمَع كما سيصل وقت الصلاة).
+  Future<void> showAdhanTest(AdhanVoice v) async {
+    if (!_initialized) await initialize();
+    try {
+      final details = await _adhanDetails(v) ??
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              _prayerChannelId,
+              _prayerChannelName,
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
+            iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
+          );
+      await _plugin.show(9998, 'تجربة صوت التنبيه', v.label, details);
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'showAdhanTest');
     }
   }
 
