@@ -2,6 +2,11 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:adhan/adhan.dart' as adhan;
+// تقريب تقويم أم القرى يحتاج الأوقات الخام قبل تقريب المكتبة لأقرب دقيقة.
+// ignore: implementation_imports
+import 'package:adhan/src/internal/shadow_length.dart';
+// ignore: implementation_imports
+import 'package:adhan/src/internal/solar_time.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -207,13 +212,23 @@ PrayerDay computePrayerDay({
   }
 
   var pt = forDate(date);
+  var utcDay = date;
   if (!onDate(pt.dhuhr)) {
     for (final shift in const [-1, 1]) {
-      final alt = forDate(DateTime(date.year, date.month, date.day + shift));
+      final d = DateTime(date.year, date.month, date.day + shift);
+      final alt = forDate(d);
       if (onDate(alt.dhuhr)) {
         pt = alt;
+        utcDay = d;
         break;
       }
+    }
+  }
+  if (method == PrayerMethod.ummAlQura && lat.abs() <= kHighLatitudeDeg) {
+    final official = ummAlQuraDisplayTimes(lat, lon, utcDay, madhab,
+        ramadan: isRamadanUmmAlQura(date));
+    if (official != null) {
+      return PrayerDay(DateTime(date.year, date.month, date.day), official);
     }
   }
   return PrayerDay(DateTime(date.year, date.month, date.day), {
@@ -224,6 +239,45 @@ PrayerDay computePrayerDay({
     PrayerKind.maghrib: pt.maghrib,
     PrayerKind.isha: pt.isha,
   });
+}
+
+/// أوقات أم القرى كما يعرضها تقويم أم القرى الرسمي (ummulqura.org.sa).
+///
+/// الحساب نفسه (فجر ١٨٫٥°، عشاء بعد المغرب بـ٩٠ دقيقة و١٢٠ في رمضان)، لكن
+/// التقويم الرسمي لا يقرّب لأقرب دقيقة كما تفعل مكتبة adhan. القاعدة مستخرجة
+/// بمطابقة جداوله المنشورة (١٦ موقعاً بإحداثياته الرسمية في يومين: ٩٤ من ٩٦ وقتاً
+/// مطابقة تماماً والباقي دقيقة واحدة — انظر test/prayer_official_timetables_test):
+/// الشروق للأسفل، والظهر والمغرب والعشاء للأعلى، والفجر والعصر بعد نصف دقيقة للأعلى.
+/// null إن تعذّر الحساب (لا شروق/غروب)، فيعود المستدعي لحساب المكتبة.
+Map<PrayerKind, DateTime>? ummAlQuraDisplayTimes(
+  double lat,
+  double lon,
+  DateTime utcDay,
+  PrayerMadhab madhab, {
+  required bool ramadan,
+}) {
+  final base = DateTime.utc(utcDay.year, utcDay.month, utcDay.day);
+  final st = SolarTime(base, adhan.Coordinates(lat, lon));
+  final fajr = st.hourAngle(-18.5, false);
+  final asr = st.afternoon(madhab == PrayerMadhab.hanafi
+      ? ShadowLength.double
+      : ShadowLength.single);
+  final isha = st.sunset + (ramadan ? 2.0 : 1.5);
+  if (![fajr, st.sunrise, st.transit, asr, st.sunset].every((h) => h.isFinite)) {
+    return null;
+  }
+  DateTime at(int minute) => base.add(Duration(minutes: minute)).toLocal();
+  int up(double h) => (h * 60).ceil();
+  int upHalf(double h) => (h * 60 + 0.5).ceil();
+  int down(double h) => (h * 60).floor();
+  return {
+    PrayerKind.fajr: at(upHalf(fajr)),
+    PrayerKind.sunrise: at(down(st.sunrise)),
+    PrayerKind.dhuhr: at(up(st.transit)),
+    PrayerKind.asr: at(upHalf(asr)),
+    PrayerKind.maghrib: at(up(st.sunset)),
+    PrayerKind.isha: at(up(isha)),
+  };
 }
 
 /// اتجاه القبلة بالدرجات من الشمال الحقيقي مع عقارب الساعة.
