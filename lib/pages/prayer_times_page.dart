@@ -12,6 +12,7 @@ import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/theme.dart';
 import 'package:roqia_altatil/utils/arabic_format.dart';
 import 'package:roqia_altatil/utils/arabic_search.dart';
+import 'package:roqia_altatil/utils/hijri.dart';
 import 'package:roqia_altatil/widgets/app_card.dart';
 import 'package:roqia_altatil/widgets/prayer_reminders_card.dart';
 import 'package:roqia_altatil/widgets/section_back_bar.dart';
@@ -309,7 +310,7 @@ class _NextPrayerHero extends StatelessWidget {
           container: true,
           excludeSemantics: true,
           label:
-              'الصلاة القادمة ${prayerLabelOn(next.kind, next.time)} الساعة ${formatTimeAr(next.time.hour, next.time.minute)}',
+              'الصلاة القادمة ${prayerLabelOn(next.kind, next.time)} الساعة ${formatTimeLatin(next.time.hour, next.time.minute)}',
           child: Column(
             children: [
               Text('الصلاة القادمة',
@@ -320,7 +321,7 @@ class _NextPrayerHero extends StatelessWidget {
                   style: AppTextStyles.header(color: Colors.white)
                       .copyWith(fontSize: 34, fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
-              Text(formatTimeAr(next.time.hour, next.time.minute),
+              Text(formatTimeLatin(next.time.hour, next.time.minute),
                   style: AppTextStyles.subheader(
                       color: AppColors.accentGoldLight)),
               const SizedBox(height: AppSpacing.sm),
@@ -383,11 +384,7 @@ class _TimesCard extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(formatDateAr(now),
-                      style: AppTextStyles.caption(
-                          color: isDark
-                              ? AppColors.textOnDarkSecondary
-                              : AppColors.textSecondary)),
+                  child: _DatesLine(now: now, isDark: isDark),
                 ),
                 Flexible(
                   child: Text(
@@ -420,6 +417,28 @@ class _TimesCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// الميلادي ثم الهجري (أم القرى) في سطرين، بأرقام لاتينية كأوقات الصلاة.
+class _DatesLine extends StatelessWidget {
+  const _DatesLine({required this.now, required this.isDark});
+  final DateTime now;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final h = hijriUmmAlQura(now);
+    final color =
+        isDark ? AppColors.textOnDarkSecondary : AppColors.textSecondary;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(formatDateLatin(now), style: AppTextStyles.caption(color: color)),
+        Text('${h.day} ${kHijriMonths[h.month - 1]} ${h.year} هـ',
+            style: AppTextStyles.caption(color: color)),
+      ],
     );
   }
 }
@@ -469,7 +488,7 @@ class _TimeRow extends StatelessWidget {
                         ? FontWeight.w800
                         : (dim ? FontWeight.w400 : FontWeight.w500))),
           ),
-          Text(formatTimeAr(time.hour, time.minute),
+          Text(formatTimeLatin(time.hour, time.minute),
               style: AppTextStyles.subheader(color: color).copyWith(
                   fontWeight: isNext ? FontWeight.w800 : FontWeight.w600)),
         ],

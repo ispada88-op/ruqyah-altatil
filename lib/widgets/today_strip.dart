@@ -66,7 +66,7 @@ class _TodayStripState extends State<TodayStrip> {
                   : 'الصلاة القادمة: ${prayerLabelOn(next.kind, next.time)}',
               sub: next == null
                   ? 'تُحسب داخل جهازك بلا إنترنت'
-                  : '${formatTimeAr(next.time.hour, next.time.minute)}، بعد ${shortLeftAr(next.time.difference(now))}'
+                  : '${formatTimeLatin(next.time.hour, next.time.minute)}، بعد ${shortLeftAr(next.time.difference(now))}'
                       '${prev == null ? '' : '\nمضى ${shortLeftAr(now.difference(prev.time))} على أذان ${prayerLabelOn(prev.kind, prev.time)}'}',
               onTap: () => context.go(AppRoutes.prayerTimes),
             ),

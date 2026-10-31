@@ -47,6 +47,18 @@ String formatTimeAr(int hour, int minute) {
   return '${arDigits(h12)}:${arDigits(minute.toString().padLeft(2, '0'))} $suffix';
 }
 
+/// وقت الصلاة بأرقام لاتينية: «4:51 ص» / «5:39 م» (نظام ١٢ ساعة).
+String formatTimeLatin(int hour, int minute) {
+  final h12 = hour % 12 == 0 ? 12 : hour % 12;
+  final suffix = hour < 12 ? 'ص' : 'م';
+  return '$h12:${minute.toString().padLeft(2, '0')} $suffix';
+}
+
+/// «السبت 31 أكتوبر 2026» — أسماء عربية وأرقام لاتينية (صفحة المواقيت).
+String formatDateLatin(DateTime d) =>
+    '${kArabicWeekdays[d.weekday - 1]} ${d.day} '
+    '${kArabicMonths[d.month - 1]} ${d.year}';
+
 /// عدد الأيام بصيغته العربية الصحيحة: «يوم واحد» «يومان» «٧ أيام» «٢١ يوماً».
 String daysLabel(int n) {
   if (n == 1) return 'يوم واحد';
