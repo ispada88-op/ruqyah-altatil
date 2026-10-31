@@ -31,5 +31,7 @@ void main() {
     expect(formatTimeLatin(0, 5), '12:05 ص');
     expect(formatDateLatin(DateTime(2026, 10, 31)), 'السبت 31 أكتوبر 2026');
     expect(kHijriMonths[4], 'جمادى الأولى');
+    expect(shortLeftLatin(const Duration(minutes: 282)), '4 س 42 د');
+    expect(shortLeftLatin(const Duration(minutes: 12)), '12 د');
   });
 }

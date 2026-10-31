@@ -86,6 +86,15 @@ String ayatLabel(int n) {
   return '${arDigits(n)} آية';
 }
 
+/// مثل [shortLeftAr] بأرقام لاتينية — لأوقات الصلاة: «1 س 20 د».
+String shortLeftLatin(Duration d) {
+  final mins = d.inMinutes < 0 ? 0 : d.inMinutes;
+  if (mins < 1) return 'أقل من دقيقة';
+  final h = mins ~/ 60, m = mins % 60;
+  if (h == 0) return '$m د';
+  return m == 0 ? '$h س' : '$h س $m د';
+}
+
 /// مدة مختصرة: «١ س ٢٠ د» أو «١٢ د» (أقل من دقيقة: «أقل من دقيقة»).
 /// تُستعمل للمتبقي على الصلاة القادمة وللمنقضي على آخر أذان.
 String shortLeftAr(Duration d) {

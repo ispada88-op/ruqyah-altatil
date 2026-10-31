@@ -22,7 +22,7 @@ String formatCountdown(Duration d) {
   final s = d.inSeconds < 0 ? 0 : d.inSeconds;
   final h = s ~/ 3600, m = (s % 3600) ~/ 60, sec = s % 60;
   String two(int n) => n.toString().padLeft(2, '0');
-  return arDigits('$h:${two(m)}:${two(sec)}');
+  return '$h:${two(m)}:${two(sec)}'; // أرقام لاتينية كأوقات الصلاة
 }
 
 /// اسم الوقت مع مراعاة الجمعة (الظهر يوم الجمعة = «الجمعة»).
@@ -341,7 +341,7 @@ class _NextPrayerHero extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.25)),
                 // «مضى ٣ س ٣٢ د على أذان الفجر» — بالدقيقة لتبقى مقروءة (الأصفار الهندية نقاط).
                 Text(
-                    'مضى ${shortLeftAr(now.difference(prev.time))} على أذان ${prayerLabelOn(prev.kind, prev.time)}',
+                    'مضى ${shortLeftLatin(now.difference(prev.time))} على أذان ${prayerLabelOn(prev.kind, prev.time)}',
                     textAlign: TextAlign.center,
                     style: AppTextStyles.caption(
                         color: Colors.white.withValues(alpha: 0.92))),

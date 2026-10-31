@@ -222,8 +222,8 @@ void main() {
 
   test('formatCountdown / Friday label', () {
     expect(formatCountdown(const Duration(hours: 2, minutes: 5, seconds: 3)),
-        '٢:٠٥:٠٣');
-    expect(formatCountdown(const Duration(seconds: -5)), '٠:٠٠:٠٠');
+        '2:05:03');
+    expect(formatCountdown(const Duration(seconds: -5)), '0:00:00');
     expect(prayerLabelOn(PrayerKind.dhuhr, DateTime(2026, 10, 2)),
         'الجمعة'); // جمعة
     expect(prayerLabelOn(PrayerKind.dhuhr, DateTime(2026, 10, 3)), 'الظهر');

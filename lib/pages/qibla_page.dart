@@ -9,7 +9,6 @@ import 'package:roqia_altatil/nav.dart';
 import 'package:roqia_altatil/services/magnetic_declination.dart';
 import 'package:roqia_altatil/services/prayer_times_service.dart';
 import 'package:roqia_altatil/theme.dart';
-import 'package:roqia_altatil/utils/arabic_format.dart';
 import 'package:roqia_altatil/widgets/app_card.dart';
 import 'package:roqia_altatil/widgets/section_back_bar.dart';
 
@@ -110,7 +109,7 @@ class _QiblaPageState extends State<QiblaPage> {
           padding: const EdgeInsets.all(20),
           children: [
             Text(
-              'القبلة ${arDigits(_deg(qibla))}° من الشمال (مع عقارب الساعة)',
+              'القبلة ${_deg(qibla)}° من الشمال (مع عقارب الساعة)',
               textAlign: TextAlign.center,
               style: AppTextStyles.subheader(
                   color: isDark ? AppColors.textOnDark : AppColors.primaryTeal),
@@ -135,7 +134,7 @@ class _QiblaPageState extends State<QiblaPage> {
                   !hasCompass
                       ? (snap.connectionState == ConnectionState.waiting
                           ? 'جارٍ قراءة البوصلة…'
-                          : 'لا تتوفر بوصلة في هذا الجهاز. وجّه نفسك نحو ${arDigits(_deg(qibla))}° من الشمال.')
+                          : 'لا تتوفر بوصلة في هذا الجهاز. وجّه نفسك نحو ${_deg(qibla)}° من الشمال.')
                       : aligned
                           ? 'أنت باتجاه القبلة ✓'
                           : 'أدر الجهاز حتى يطابق السهم الذهبي أعلى الدائرة',
