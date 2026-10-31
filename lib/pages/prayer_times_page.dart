@@ -31,18 +31,6 @@ String prayerLabelOn(PrayerKind k, DateTime day) =>
         ? 'الجمعة'
         : k.label;
 
-/// شفافية المصدر: الطريقة، وهل طابقناها بجدول الجهة الرسمية في هذا البلد،
-/// وتنبيه العروض العالية حيث قد يُقدَّر الفجر والعشاء.
-String prayerSourceNote(PrayerTimesService svc) {
-  final m = svc.method.label;
-  final base = svc.methodVerifiedHere
-      ? 'الطريقة: $m — مطابقة لجدول الجهة الرسمية'
-      : 'الطريقة: $m — حساب فلكي عام، وقد يختلف دقائق عن مسجدك';
-  return svc.isHighLatitude
-      ? '$base\nخط عرض مرتفع: الفجر والعشاء قد يُقدَّران صيفاً'
-      : base;
-}
-
 /// مواقيت الصلاة: حساب فلكي داخل الجهاز (بدون إنترنت) + القبلة + تنبيهات.
 class PrayerTimesPage extends StatefulWidget {
   const PrayerTimesPage({super.key});
@@ -396,14 +384,6 @@ class _TimesCard extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-            child: Text(prayerSourceNote(svc),
-                style: AppTextStyles.caption(
-                    color: isDark
-                        ? AppColors.textOnDarkSecondary
-                        : AppColors.textSecondary)),
           ),
           for (final k in PrayerKind.values)
             _TimeRow(
