@@ -24,6 +24,25 @@ class ReleaseEntry {
 }
 
 const Map<String, ReleaseEntry> kReleaseNotes = {
+  '1.1.1': ReleaseEntry(
+    highlights: [
+      (
+        Icons.volume_up_outlined,
+        'تنبيه دخول الوقت بصوت الأذان من مؤذني الحرمين، مع زر «جرّب» لسماعه'
+      ),
+      (
+        Icons.verified_outlined,
+        'مواقيت مطابقة لجداول الجهات الرسمية في ماليزيا والأردن وإندونيسيا وسنغافورة، مع بيان مصدر الحساب تحت المواقيت'
+      ),
+      (
+        Icons.my_location_outlined,
+        'يتحدّث موقعك تلقائياً إذا انتقلت لمدينة أخرى، فتبقى المواقيت لمكانك الحالي'
+      ),
+    ],
+    ctaLabel: 'اختر صوت الأذان',
+    ctaRoute: AppRoutes.prayerTimes,
+    ctaIcon: Icons.volume_up_outlined,
+  ),
   '1.1.0': ReleaseEntry(
     highlights: [
       (
