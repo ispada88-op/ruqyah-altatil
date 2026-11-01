@@ -1,7 +1,7 @@
 name: roqia_altatil
 description: "Roqia Al-Ta'til is a serene Islamic app designed to bring tranquility to your daily life, offering written and audio Roqia, along with a daily Dhikr counter in a beautifully minimalist interface."
 publish_to: "none"
-version: 1.1.1+26
+version: 1.1.1+27
 
 environment:
   sdk: ^3.6.0
@@ -53,6 +53,7 @@ flutter:
     - assets/audio/
     # مقاطع الأذان لإشعار iOS (≤٣٠ث). الأذان الكامل لأندرويد في res/raw.
     - assets/adhan/
+    - assets/adhan/seg/
     # Bundled Google Fonts (offline Quran text on first launch; no request to
     # fonts.gstatic.com). Names MUST follow google_fonts' Family-Variant.ttf.
     # Any weight not bundled here is still fetched at runtime as before.

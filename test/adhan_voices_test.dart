@@ -29,6 +29,39 @@ void main() {
     }
   });
 
+  test('full-adhan segments exist, fit the iOS 30 s limit and match segmentSecs', () {
+    for (final v in AdhanVoice.values) {
+      if (v == AdhanVoice.none) {
+        expect(v.segmentCount, 0);
+        continue;
+      }
+      expect(v.segmentCount, greaterThan(3), reason: v.id);
+      var total = 0.0;
+      for (var n = 1; n <= v.segmentCount; n++) {
+        final f = File(v.segmentAsset(n));
+        expect(f.existsSync(), isTrue, reason: v.segmentAsset(n));
+        final b = f.readAsBytesSync();
+        expect(String.fromCharCodes(b.sublist(0, 4)), 'RIFF');
+        final byteRate = b[28] | (b[29] << 8) | (b[30] << 16) | (b[31] << 24);
+        final sec = (b.length - 44) / byteRate;
+        expect(sec, lessThanOrEqualTo(29), reason: '${v.id}#$n iOS limit');
+        expect(sec, closeTo(v.segmentSecs[n - 1], 0.1), reason: '${v.id}#$n');
+        total += sec;
+      }
+      // مجموع المقاطع ≈ الأذان الكامل (الـmp3 أطول من ٣٠ث بكثير).
+      expect(total, greaterThan(100), reason: v.id);
+    }
+  });
+
+  test('Fajr chain fits the pending-notification budget', () {
+    for (final v in AdhanVoice.values) {
+      if (v == AdhanVoice.none) continue;
+      expect((v.segmentCount - 1) * kAdhanChainDays, lessThanOrEqualTo(24));
+    }
+    // IDs السلسلة فوق آخر ID لتنبيهات الصلاة (١٠٠٠ + ٧ أيام × ١٦ خانة).
+    expect(kAdhanChainIdBase, greaterThan(1000 + 7 * 16));
+  });
+
   test('ids are stable and unknown ids fall back to none', () {
     expect(AdhanVoice.byId('qassas'), AdhanVoice.qassas);
     expect(AdhanVoice.byId('gone'), AdhanVoice.none);

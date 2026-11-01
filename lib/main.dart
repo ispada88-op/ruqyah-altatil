@@ -120,6 +120,7 @@ Future<void> main() async {
         PrayerRemindersStore.load().then((c) {
           final v = c.adhanVoice;
           if (v != AdhanVoice.none) {
+            NotificationService.instance.cancelActiveAdhanChain();
             AudioPlayerService.instance.playAdhan(v.fullAsset, v.label);
           }
         });

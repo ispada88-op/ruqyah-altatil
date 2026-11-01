@@ -22,13 +22,17 @@ class PlannedNotification {
   final String body;
   final String? payload;
   final PlannedKind kind;
+
+  /// الصلاة المقصودة لتنبيه دخول الوقت (null لغيره).
+  final PrayerKind? prayer;
   const PlannedNotification(
       {required this.id,
       required this.when,
       required this.title,
       required this.body,
       required this.kind,
-      this.payload});
+      this.payload,
+      this.prayer});
 }
 
 /// IDs تنبيهات الصلاة: ١٠٠٠ فما فوق، ١٦ خانة لكل يوم — لا تتداخل مع الأذكار
@@ -123,6 +127,7 @@ List<PlannedNotification> planPrayerNotifications({
             title: 'حان وقت صلاة $name',
             body: 'دخل وقت الصلاة حسب موقعك. تقبّل الله منك.',
             payload: 'prayer',
+            prayer: k,
             kind: PlannedKind.prayerAlert));
       }
       if (cfg.afterPrayer) {

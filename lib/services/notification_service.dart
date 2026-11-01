@@ -422,8 +422,19 @@ class NotificationService {
           final khatma = KhatmaService.instance;
           await khatma.ensureLoaded();
           final reserve = periodicOn ? minDhikrWhenEnabled : 0;
+          // iOS يقصّ صوت الإشعار عند ٣٠ث ⇒ أذان الفجر الكامل سلسلة إشعارات (مقطع لكل
+          // إشعار) لأقرب [kAdhanChainDays] فجر فقط، تُخصم من ميزانية الـ٦٤.
+          final chainVoice = isIos &&
+                  prayerCfg.adhanVoice != AdhanVoice.none &&
+                  prayerCfg.alerts.contains(PrayerKind.fajr)
+              ? prayerCfg.adhanVoice
+              : AdhanVoice.none;
+          final chainReserve = chainVoice == AdhanVoice.none
+              ? 0
+              : (chainVoice.segmentCount - 1) * kAdhanChainDays;
           final budget = isIos
-              ? maxPending - 1 - custom.length - adhkarCount - reserve
+              ? (maxPending - 1 - custom.length - adhkarCount - reserve - chainReserve)
+                  .clamp(0, maxPending)
               : androidPrayerBudget;
           // +٣٠ث: لا نجدول موعداً بعد ثوانٍ قد يمضي قبل وصول الطلب للنظام.
           final planned = planPrayerNotifications(
@@ -452,15 +463,25 @@ class NotificationService {
           final adhanDetails = await _adhanDetails(prayerCfg.adhanVoice);
           // تنبيه دخول الوقت وحده يحتاج دقة الدقيقة؛ الباقي (أذكار) يحتمل نافذة.
           final exact = !isIos && await exactAlarmsAllowed();
+          final chainOk =
+              chainVoice != AdhanVoice.none && await _installIosSegments(chainVoice);
+          var chainIdx = 0;
+          final chainStarts = <int>[];
           for (final n in planned) {
+            final isChain = chainOk &&
+                n.kind == PlannedKind.prayerAlert &&
+                n.prayer == PrayerKind.fajr &&
+                chainIdx < kAdhanChainDays;
             final ok = await _zone(
               n.id,
               n.title,
               n.body,
               n.when,
-              n.kind == PlannedKind.prayerAlert && adhanDetails != null
-                  ? adhanDetails
-                  : prayerDetails,
+              isChain
+                  ? _segmentDetails(chainVoice, 1)
+                  : n.kind == PlannedKind.prayerAlert && adhanDetails != null
+                      ? adhanDetails
+                      : prayerDetails,
               mode: exact && n.kind == PlannedKind.prayerAlert
                   ? AndroidScheduleMode.exactAllowWhileIdle
                   : AndroidScheduleMode.inexactAllowWhileIdle,
@@ -468,10 +489,32 @@ class NotificationService {
             );
             if (ok) {
               prayerCount++;
+              if (isChain) {
+                chainStarts.add(n.when.millisecondsSinceEpoch);
+                var offset = 0.0;
+                for (var k = 2; k <= chainVoice.segmentCount; k++) {
+                  offset += chainVoice.segmentSecs[k - 2] + kAdhanChainGapSec;
+                  final segOk = await _zone(
+                    kAdhanChainIdBase + chainIdx * _chainSlots + (k - 1),
+                    'أذان الفجر',
+                    chainVoice.label,
+                    n.when.add(Duration(milliseconds: (offset * 1000).round())),
+                    _segmentDetails(chainVoice, k),
+                    payload: 'prayer',
+                  );
+                  if (segOk) {
+                    prayerCount++;
+                  } else {
+                    failed++;
+                  }
+                }
+                chainIdx++;
+              }
             } else {
               failed++;
             }
           }
+          await prefs.setString(_kChainStartsKey, chainStarts.join(','));
         } catch (e, st) {
           ErrorReporter.report(e, st, context: 'NotificationService.prayerPlan');
         }
@@ -606,6 +649,69 @@ class NotificationService {
     } catch (e, st) {
       ErrorReporter.report(e, st, context: 'NotificationService.installIosSound');
       return false;
+    }
+  }
+
+  static const int _chainSlots = 16;
+  static const String _kChainStartsKey = 'adhan_chain_starts';
+
+  /// تفاصيل إشعار المقطع [n] (من ١) من الأذان الكامل على iOS.
+  NotificationDetails _segmentDetails(AdhanVoice v, int n) => NotificationDetails(
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentSound: true,
+          sound: v.segmentSoundName(n),
+          threadIdentifier: 'fajr-adhan', // تُجمَّع إشعارات السلسلة في مجموعة واحدة
+        ),
+      );
+
+  /// ينسخ مقاطع الأذان الكامل إلى Library/Sounds. false إن فشل أيٌّ منها
+  /// فيُكتفى بالمقطع الواحد المعتاد.
+  Future<bool> _installIosSegments(AdhanVoice v) async {
+    try {
+      final lib = await getLibraryDirectory();
+      for (var n = 1; n <= v.segmentCount; n++) {
+        final file = File('${lib.path}/Sounds/${v.segmentSoundName(n)}');
+        if (await file.exists()) continue;
+        await file.parent.create(recursive: true);
+        final data = await rootBundle.load(v.segmentAsset(n));
+        await file.writeAsBytes(
+            data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+            flush: true);
+      }
+      return true;
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'NotificationService.installIosSegments');
+      return false;
+    }
+  }
+
+  /// عند فتح إشعار الأذان يُكمل التطبيق الأذان بنفسه، فنلغي بقية مقاطع السلسلة
+  /// الجارية (إن كانت جارية الآن) حتى لا تتداخل معه.
+  Future<void> cancelActiveAdhanChain() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final starts = (prefs.getString(_kChainStartsKey) ?? '')
+          .split(',')
+          .map(int.tryParse)
+          .whereType<int>()
+          .toList();
+      final voice = (await PrayerRemindersStore.load()).adhanVoice;
+      if (voice == AdhanVoice.none) return;
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final totalMs = (voice.segmentSecs.fold<double>(0, (a, b) => a + b) +
+              voice.segmentCount * kAdhanChainGapSec +
+              60) *
+          1000;
+      for (var i = 0; i < starts.length; i++) {
+        if (nowMs >= starts[i] && nowMs <= starts[i] + totalMs) {
+          for (var k = 2; k <= voice.segmentCount; k++) {
+            await _plugin.cancel(kAdhanChainIdBase + i * _chainSlots + (k - 1));
+          }
+        }
+      }
+    } catch (e, st) {
+      ErrorReporter.report(e, st, context: 'cancelActiveAdhanChain');
     }
   }
 
