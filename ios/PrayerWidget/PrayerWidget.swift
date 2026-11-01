@@ -169,19 +169,27 @@ struct NightClock: View {
     }
 }
 
-/// «بعد 0:59:12» — العدّاد يتحرك وحده، بأرقام إنجليزية.
+/// «مضى على العصر 0:47:12» — عدّاد تصاعدي منذ آخر صلاة، بأرقام إنجليزية.
+/// إن لم تتوفر صلاة سابقة (قبل أول صلاة في البيانات) يعود إلى «بعد» للقادمة.
 struct NightCountdown: View {
-    let target: Date
+    let info: PrayerInfo
     var size: CGFloat = 12.5
 
     var body: some View {
-        (Text(verbatim: "بعد ") + Text(target, style: .timer))
-            .font(WTheme.font(size, .medium))
-            .monospacedDigit()
-            .foregroundColor(WNight.text)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .environment(\.locale, Locale(identifier: "en_US"))
+        Group {
+            if let prev = info.previous {
+                // تاريخ ماضٍ بنمط .timer يعدّ تصاعدياً من تلقاء نفسه.
+                (Text(verbatim: "مضى على " + prev.slot.name + " ") + Text(prev.date, style: .timer))
+            } else {
+                (Text(verbatim: "بعد ") + Text(info.next.date, style: .timer))
+            }
+        }
+        .font(WTheme.font(size, .medium))
+        .monospacedDigit()
+        .foregroundColor(WNight.text)
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+        .environment(\.locale, Locale(identifier: "en_US"))
     }
 }
 
@@ -230,7 +238,7 @@ struct PrayerSmallView: View {
             }
             NightClock(date: info.next.date, size: 48, meridiemSize: 15)
                 .padding(.top, 4)
-            NightCountdown(target: info.next.date)
+            NightCountdown(info: info)
             Spacer(minLength: 2)
             NightDates(date: info.now, hijriSize: 12, gregorianSize: 11)
         }
@@ -261,7 +269,7 @@ struct PrayerMediumView: View {
                     .layoutPriority(1)
                 Spacer(minLength: 0)
                 VStack(alignment: .trailing, spacing: 2) {
-                    NightCountdown(target: info.next.date, size: 12)
+                    NightCountdown(info: info, size: 12)
                     NightDates(date: info.now, hijriSize: 11.5, gregorianSize: 10.5)
                 }
             }
