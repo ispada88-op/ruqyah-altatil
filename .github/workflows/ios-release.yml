@@ -9,6 +9,12 @@
 #   APP_STORE_CONNECT_ISSUER_ID   — Issuer ID (same page)
 #   APP_STORE_CONNECT_PRIVATE_KEY — contents of the downloaded .p8 file
 #   CERTIFICATE_PRIVATE_KEY       — RSA private key (PEM) for the signing cert
+#
+# Supply-chain hardening (2026-11-03):
+#   - every action pinned to a commit SHA
+#   - codemagic-cli-tools installed from a version + hash locked file (ci/codemagic-requirements.txt)
+#   - signing secrets are given ONLY to the steps that need them; `flutter pub get`, analyze,
+#     tests and the build (which run third-party package code) never see them
 # =============================================================================
 
 name: iOS Release (TestFlight)
@@ -18,6 +24,9 @@ on:
   push:
     tags: ["v*"]
 
+permissions:
+  contents: read
+
 jobs:
   ios-release:
     name: Build & upload to TestFlight
@@ -26,30 +35,46 @@ jobs:
     timeout-minutes: 90
 
     env:
-      APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-      CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
       BUNDLE_ID: com.ruqyah.altatil
       WIDGET_BUNDLE_ID: com.ruqyah.altatil.widget
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: "3.41.6"
           channel: stable
           cache: true
 
-      - name: Install codemagic-cli-tools
-        run: pipx install codemagic-cli-tools
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install codemagic-cli-tools (version + hash locked)
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/cm"
+          "$RUNNER_TEMP/cm/bin/pip" install --no-input --require-hashes -r ci/codemagic-requirements.txt
+          echo "$RUNNER_TEMP/cm/bin" >> "$GITHUB_PATH"
+
+      - name: Quality gate (never upload a build that fails analyze/tests)
+        run: |
+          flutter pub get
+          python3 scripts/verify_quran.py
+          flutter analyze --no-fatal-infos
+          flutter test
 
       - name: Initialize keychain
         run: keychain initialize
 
       - name: Fetch signing files (auto-create certificate & profiles)
+        env:
+          APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
         run: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
@@ -61,25 +86,22 @@ jobs:
           keychain add-certificates
           xcode-project use-profiles
 
-      - name: Quality gate (never upload a build that fails analyze/tests)
-        run: |
-          flutter pub get
-          python3 scripts/verify_quran.py
-          flutter analyze --no-fatal-infos
-          flutter test
-
       - name: Build IPA
         run: |
           flutter build ipa --release \
             --export-options-plist "$HOME/export_options.plist"
 
       - name: Upload to TestFlight
+        env:
+          APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
           app-store-connect publish \
             --path "build/ios/ipa/*.ipa"
 
       - name: Upload IPA artifact (backup)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: ios-ipa
