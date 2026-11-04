@@ -120,7 +120,6 @@ Future<void> main() async {
         PrayerRemindersStore.load().then((c) {
           final v = c.adhanVoice;
           if (v != AdhanVoice.none) {
-            NotificationService.instance.cancelActiveAdhanChain();
             AudioPlayerService.instance.playAdhan(v.fullAsset, v.label);
           }
         });
@@ -155,11 +154,33 @@ class _RuqyahAppState extends State<RuqyahApp> with WidgetsBindingObserver {
     _checkOnboarding();
     // مزامنة الـ system UI overlay مع الـ theme الحالي
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncSystemUI());
+    // ignore: discarded_futures
+    _autoLocate();
+  }
+
+  DateTime? _lastAutoLocate;
+
+  /// تحديث الموقع تلقائياً للمسافر: عند فتح التطبيق وعند كل عودة إليه (مرة كل ١٥
+  /// دقيقة كحد أقصى). إن تغيّر الموقع تُعاد جدولة التنبيهات لمواقيت المكان الجديد.
+  Future<void> _autoLocate() async {
+    final last = _lastAutoLocate;
+    final now = DateTime.now();
+    if (last != null && now.difference(last) < const Duration(minutes: 15)) return;
+    _lastAutoLocate = now;
+    final moved = await PrayerTimesService.instance.refreshGpsIfMoved(fresh: true);
+    if (moved) {
+      // ignore: discarded_futures
+      NotificationService.instance.rescheduleIfEnabled();
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // ignore: discarded_futures
+      _autoLocate();
+    }
     // عند الدخول والخروج: آخر ورد وآخر مواقيت في الودجت (المقارنة تمنع التكرار).
     if (state == AppLifecycleState.resumed ||
         state == AppLifecycleState.paused) {

@@ -580,10 +580,14 @@ class PrayerTimesService extends ChangeNotifier {
     await _persist();
   }
 
-  /// للمسافر: عند فتح التطبيق، إن كان الموقع من الجهاز والإذن ممنوحاً من قبل،
-  /// نقرأ آخر موقع معروف (دون تشغيل GPS ودون طلب إذن) ونحدّث المواقيت إن ابتعد
-  /// أكثر من [thresholdKm]. المعالجة على الجهاز فقط. يعيد true إن تغيّر الموقع.
-  Future<bool> refreshGpsIfMoved({double thresholdKm = 25}) async {
+  /// للمسافر: إن كان الموقع من الجهاز والإذن ممنوحاً من قبل (دون طلب إذن جديد)
+  /// نحدّث المواقيت إن ابتعد الجهاز أكثر من [thresholdKm]. المعالجة على الجهاز فقط.
+  /// - [fresh] false (الإقلاع): آخر موقع معروف فقط، سريع ولا يوقف التشغيل.
+  /// - [fresh] true (العودة للتطبيق): قراءة جديدة منخفضة الدقة بمهلة ٨ ثوانٍ، وعند
+  ///   فشلها آخر موقع معروف (قد يكون قديماً على iOS فلا نكتفي به عند العودة).
+  /// يعيد true إن تغيّر الموقع.
+  Future<bool> refreshGpsIfMoved(
+      {double thresholdKm = 10, bool fresh = false}) async {
     try {
       if (_source != PrayerLocationSource.gps || !hasLocation) return false;
       final perm = await Geolocator.checkPermission();
@@ -591,7 +595,20 @@ class PrayerTimesService extends ChangeNotifier {
           perm != LocationPermission.always) {
         return false;
       }
-      final pos = await Geolocator.getLastKnownPosition();
+      Position? pos;
+      if (fresh) {
+        try {
+          pos = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.low,
+              timeLimit: Duration(seconds: 8),
+            ),
+          );
+        } on TimeoutException {
+          pos = null;
+        }
+      }
+      pos ??= await Geolocator.getLastKnownPosition();
       if (pos == null) return false;
       final lat = (pos.latitude * 100).round() / 100;
       final lon = (pos.longitude * 100).round() / 100;

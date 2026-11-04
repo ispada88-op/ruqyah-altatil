@@ -53,7 +53,6 @@ flutter:
     - assets/audio/
     # مقاطع الأذان لإشعار iOS (≤٣٠ث). الأذان الكامل لأندرويد في res/raw.
     - assets/adhan/
-    - assets/adhan/seg/
     # Bundled Google Fonts (offline Quran text on first launch; no request to
     # fonts.gstatic.com). Names MUST follow google_fonts' Family-Variant.ttf.
     # Any weight not bundled here is still fetched at runtime as before.
